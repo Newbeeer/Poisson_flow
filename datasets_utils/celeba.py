@@ -168,7 +168,7 @@ class CelebA(VisionDataset):
 
 def get_celeba(config):
 
-    train_ds = CelebA(root='/data/scratch/ylxu/domainbed', split='train',
+    train_ds = CelebA(root='/data', split='train',
                      transform=transforms.Compose([
                        transforms.CenterCrop(140),
                        transforms.Resize(config.data.image_size),
@@ -176,7 +176,7 @@ def get_celeba(config):
                        transforms.ToTensor(),
                      ]), download=False)
 
-    eval_ds = CelebA(root='/data/scratch/ylxu/domainbed', split='test',
+    eval_ds = CelebA(root='/data', split='test',
                       transform=transforms.Compose([
                         transforms.CenterCrop(140),
                         transforms.Resize(config.data.image_size),
