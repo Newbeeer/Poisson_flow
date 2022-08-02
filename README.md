@@ -2,7 +2,9 @@
 
 
 
-Our implementation heavily rely on the repo https://github.com/yang-song/score_sde_pytorch. 
+![schematic](assets/combine.png)
+
+Our implementation heavily relies on the repo https://github.com/yang-song/score_sde_pytorch. 
 
 ### Usage
 
