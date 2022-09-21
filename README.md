@@ -2,7 +2,7 @@
 
 Pytorch implementation of the paper [Poisson Flow Generative Models](https://openreview.net/forum?id=voV_TRqcWh&referrer=%5BAuthor%20Console%5D(%2Fgroup%3Fid%3DNeurIPS.cc%2F2022%2FConference%2FAuthors%23your-submissions)), 
 
-By Yilun Xu$^*$, Ziming Liu$^*$, Max Tegmark,Tommi S. Jaakkola
+By Yilun Xu\*, Ziming Liu\*, Max Tegmark,Tommi S. Jaakkola
 
 
 
