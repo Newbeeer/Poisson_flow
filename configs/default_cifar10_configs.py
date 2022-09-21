@@ -27,6 +27,7 @@ def get_default_configs():
   sampling.snr = 0.16
   sampling.vs = False
   sampling.N = 1000
+  sampling.z_exp = 5
 
   # evaluation
   config.eval = evaluate = ml_collections.ConfigDict()

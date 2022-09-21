@@ -42,11 +42,6 @@ def get_config():
   # sampling
   sampling = config.sampling
   sampling.method = 'ode'
-  # sampling.method = 'pc'
-  # sampling.predictor = 'euler_maruyama'
-  # sampling.corrector = 'none'
-  #sampling.schedule = 'quadratic'
-  #sampling.schedule = 'linear'
   sampling.schedule = 'exp'
   sampling.r = 50
   sampling.upper_r = 4000

@@ -34,7 +34,7 @@ def get_config():
   training.snapshot_freq = 50000
   training.model = 'ddpmpp'
   training.pz = True
-  training.reduce_mean = False
+  training.reduce_mean = True
 
   # data
   data = config.data
@@ -47,7 +47,7 @@ def get_config():
   sampling = config.sampling
   sampling.method = 'ode'
   sampling.r = 50
-  sampling.upper_r= 30000
+  sampling.upper_r = 20000
   sampling.vs = False
 
   # model
@@ -58,7 +58,7 @@ def get_config():
   model.normalization = 'GroupNorm'
   model.nonlinearity = 'swish'
   model.nf = 128
-  model.ch_mult = (1, 1, 2, 2, 2, 2, 2)
+  model.ch_mult = (1, 1, 2, 2, 4, 4)
   model.num_res_blocks = 2
   model.attn_resolutions = (16,)
   model.resamp_with_conv = True

@@ -190,11 +190,6 @@ class EulerMaruyamaPredictor(Predictor):
     z = torch.randn_like(x)
     if self.sde.config.training.sde == 'poisson':
       if dt is None:
-        if self.sde.config.sampling.schedule == 'quadratic':
-          dt = - (np.sqrt(self.sde.config.sampling.r) - np.sqrt(self.eps)) / self.sde.N
-        elif self.sde.config.sampling.schedule == 'linear':
-          dt = - ((self.sde.config.sampling.r) - (self.eps)) / self.sde.N
-        else:
           dt = - (np.log(self.sde.config.sampling.r) - np.log(self.eps)) / self.sde.N
       drift = self.sde.ode(self.score_fn, x, t)
       diffusion = torch.zeros((len(x)), device=x.device)
@@ -420,52 +415,13 @@ def get_pc_sampler(sde, shape, predictor, corrector, inverse_scaler, snr,
       # Initial sample
       x = sde.prior_sampling(shape).to(device)
       if sde.config.training.sde == 'poisson':
-        if sde.config.sampling.schedule == 'quadratic':
-          timesteps = torch.linspace(np.sqrt(sde.config.sampling.r), np.sqrt(eps), sde.N, device=device)
-        elif sde.config.sampling.schedule == 'linear':
-          timesteps = torch.linspace((sde.config.sampling.r), (eps), sde.N, device=device)
-        else:
           timesteps = torch.linspace(np.log(sde.config.sampling.r), np.log(eps), sde.N + 1, device=device)
-          # timesteps = [np.log(sde.config.sampling.r),
-          #              #np.log(20),
-          #              np.log(12.3231),
-          #              np.log(7.5),
-          #              np.log(5),
-          #              np.log(3.7965),
-          #              np.log(2),
-          #              #np.log(1.),
-          #              np.log(0.65),
-          #              # np.log(0.5),
-          #              np.log(0.3603),
-          #              np.log(0.1110),
-          #              np.log(0.0342),
-          #              #np.log(0.0105),
-          #              #np.log(0.0032),
-          #              np.log(eps)]
-          # timesteps = [
-          #   np.log(40.0),
-          #   np.log(13.8629),
-          #   np.log(4.8045),
-          #   np.log(1.6651),
-          #   #np.log(0.5771),
-          #   np.log(0.2000),
-          #   np.log(0.0693),
-          #   np.log(0.0240),
-          #   np.log(0.0083),
-          #   np.log(0.0029),
-          #   np.log(eps)
-          # ]
-          # timesteps = torch.tensor(timesteps).cuda()
-          # sample_N = len(timesteps) - 1
       else:
-        timesteps = torch.linspace(sde.T, eps, sde.N, device=device)
-      import time
-      start = time.time()
-      for i in range(sde.N):
+        timesteps = torch.linspace(sde.T, eps, sde.N+1, device=device)
 
+      for i in range(sde.N):
         t = timesteps[i]
         if sde.config.training.sde == 'poisson':
-          # dt = - (timesteps[i] - timesteps[i+1])
           dt = - (1 - torch.exp(timesteps[i+1] - timesteps[i]))
           dt = float(dt.cpu().numpy())
         else:
@@ -474,8 +430,6 @@ def get_pc_sampler(sde, shape, predictor, corrector, inverse_scaler, snr,
         x, x_mean = corrector_update_fn(x, vec_t, model=model)
         x, x_mean = predictor_update_fn(x, vec_t, model=model, dt=dt)
 
-      print("total time taken this loop: ", time.time() - start)
-      print("seconds per step:", (time.time() - start)/sde.N)
 
       return inverse_scaler(x_mean if denoise else x), sde.N if sde.config.sampling.corrector == 'none' else sde.N * (n_steps + 1)
 
@@ -542,13 +496,9 @@ def get_ode_sampler(sde, shape, inverse_scaler,
         return to_flattened_numpy(drift)
 
       # Black-box ODE solver for the probability flow ODE
-      import time
-      start = time.time()
       solution = integrate.solve_ivp(ode_func, (sde.T, eps), to_flattened_numpy(x),
                                      rtol=rtol, atol=atol, method=method)
       nfe = solution.nfev
-      print("total time taken this loop: ", time.time() - start)
-      print("seconds per step:", (time.time() - start)/nfe)
       x = torch.tensor(solution.y[:, -1]).reshape(shape).to(device).type(torch.float32)
 
       # Denoising is equivalent to running one predictor step without adding noise
@@ -593,8 +543,8 @@ def get_ode_sampler_exp(sde, shape, rtol=1e-4, atol=1e-4,
         x_drift, z_drift = score_fn(x[:, :-1], torch.ones((len(x))).cuda() * z)
         x_drift = x_drift.view(len(x_drift), -1)
 
-        z_exp = 0.5
-        if z < z_exp and sde.config.training.threshold > 0:
+
+        if z < sde.config.sampling.z_exp and sde.config.training.threshold > 0:
           x_norm = x_drift.norm(p=2, dim=1) / constant
           v_norm = sde.config.training.threshold * x_norm / (1-x_norm)
           v_norm = torch.sqrt(v_norm ** 2 + z ** 2)
@@ -615,15 +565,11 @@ def get_ode_sampler_exp(sde, shape, rtol=1e-4, atol=1e-4,
                                        sde.config.data.image_size)).cuda() * z], dim=1)
         return to_flattened_numpy(drift)
 
-      import time
-      start = time.time()
       # Black-box ODE solver for the probability flow ODE. Note that Z = exp(t)
       solution = integrate.solve_ivp(ode_func, (np.log(sde.config.sampling.r), np.log(eps)), to_flattened_numpy(x),
                                      rtol=rtol, atol=atol, method=method)
 
       nfe = solution.nfev
-      print("total time taken this loop: ", time.time() - start)
-      print("seconds per step:", (time.time() - start)/nfe)
       x = torch.tensor(solution.y[:, -1]).reshape(new_shape).to(device).type(torch.float32)
 
       x = (x[:, :-1] + 1) / 2.

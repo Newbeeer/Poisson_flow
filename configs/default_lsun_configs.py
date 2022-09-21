@@ -26,6 +26,7 @@ def get_default_configs():
   sampling.probability_flow = False
   sampling.snr = 0.075
   sampling.N = 1000
+  sampling.z_exp = 0.1
 
   # evaluation
   config.eval = evaluate = ml_collections.ConfigDict()

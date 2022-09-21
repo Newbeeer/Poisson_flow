@@ -19,6 +19,14 @@ python3 main.py:
   --workdir: Working directory
 ```
 
+For example, to train a new PFGM w/ DDPM++ model on CIFAR-10 dataset, one could execute 
+
+```sh
+python3 main.py --config ./configs/poisson/cifar10_ddpmpp.py --mode train --workdir poisson_ddpmpp
+```
+
+
+
 * `config` is the path to the config file. The prescribed config files are provided in `configs/`. They are formatted according to [`ml_collections`](https://github.com/google/ml_collections) and should be quite self-explanatory.
 
   **Naming conventions of config files**: the path of a config file is a combination of the following dimensions:
@@ -28,12 +36,6 @@ python3 main.py:
   *  dataset: One of `cifar10`, `celeba`, `celebahq`, `celebahq_256`, `ffhq_256`, `celebahq`, `ffhq`.
   * model: One of `ncsn`, `ncsnv2`, `ncsnpp`, `ddpm`, `ddpmpp`.
   * continuous: train the model with continuously sampled time steps. 
-
-  For example, to train a new PFGM w/ DDPM++ model on CIFAR-10 dataset, one could execute 
-
-  ```sh
-  python3 main.py --config ./configs/poisson/cifar10_ddpmpp.py --mode train --workdir poisson_ddpmpp
-  ```
 
 *  `workdir` is the path that stores all artifacts of one experiment, like checkpoints, samples, and evaluation results.
 
@@ -52,3 +54,8 @@ python3 main.py:
    `--config.eval.enable_interpolate` : Image Interpolation
 
    `--config.eval.enable_rescale` : Temperature scaling
+
+
+
+### Checkpoints
+

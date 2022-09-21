@@ -135,26 +135,12 @@ def get_sde_loss_fn(sde, train, reduce_mean=True, continuous=True, eps=1e-5, sde
     else:
       score_fn = mutils.get_score_fn(sde, model, train=train, continuous=continuous)
 
-      if sde.config.training.weighted_loss:
-        samples_batch = batch[: sde.config.training.small_batch_size]
-        samples_full = batch
-
-        t = torch.rand(samples_batch.shape[0], device=samples_batch.device) * (sde.T - eps) + eps
-        z = torch.randn_like(samples_batch)
-        mean, std = sde.marginal_prob(samples_batch, t)
-        perturbed_data = mean + std[:, None, None, None] * z
-        score = score_fn(perturbed_data, t)
-
-        gt_direction = cal_scores(sde, std, perturbed_data, samples_full)
-        score = (score * std[:, None, None, None]).reshape((len(score), -1))
-        losses = torch.square(score - gt_direction)
-      else:
-        t = torch.rand(batch.shape[0], device=batch.device) * (sde.T - eps) + eps
-        z = torch.randn_like(batch)
-        mean, std = sde.marginal_prob(batch, t)
-        perturbed_data = mean + std[:, None, None, None] * z
-        score = score_fn(perturbed_data, t)
-        losses = torch.square(score * std[:, None, None, None] + z)
+      t = torch.rand(batch.shape[0], device=batch.device) * (sde.T - eps) + eps
+      z = torch.randn_like(batch)
+      mean, std = sde.marginal_prob(batch, t)
+      perturbed_data = mean + std[:, None, None, None] * z
+      score = score_fn(perturbed_data, t)
+      losses = torch.square(score * std[:, None, None, None] + z)
 
       losses = reduce_op(losses.reshape(losses.shape[0], -1), dim=-1)
       loss = torch.mean(losses)

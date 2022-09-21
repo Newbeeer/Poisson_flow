@@ -25,11 +25,6 @@ def get_config():
   training.sde = 'vesde'
   training.continuous = True
 
-  # weighted
-  training.batch_size = 4096
-  training.small_batch_size = 128
-  training.weighted_loss = True
-
   # sampling
   sampling = config.sampling
   sampling.method = 'ode'
