@@ -18,7 +18,7 @@ Experimentally, PFGM achieves **current state-of-the-art** performance among the
 
 *Acknowledgement:* Our implementation heavily relies on the repo https://github.com/yang-song/score_sde_pytorch. 
 
-### Dependencies
+## Dependencies
 
 Run the following to install a subset of necessary python packages for our code
 
@@ -26,7 +26,9 @@ Run the following to install a subset of necessary python packages for our code
 pip install -r requirements.txt
 ```
 
-### Usage
+
+
+## Usage
 
 Train and evaluate our models through `main.py`.
 
@@ -77,7 +79,7 @@ python3 main.py --config ./configs/poisson/cifar10_ddpmpp.py --mode train --work
 
 
 
-### Checkpoints
+## Checkpoints
 
 Please place the pretrained checkpoints under the directory `workdir/checkpoints`, e.g., `cifar10_ddpmpp/workdir`.  To evaluate the sample, you could execute:
 
@@ -95,6 +97,6 @@ All checkpoints are provided in this [Google drive folder](https://drive.google.
 
 
 
-### Tips
+## Tips
 
 TODO
