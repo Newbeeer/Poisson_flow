@@ -36,15 +36,14 @@ def get_config():
   # data
   data = config.data
   data.channels = 3
-  data.z = False
   data.centered = True
 
   # sampling
   sampling = config.sampling
   sampling.method = 'ode'
   sampling.schedule = 'exp'
-  sampling.r = 50
-  sampling.upper_r = 4000
+  sampling.z_max = 50
+  sampling.upper_norm = 4000
   sampling.vs = False
   sampling.N = 50
 

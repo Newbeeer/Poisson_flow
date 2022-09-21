@@ -212,7 +212,7 @@ def get_likelihood_fn_poisson(sde, hutchinson_type='Rademacher',
 
 
       init = np.concatenate([to_flattened_numpy(data), np.zeros((shape[0],))], axis=0)
-      solution = integrate.solve_ivp(ode_func, (eps, sde.config.sampling.r), init, rtol=rtol, atol=atol, method=method)
+      solution = integrate.solve_ivp(ode_func, (eps, sde.config.sampling.z_max), init, rtol=rtol, atol=atol, method=method)
       nfe = solution.nfev
       zp = solution.y[:, -1]
       x = from_flattened_numpy(zp[:-shape[0]], shape).to(data.device).type(torch.float32)
@@ -220,7 +220,7 @@ def get_likelihood_fn_poisson(sde, hutchinson_type='Rademacher',
 
       N = np.prod(shape[1:])
       x_norm = x.view(len(x), -1).norm(p=2, dim=1)
-      prior_logp = - torch.log(x_norm ** 2 + sde.config.sampling.r ** 2) * (N + 1) / 2. + np.log(2 * sde.config.sampling.r)
+      prior_logp = - torch.log(x_norm ** 2 + sde.config.sampling.z_max ** 2) * (N + 1) / 2. + np.log(2 * sde.config.sampling.z_max)
       prior_logp = (prior_logp).cuda()
 
       # https://mathworld.wolfram.com/Hypersphere.html for S_N(1)

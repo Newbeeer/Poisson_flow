@@ -276,14 +276,14 @@ class Poisson():
 
   def prior_sampling(self, shape):
 
-    max_z = self.config.sampling.r
+    max_z = self.config.sampling.z_max
     N = self.config.data.channels * self.config.data.image_size * self.config.data.image_size + 1
     samples = np.random.beta(a=N / 2. - 0.5, b=0.5, size=shape[0])
     inverse_beta = samples / (1 - samples)
     samples = np.sqrt(max_z ** 2 * inverse_beta)
-    samples = np.clip(samples, 1, self.config.sampling.upper_r)
+    samples = np.clip(samples, 1, self.config.sampling.upper_norm)
     r = torch.from_numpy(samples).cuda().view(len(samples), -1)
-    #r = self.config.sampling.upper_r
+
     gaussian = torch.randn(shape[0], N - 1).cuda()
     unit_gaussian = gaussian / torch.norm(gaussian, p=2, dim=1, keepdim=True)
     init_samples = unit_gaussian * r

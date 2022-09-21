@@ -411,7 +411,7 @@ def evaluate(config,
         unit_vec = unit_vec.detach().cpu().numpy().astype(np.double)
         unit_vec /= np.sqrt(np.sum(unit_vec ** 2, axis=1, keepdims=True))
         result = geometric_slerp(unit_vec[0], unit_vec[1], t_vals)
-        result = result * config.sampling.upper_r
+        result = result * config.sampling.upper_norm
         result = torch.from_numpy(result).cuda()
 
         samples, n = sampling_fn(score_model, x=result)

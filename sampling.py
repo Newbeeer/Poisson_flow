@@ -190,7 +190,7 @@ class EulerMaruyamaPredictor(Predictor):
     z = torch.randn_like(x)
     if self.sde.config.training.sde == 'poisson':
       if dt is None:
-          dt = - (np.log(self.sde.config.sampling.r) - np.log(self.eps)) / self.sde.N
+          dt = - (np.log(self.sde.config.sampling.z_max) - np.log(self.eps)) / self.sde.N
       drift = self.sde.ode(self.score_fn, x, t)
       diffusion = torch.zeros((len(x)), device=x.device)
     else:
@@ -415,7 +415,7 @@ def get_pc_sampler(sde, shape, predictor, corrector, inverse_scaler, snr,
       # Initial sample
       x = sde.prior_sampling(shape).to(device)
       if sde.config.training.sde == 'poisson':
-          timesteps = torch.linspace(np.log(sde.config.sampling.r), np.log(eps), sde.N + 1, device=device)
+          timesteps = torch.linspace(np.log(sde.config.sampling.z_max), np.log(eps), sde.N + 1, device=device)
       else:
         timesteps = torch.linspace(sde.T, eps, sde.N+1, device=device)
 
@@ -523,7 +523,7 @@ def get_ode_sampler_exp(sde, shape, rtol=1e-4, atol=1e-4,
         x = sde.prior_sampling(shape).to(device)
 
       z = torch.ones((len(x), 1, 1, 1)).cuda()
-      z = z.repeat((1, 1, sde.config.data.image_size, sde.config.data.image_size)) * sde.config.sampling.r
+      z = z.repeat((1, 1, sde.config.data.image_size, sde.config.data.image_size)) * sde.config.sampling.z_max
       x = x.view(shape)
       x = torch.cat((x, z), dim=1)
       x = x.float()
@@ -566,7 +566,7 @@ def get_ode_sampler_exp(sde, shape, rtol=1e-4, atol=1e-4,
         return to_flattened_numpy(drift)
 
       # Black-box ODE solver for the probability flow ODE. Note that Z = exp(t)
-      solution = integrate.solve_ivp(ode_func, (np.log(sde.config.sampling.r), np.log(eps)), to_flattened_numpy(x),
+      solution = integrate.solve_ivp(ode_func, (np.log(sde.config.sampling.z_max), np.log(eps)), to_flattened_numpy(x),
                                      rtol=rtol, atol=atol, method=method)
 
       nfe = solution.nfev

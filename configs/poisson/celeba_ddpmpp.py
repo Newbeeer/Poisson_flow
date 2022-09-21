@@ -37,14 +37,13 @@ def get_config():
   # data
   data = config.data
   data.channels = 3
-  data.z = False
   data.centered = True
 
   # sampling
   sampling = config.sampling
   sampling.method = 'ode'
-  sampling.r = 40
-  sampling.upper_r = 6000
+  sampling.z_max = 40
+  sampling.upper_norm = 6000
   sampling.vs = False
 
   # model

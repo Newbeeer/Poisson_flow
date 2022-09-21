@@ -118,10 +118,8 @@ def get_sde_loss_fn(sde, train, reduce_mean=True, continuous=True, eps=1e-5, sde
 
       target = gt_direction
       score_fn = mutils.get_score_fn(sde, model, train=train, continuous=continuous)
-      if sde.config.data.z:
-        scores, z_score = score_fn(perturbed_samples, torch.clamp(perturbed_samples_vec[:, -1], 1e-10))
-      else:
-        scores, z_score = score_fn(perturbed_samples[:, :-1], torch.clamp(perturbed_samples_vec[:, -1], 1e-10))
+
+      scores, z_score = score_fn(perturbed_samples[:, :-1], torch.clamp(perturbed_samples_vec[:, -1], 1e-10))
 
       scores = scores.view(scores.shape[0], -1)
       scores = torch.cat([scores, z_score[:, None]], dim=1)

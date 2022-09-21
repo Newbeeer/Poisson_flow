@@ -39,15 +39,14 @@ def get_config():
   # data
   data = config.data
   data.channels = 3
-  data.z = False
   data.category = 'bedroom'
   data.centered = True
 
   # sampling
   sampling = config.sampling
   sampling.method = 'ode'
-  sampling.r = 50
-  sampling.upper_r = 20000
+  sampling.z_max = 50
+  sampling.upper_norm = 20000
   sampling.vs = False
 
   # model

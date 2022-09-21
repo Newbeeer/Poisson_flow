@@ -135,7 +135,7 @@ class NCSNpp(nn.Module):
       raise ValueError(f'resblock type {resblock_type} unrecognized.')
 
     # Downsampling block
-    channels = config.data.num_channels + 1 if config.training.sde == 'poisson' and config.data.z else config.data.num_channels
+    channels = config.data.num_channels
     if progressive_input != 'none':
       input_pyramid_ch = channels
 
