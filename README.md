@@ -1,8 +1,8 @@
 # Poisson Flow Generative Models
 
-Pytorch implementation of the paper [Poisson Flow Generative Models](https://openreview.net/forum?id=voV_TRqcWh&referrer=%5BAuthor%20Console%5D(%2Fgroup%3Fid%3DNeurIPS.cc%2F2022%2FConference%2FAuthors%23your-submissions)), 
+Pytorch implementation of the paper [Poisson Flow Generative Models](https://arxiv.org/abs/2209.11178), 
 
-By Yilun Xu\*, Ziming Liu\*, Max Tegmark,Tommi S. Jaakkola
+By [Yilun Xu](http://yilun-xu.com)\*, [Ziming Liu](https://kindxiaoming.github.io/#pub)\*, [Max Tegmark](https://space.mit.edu/home/tegmark/), [Tommi S. Jaakkola](http://people.csail.mit.edu/tommi/)
 
 
 
