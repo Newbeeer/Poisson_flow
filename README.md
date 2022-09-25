@@ -103,6 +103,6 @@ All checkpoints are provided in this [Google drive folder](https://drive.google.
 
 - :star2:**Important** : We use a large batch (e.g. current `training.batch_size=4096` for CIFAR-10, ~25G GPU memory usage) to calculate the Poisson field for each mini-batch samples (e.g. `training.small_batch_size=128` for CIFAR-10). To adjust GPU memory cost, please modify the `training.batch_size` parameter in the config files. 
 
-- The prior distribution on the $z=z_{max}$ hyperplane is a long-tail distribution. We recommend clip the sample norm by the hyper-parameters `sampling.upper_norm`
+- The prior distribution on the $z=z_{max}$ hyperplane is a long-tail distribution. We recommend clipping the sample norm by the hyper-parameters `sampling.upper_norm`
 - TODO
 
