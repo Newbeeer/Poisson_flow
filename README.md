@@ -1,6 +1,6 @@
 # Poisson Flow Generative Models
 
-Pytorch implementation of the paper [Poisson Flow Generative Models](https://arxiv.org/abs/2209.11178), 
+Pytorch implementation of the NeurIPS 2022 paper [Poisson Flow Generative Models](https://arxiv.org/abs/2209.11178), 
 
 By [Yilun Xu](http://yilun-xu.com)\*, [Ziming Liu](https://kindxiaoming.github.io/#pub)\*, [Max Tegmark](https://space.mit.edu/home/tegmark/), [Tommi S. Jaakkola](http://people.csail.mit.edu/tommi/)
 
