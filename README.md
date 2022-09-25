@@ -51,13 +51,13 @@ python3 main.py --config ./configs/poisson/cifar10_ddpmpp.py --mode train --work
 
   **Naming conventions of config files**: the path of a config file is a combination of the following dimensions:
 
-  - Method: One of `poisson`(**PFGM**), `ve`, `vp`, `sub_vp`
+  - Method: One of `poisson`(:star2:**PFGM**), `ve`, `vp`, `sub_vp`
 
   *  dataset: One of `cifar10`, `celeba`, `celebahq`, `celebahq_256`, `ffhq_256`, `celebahq`, `ffhq`.
   * model: One of `ncsn`, `ncsnv2`, `ncsnpp`, `ddpm`, `ddpmpp`.
   * continuous: train the model with continuously sampled time steps. 
 
-  :star2:**Important Remarks** : We use a large batch (e.g. current `training.batch_size=4096` for CIFAR-10, ~25G GPU memory usage) to calculate the Poisson field for each mini-batch samples (e.g. `training.small_batch_size=128`. To adjust GPU memory cost, please modify the `training.batch_size` parameter in the config files. 
+  :star2:**Important Notes** : We use a large batch (e.g. current `training.batch_size=4096` for CIFAR-10, ~25G GPU memory usage) to calculate the Poisson field for each mini-batch samples (e.g. `training.small_batch_size=128` for CIFAR-10). To adjust GPU memory cost, please modify the `training.batch_size` parameter in the config files. 
 
 *  `workdir` is the path that stores all artifacts of one experiment, like checkpoints, samples, and evaluation results.
 
@@ -81,7 +81,7 @@ python3 main.py --config ./configs/poisson/cifar10_ddpmpp.py --mode train --work
 
 ## Checkpoints
 
-Please place the pretrained checkpoints under the directory `workdir/checkpoints`, e.g., `cifar10_ddpmpp/workdir`.  To evaluate the sample, you could execute:
+Please place the pretrained checkpoints under the directory `workdir/checkpoints`, e.g., `cifar10_ddpmpp/checkpoints`.  To generate and evaluate the samples, you could execute:
 
 ```shell
 python3 main.py --config ./configs/poisson/cifar10_ddpmpp.py --mode eval --workdir cifar10_ddpmpp --config.eval.enable_sampling
