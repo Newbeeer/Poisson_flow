@@ -96,6 +96,7 @@ All checkpoints are provided in this [Google drive folder](https://drive.google.
 | [`poisson/cifar10_ddpmpp/`](https://drive.google.com/drive/folders/1UBRMPrABFoho4_laa4VZW733RJ0H_TI0?usp=sharing) | :heavy_check_mark: | 9.62 | 2.54  | ~110 |
 | [`poisson/cifar10_ddpmpp_deep/`](https://drive.google.com/drive/folders/1mM-VjygRzF2Z_v4MapdDcZZaUyLy3QOU?usp=sharing) | :heavy_check_mark: | 9.68 | 2.48  | ~110 |
 | [`poisson/bedroom_ddpmpp/`](https://drive.google.com/drive/folders/1uFmlcBTQmUI_ZfyUiYoR54H4V2uBsuS7?usp=sharing) | :heavy_check_mark: |  -   | 13.66 | ~122 |
+| [`poisson/celeba_ddpmpp/`]() (TODO)                          |                    |      |       |      |
 
 
 
@@ -103,7 +104,7 @@ All checkpoints are provided in this [Google drive folder](https://drive.google.
 
 Please find the statistics for FID scores in the following links:
 
-[CIFAR-10](https://drive.google.com/file/d/1YyympxZ95l6_ane0TxYt94yqeiGcOBNG/view?usp=sharing),  ... (TODO)
+[CIFAR-10](https://drive.google.com/file/d/1YyympxZ95l6_ane0TxYt94yqeiGcOBNG/view?usp=sharing),  CelebA 64, LSUN bedroom 256 (TODO)
 
 
 
