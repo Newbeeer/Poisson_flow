@@ -50,7 +50,7 @@ def get_config():
   # sampling.predictor = 'euler_maruyama'
   # sampling.corrector = 'none'
   # sampling.schedule = 'exp'
-  # sampling.N = 50
+  # sampling.N = 100
 
   # model
   model = config.model

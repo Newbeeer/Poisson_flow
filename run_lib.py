@@ -454,7 +454,7 @@ def evaluate(config,
 
       for r in range(num_sampling_rounds):
         logging.info("sampling -- ckpt: %d, round: %d" % (ckpt, r))
-
+        continue
         # Directory to save samples. Different for each host to avoid writing conflicts
         this_sample_dir = os.path.join(
           eval_dir, f"ckpt_{ckpt}")

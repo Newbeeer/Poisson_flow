@@ -49,6 +49,13 @@ def get_config():
   sampling.upper_norm = 20000
   sampling.vs = False
 
+  ## parameters for euler method
+  # sampling.method = 'pc'
+  # sampling.predictor = 'euler_maruyama'
+  # sampling.corrector = 'none'
+  # sampling.schedule = 'exp'
+  # sampling.N = 100
+
   # model
   model = config.model
   model.name = 'ncsnpp'

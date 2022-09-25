@@ -99,10 +99,19 @@ All checkpoints are provided in this [Google drive folder](https://drive.google.
 
 
 
+### FID statistics
+
+Please find the statistics for FID scores in the following links:
+
+[CIFAR-10](https://drive.google.com/file/d/1YyympxZ95l6_ane0TxYt94yqeiGcOBNG/view?usp=sharing),  ... (TODO)
+
+
+
 ## Tips
 
 - :star2:**Important** : We use a large batch (e.g. current `training.batch_size=4096` for CIFAR-10, ~25G GPU memory usage) to calculate the Poisson field for each mini-batch samples (e.g. `training.small_batch_size=128` for CIFAR-10). To adjust GPU memory cost, please modify the `training.batch_size` parameter in the config files. 
 
 - The prior distribution on the $z=z_{max}$ hyperplane is a long-tail distribution. We recommend clipping the sample norm by the hyper-parameters `sampling.upper_norm`
+- To use the Euler forward method for solving PFGM ODE, please uncomment the Euler method code block in config files.
 - TODO
 
