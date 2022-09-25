@@ -104,7 +104,7 @@ All checkpoints are provided in this [Google drive folder](https://drive.google.
 
 Please find the statistics for FID scores in the following links:
 
-[CIFAR-10](https://drive.google.com/file/d/1YyympxZ95l6_ane0TxYt94yqeiGcOBNG/view?usp=sharing),  CelebA 64, LSUN bedroom 256 (TODO)
+[CIFAR-10](https://drive.google.com/file/d/1YyympxZ95l6_ane0TxYt94yqeiGcOBNG/view?usp=sharing),  [CelebA 64](https://drive.google.com/file/d/10PAjLIsasZ-O7YLWXs51RmkSiIBXql_V/view?usp=sharing), [LSUN bedroom 256](https://drive.google.com/file/d/16zTW5DhwmK4Hl-Vhez9LDyqN-CXi4Lhi/view?usp=sharing)
 
 
 
