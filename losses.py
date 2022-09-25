@@ -90,13 +90,13 @@ def get_sde_loss_fn(sde, train, reduce_mean=True, continuous=True, eps=1e-5, sde
       perturbed_samples_vec, T = utils_poisson.forward_pz(sde, sde.config, samples_batch, T)
 
       z = torch.clamp(perturbed_samples_vec[:, -1], 1e-10)
-      z = torch.ones((1, 1, sde.config.data.image_size, sde.config.data.image_size)).cuda() * z.view(-1, 1, 1, 1)
+      z = torch.ones((1, 1, sde.config.data.image_size, sde.config.data.image_size)).to(z.device) * z.view(-1, 1, 1, 1)
 
       perturbed_samples = torch.cat((perturbed_samples_vec[:, :-1].view_as(samples_batch), z), dim=1)
 
       with torch.no_grad():
         real_samples_vec = torch.cat(
-          (samples_full.reshape(len(samples_full), -1), torch.zeros((len(samples_full), 1)).cuda()), dim=1)
+          (samples_full.reshape(len(samples_full), -1), torch.zeros((len(samples_full), 1)).to(samples_full.device)), dim=1)
 
         data_dim = sde.config.data.image_size * sde.config.data.image_size * sde.config.data.channels
         gt_distance = torch.sum((perturbed_samples_vec.unsqueeze(1) - real_samples_vec) ** 2,

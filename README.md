@@ -47,17 +47,17 @@ For example, to train a new PFGM w/ DDPM++ model on CIFAR-10 dataset, one could 
 python3 main.py --config ./configs/poisson/cifar10_ddpmpp.py --mode train --workdir poisson_ddpmpp
 ```
 
-
-
 * `config` is the path to the config file. The prescribed config files are provided in `configs/`. They are formatted according to [`ml_collections`](https://github.com/google/ml_collections) and should be quite self-explanatory.
 
   **Naming conventions of config files**: the path of a config file is a combination of the following dimensions:
 
-  - Method: One of `poisson`, `ve`, `vp`, `sub_vp`
+  - Method: One of `poisson`(**PFGM**), `ve`, `vp`, `sub_vp`
 
   *  dataset: One of `cifar10`, `celeba`, `celebahq`, `celebahq_256`, `ffhq_256`, `celebahq`, `ffhq`.
   * model: One of `ncsn`, `ncsnv2`, `ncsnpp`, `ddpm`, `ddpmpp`.
   * continuous: train the model with continuously sampled time steps. 
+
+  :star2:**Important Remarks** : We use a large batch (e.g. current `training.batch_size=4096` for CIFAR-10, ~25G GPU memory usage) to calculate the Poisson field for each mini-batch samples (e.g. `training.small_batch_size=128`. To adjust GPU memory cost, please modify the `training.batch_size` parameter in the config files. 
 
 *  `workdir` is the path that stores all artifacts of one experiment, like checkpoints, samples, and evaluation results.
 

@@ -14,8 +14,9 @@ def forward_ode(sde, config, samples_batch, samples_full, T):
     perturbed_samples = samples_batch + noise
 
 
-    z = torch.randn((len(samples_batch), 1, 1, 1)).cuda() * config.model.sigma_end
+    z = torch.randn((len(samples_batch), 1, 1, 1)).to(samples_batch.device) * config.model.sigma_end
     if config.training.restrict_T:
+        # restrict the perturbation steps when initial z is too small
         idx = (z < 0.005).squeeze()
         num = int(idx.int().sum())
         if config.data.dataset == 'CIFAR10':
@@ -31,10 +32,12 @@ def forward_ode(sde, config, samples_batch, samples_full, T):
     perturbed_samples_vec = torch.cat((perturbed_samples[:, :-1].view(len(samples_batch), -1),
                                        perturbed_samples[:, -1].view(len(samples_batch), -1).mean(1).unsqueeze(1)),
                                       dim=1)
-    real_samples_vec = torch.cat((samples_full.reshape(len(samples_full), -1), torch.zeros((len(samples_full), 1)).cuda()),
-                                 dim=1)
-    real_samples_vec_batch = torch.cat((samples_batch.reshape(len(samples_batch), -1), torch.zeros((len(samples_batch), 1)).cuda()),
-                                 dim=1)
+    real_samples_vec = torch.cat((samples_full.reshape(len(samples_full), -1),
+                                  torch.zeros((len(samples_full), 1)).to(samples_full.device)),
+                                  dim=1)
+    real_samples_vec_batch = torch.cat((samples_batch.reshape(len(samples_batch), -1),
+                                        torch.zeros((len(samples_batch), 1)).to(samples_batch.device)),
+                                        dim=1)
 
     s_0 = torch.norm(perturbed_samples_vec - real_samples_vec_batch, p=2, dim=1, keepdim=True)
     data_dim = config.data.image_size * config.data.image_size * config.data.channels
@@ -66,7 +69,7 @@ def forward_ode(sde, config, samples_batch, samples_full, T):
 def forward_pz(sde, config, samples_batch, T):
 
     eps = config.training.eps
-    z = torch.randn((len(samples_batch), 1, 1, 1)).cuda() * config.model.sigma_end
+    z = torch.randn((len(samples_batch), 1, 1, 1)).to(samples_batch.device) * config.model.sigma_end
     if config.training.restrict_T:
         idx = (z < 0.005).squeeze()
         num = int(idx.int().sum())
@@ -79,7 +82,7 @@ def forward_pz(sde, config, samples_batch, T):
     noise = torch.randn_like(samples_batch).reshape(len(samples_batch), -1) * config.model.sigma_end
     norm_T = torch.norm(noise, p=2, dim=1) * multiplier
     z_T = z.squeeze() * multiplier
-    gaussian = torch.randn(len(samples_batch), data_dim).cuda()
+    gaussian = torch.randn(len(samples_batch), data_dim).to(samples_batch.device)
     unit_gaussian = gaussian / torch.norm(gaussian, p=2, dim=1, keepdim=True)
     init_samples = unit_gaussian * norm_T[:, None]
     init_samples = init_samples.view_as(samples_batch)

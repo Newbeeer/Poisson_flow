@@ -190,23 +190,23 @@ def train(config, workdir):
       save_checkpoint(os.path.join(checkpoint_dir, f'checkpoint_{save_step}.pth'), state)
 
       # # Generate and save samples
-      # if config.training.snapshot_sampling:
-      #   ema.store(score_model.parameters())
-      #   ema.copy_to(score_model.parameters())
-      #   sample, n = sampling_fn(score_model)
-      #   ema.restore(score_model.parameters())
-      #   this_sample_dir = os.path.join(sample_dir, "iter_{}".format(step))
-      #   tf.io.gfile.makedirs(this_sample_dir)
-      #   nrow = int(np.sqrt(sample.shape[0]))
-      #   image_grid = make_grid(sample, nrow, padding=2)
-      #   sample = np.clip(sample.permute(0, 2, 3, 1).cpu().numpy() * 255, 0, 255).astype(np.uint8)
-      #   with tf.io.gfile.GFile(
-      #       os.path.join(this_sample_dir, "sample.np"), "wb") as fout:
-      #     np.save(fout, sample)
-      #
-      #   with tf.io.gfile.GFile(
-      #       os.path.join(this_sample_dir, "sample.png"), "wb") as fout:
-      #     save_image(image_grid, fout)
+      if config.training.snapshot_sampling:
+        ema.store(score_model.parameters())
+        ema.copy_to(score_model.parameters())
+        sample, n = sampling_fn(score_model)
+        ema.restore(score_model.parameters())
+        this_sample_dir = os.path.join(sample_dir, "iter_{}".format(step))
+        tf.io.gfile.makedirs(this_sample_dir)
+        nrow = int(np.sqrt(sample.shape[0]))
+        image_grid = make_grid(sample, nrow, padding=2)
+        sample = np.clip(sample.permute(0, 2, 3, 1).cpu().numpy() * 255, 0, 255).astype(np.uint8)
+        with tf.io.gfile.GFile(
+            os.path.join(this_sample_dir, "sample.np"), "wb") as fout:
+          np.save(fout, sample)
+
+        with tf.io.gfile.GFile(
+            os.path.join(this_sample_dir, "sample.png"), "wb") as fout:
+          save_image(image_grid, fout)
 
 
 def evaluate(config,
@@ -451,8 +451,7 @@ def evaluate(config,
     # Generate samples and compute IS/FID/KID when enabled
     if config.eval.enable_sampling:
       num_sampling_rounds = config.eval.num_samples // config.eval.batch_size + 1
-      # num_sampling_rounds = 1
-      id = 0
+
       for r in range(num_sampling_rounds):
         logging.info("sampling -- ckpt: %d, round: %d" % (ckpt, r))
 
@@ -469,30 +468,19 @@ def evaluate(config,
         samples = samples.reshape(
           (-1, config.data.image_size, config.data.image_size, config.data.num_channels))
 
-        # if config.data.dataset == 'CELEBA':
-        #   import tqdm
-        #   for idx, sample in tqdm.tqdm(enumerate(samples_torch)):
-        #     sample = sample.reshape((config.data.num_channels,
-        #                              config.data.image_size,
-        #                              config.data.image_size))
-        #
-        #     # sample = inverse_data_transform(self.config, sample)
-        #     save_image(sample, os.path.join('samples_{}'.format(ckpt), 'sample_{}.png'.format(id)))
-        #     id += 1
-        #
-        #   continue
 
+        # Write samples to disk or Google Cloud Storage
+        with tf.io.gfile.GFile(
+                os.path.join(this_sample_dir, f"samples_{r}.npz"), "wb") as fout:
+          io_buffer = io.BytesIO()
+          np.savez_compressed(io_buffer, samples=samples)
+          fout.write(io_buffer.getvalue())
 
         if config.eval.save_images:
           image_grid = make_grid(samples_torch, nrow=int(np.sqrt(len(samples_torch))))
           save_image(image_grid, os.path.join(eval_dir, f'ode_images_{ckpt}.png'))
           exit(0)
-          # Write samples to disk or Google Cloud Storage
-          with tf.io.gfile.GFile(
-                  os.path.join(this_sample_dir, f"samples_{r}.npz"), "wb") as fout:
-            io_buffer = io.BytesIO()
-            np.savez_compressed(io_buffer, samples=samples)
-            fout.write(io_buffer.getvalue())
+
 
 
         # Force garbage collection before calling TensorFlow code for Inception network
@@ -509,8 +497,6 @@ def evaluate(config,
             io_buffer, pool_3=latents["pool_3"], logits=latents["logits"])
           fout.write(io_buffer.getvalue())
 
-      # if config.data.dataset == 'CELEBA':
-      #   continue
 
       # Compute inception scores, FIDs and KIDs.
       # Load all statistics that have been previously computed and saved for each host
@@ -533,7 +519,7 @@ def evaluate(config,
       data_stats = evaluation.load_dataset_stats(config)
       data_pools = data_stats["pool_3"]
 
-      # Compute FID/KID/IS on all samples together.
+      # Compute FID/IS on all samples together.
       if not inceptionv3:
         inception_score = tfgan.eval.classifier_score_from_logits(all_logits)
       else:
@@ -542,16 +528,6 @@ def evaluate(config,
       fid = tfgan.eval.frechet_classifier_distance_from_activations(
         data_pools, all_pools)
 
-      # Hack to get tfgan KID work for eager execution.
-      # tf_data_pools = tf.convert_to_tensor(data_pools)
-      # tf_all_pools = tf.convert_to_tensor(all_pools)
-      # kid = tfgan.eval.kernel_classifier_distance_from_activations(
-      #   tf_data_pools, tf_all_pools).numpy()
-      # del tf_data_pools, tf_all_pools
-
-      # logging.info(
-      #   "ckpt-%d --- inception_score: %.6e, FID: %.6e, KID: %.6e" % (
-      #     ckpt, inception_score, fid, kid))
       logging.info(
         "ckpt-%d --- inception_score: %.6e, FID: %.6e" % (
           ckpt, inception_score, fid))
