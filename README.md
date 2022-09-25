@@ -44,7 +44,8 @@ python3 main.py:
 For example, to train a new PFGM w/ DDPM++ model on CIFAR-10 dataset, one could execute 
 
 ```sh
-python3 main.py --config ./configs/poisson/cifar10_ddpmpp.py --mode train --workdir poisson_ddpmpp
+python3 main.py --config ./configs/poisson/cifar10_ddpmpp.py --mode train \
+--workdir poisson_ddpmpp
 ```
 
 * `config` is the path to the config file. The prescribed config files are provided in `configs/`. They are formatted according to [`ml_collections`](https://github.com/google/ml_collections) and should be quite self-explanatory.
@@ -84,7 +85,8 @@ python3 main.py --config ./configs/poisson/cifar10_ddpmpp.py --mode train --work
 Please place the pretrained checkpoints under the directory `workdir/checkpoints`, e.g., `cifar10_ddpmpp/checkpoints`.  To generate and evaluate the samples, you could execute:
 
 ```shell
-python3 main.py --config ./configs/poisson/cifar10_ddpmpp.py --mode eval --workdir cifar10_ddpmpp --config.eval.enable_sampling
+python3 main.py --config ./configs/poisson/cifar10_ddpmpp.py --mode eval \ 
+--workdir cifar10_ddpmpp --config.eval.enable_sampling
 ```
 
 All checkpoints are provided in this [Google drive folder](https://drive.google.com/drive/folders/1v4u0OhZ0rxjgch51pZLySztMQATQQOeK?usp=sharing).
