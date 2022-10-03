@@ -313,7 +313,6 @@ def evaluate(config,
 
   for ckpt in range(begin_ckpt, config.eval.end_ckpt + 1):
 
-    os.makedirs(name='samples_{}'.format(ckpt), exist_ok=True)
     # Wait if the target checkpoint doesn't exist yet
     waiting_message_printed = False
     torch.manual_seed(config.seed)
