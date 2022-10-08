@@ -43,7 +43,7 @@ def get_inception_model(inceptionv3=False):
 def load_dataset_stats(config):
   """Load the pre-computed dataset statistics."""
   if config.data.dataset == 'CIFAR10':
-    filename = 'assets/stats/cifar10_stats.npz'
+    filename = '../assets/stats/cifar10_stats.npz'
   elif config.data.dataset == 'CELEBA':
     filename = 'assets/stats/celeba_stats.npz'
   elif config.data.dataset == 'LSUN':

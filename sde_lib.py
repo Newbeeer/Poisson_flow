@@ -305,21 +305,18 @@ class Poisson():
     x_drift, z_drift = score_fn(x, torch.ones((len(x))).cuda() * z)
     x_drift = x_drift.view(len(x_drift), -1)
 
-    z_exp = 5.
+    # Substitute the predicted z with the ground-truth
+    # Please see Appendix B.2.3 in PFGM paper (https://arxiv.org/abs/2209.11178) for details
+    z_exp = self.config.sampling.z_exp
     if z < z_exp and self.config.training.threshold > 0:
       data_dim = self.config.data.image_size * self.config.data.image_size * self.config.data.channels
-      constant = np.sqrt(data_dim)
-      x_norm = x_drift.norm(p=2, dim=1) / constant
-      v_norm = self.config.training.threshold * x_norm / (1 - x_norm)
-      v_norm = torch.sqrt(v_norm ** 2 + z ** 2)
-      z_drift_ = -constant * torch.ones_like(z_drift) * z / (v_norm + self.config.training.threshold)
-      z_drift = z_drift_
+      sqrt_dim = np.sqrt(data_dim)
+      norm_1 = x_drift.norm(p=2, dim=1) / sqrt_dim
+      x_norm = self.config.training.threshold * norm_1 / (1 -norm_1)
+      x_norm = torch.sqrt(x_norm ** 2 + z ** 2)
+      z_drift = -sqrt_dim * torch.ones_like(z_drift) * z / (x_norm + self.config.training.threshold)
 
-    ### normalized to unit vector ###
     v = torch.cat([x_drift, z_drift[:, None]], dim=1)
-    v_norm = v.norm(p=2, dim=1, keepdim=True)
-    v /= (v_norm + 1e-7)
-
     dt_dz = 1 / (v[:, -1] + 1e-5)
     dx_dt = v[:, :-1].view(len(x), self.config.data.num_channels,
                       self.config.data.image_size, self.config.data.image_size)

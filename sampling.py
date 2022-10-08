@@ -26,6 +26,7 @@ from models.utils import from_flattened_numpy, to_flattened_numpy, get_score_fn
 from scipy import integrate
 import sde_lib
 from models import utils as mutils
+from tqdm import tqdm
 
 _CORRECTORS = {}
 _PREDICTORS = {}
@@ -142,7 +143,7 @@ class Predictor(abc.ABC):
     self.eps = eps
 
   @abc.abstractmethod
-  def update_fn(self, x, t, dt=None):
+  def update_fn(self, x, t, t_list=None, idx=None):
     """One update of the predictor.
 
     Args:
@@ -186,20 +187,58 @@ class EulerMaruyamaPredictor(Predictor):
   def __init__(self, sde, score_fn, probability_flow=False, eps=None):
     super().__init__(sde, score_fn, probability_flow, eps)
 
-  def update_fn(self, x, t, dt=None):
+  def update_fn(self, x, t, t_list=None, idx=None):
     z = torch.randn_like(x)
     if self.sde.config.training.sde == 'poisson':
-      if dt is None:
-          dt = - (np.log(self.sde.config.sampling.z_max) - np.log(self.eps)) / self.sde.N
+      if t_list is None:
+        dt = - (np.log(self.sde.config.sampling.z_max) - np.log(self.eps)) / self.sde.N
+      else:
+        dt = - (1 - torch.exp(t_list[idx + 1] - t_list[idx]))
+        dt = float(dt.cpu().numpy())
       drift = self.sde.ode(self.score_fn, x, t)
       diffusion = torch.zeros((len(x)), device=x.device)
     else:
-      if dt is None:
+      if t_list is None:
         dt = -1. / self.sde.N
       drift, diffusion = self.rsde.sde(x, t)
     x_mean = x + drift * dt
     x = x_mean + diffusion[:, None, None, None] * np.sqrt(-dt) * z
     return x, x_mean
+
+@register_predictor(name='improved_euler')
+class ImprovedEulerPredictor(Predictor):
+  def __init__(self, sde, score_fn, probability_flow=False, eps=None):
+    super().__init__(sde, score_fn, probability_flow, eps)
+
+  def update_fn(self, x, t, t_list=None, idx=None):
+    if self.sde.config.training.sde == 'poisson':
+      if t_list is None:
+        dt = - (np.log(self.sde.config.sampling.z_max) - np.log(self.eps)) / self.sde.N
+      else:
+        dt = - (1 - torch.exp(t_list[idx + 1] - t_list[idx]))
+        dt = float(dt.cpu().numpy())
+      drift = self.sde.ode(self.score_fn, x, t)
+    else:
+      if t_list is None:
+        dt = -1. / self.sde.N
+      drift, diffusion = self.rsde.sde(x, t)
+    x_new = x + drift * dt
+
+    if idx == self.sde.N - 1:
+      return x_new, x_new
+    else:
+      idx_new = idx + 1
+      t_new = t_list[idx_new]
+      t_new = torch.ones(len(t), device=t.device) * t_new
+
+      if self.sde.config.training.sde == 'poisson':
+        drift_new = self.sde.ode(self.score_fn, x_new, t_new)
+      else:
+        drift_new, diffusion = self.rsde.sde(x_new, t_new)
+
+      x = x + (0.5 * drift + 0.5 * drift_new) * dt
+      return x, x
+
 
 
 @register_predictor(name='reverse_diffusion')
@@ -207,7 +246,7 @@ class ReverseDiffusionPredictor(Predictor):
   def __init__(self, sde, score_fn, probability_flow=False, eps=None):
     super().__init__(sde, score_fn, probability_flow, eps)
 
-  def update_fn(self, x, t, dt=None):
+  def update_fn(self, x, t, t_list=None, idx=None):
     f, G = self.rsde.discretize(x, t)
     z = torch.randn_like(x)
     x_mean = x - f
@@ -247,7 +286,7 @@ class AncestralSamplingPredictor(Predictor):
     x = x_mean + torch.sqrt(beta)[:, None, None, None] * noise
     return x, x_mean
 
-  def update_fn(self, x, t):
+  def update_fn(self, x, t, t_list=None, idx=None):
     if isinstance(self.sde, sde_lib.VESDE):
       return self.vesde_update_fn(x, t)
     elif isinstance(self.sde, sde_lib.VPSDE):
@@ -261,7 +300,7 @@ class NonePredictor(Predictor):
   def __init__(self, sde, score_fn, probability_flow=False):
     pass
 
-  def update_fn(self, x, t):
+  def update_fn(self, x, t, t_list=None, idx=None):
     return x, x
 
 
@@ -345,7 +384,7 @@ class NoneCorrector(Corrector):
     return x, x
 
 
-def shared_predictor_update_fn(x, t, sde, model, predictor, probability_flow, continuous, eps, dt=None):
+def shared_predictor_update_fn(x, t, sde, model, predictor, probability_flow, continuous, eps, t_list=None, idx=None):
   """A wrapper that configures and returns the update function of predictors."""
   score_fn = mutils.get_score_fn(sde, model, train=False, continuous=continuous)
   if predictor is None:
@@ -353,7 +392,7 @@ def shared_predictor_update_fn(x, t, sde, model, predictor, probability_flow, co
     predictor_obj = NonePredictor(sde, score_fn, probability_flow)
   else:
     predictor_obj = predictor(sde, score_fn, probability_flow, eps)
-  return predictor_obj.update_fn(x, t, dt=dt)
+  return predictor_obj.update_fn(x, t, t_list=t_list, idx=idx)
 
 
 def shared_corrector_update_fn(x, t, sde, model, corrector, continuous, snr, n_steps):
@@ -415,20 +454,20 @@ def get_pc_sampler(sde, shape, predictor, corrector, inverse_scaler, snr,
       # Initial sample
       x = sde.prior_sampling(shape).to(device)
       if sde.config.training.sde == 'poisson':
-          timesteps = torch.linspace(np.log(sde.config.sampling.z_max), np.log(eps), sde.N + 1, device=device)
+        timesteps = torch.linspace(np.log(sde.config.sampling.z_max), np.log(eps), sde.N + 1, device=device)
       else:
         timesteps = torch.linspace(sde.T, eps, sde.N+1, device=device)
 
-      for i in range(sde.N):
+      for i in tqdm(range(sde.N)):
         t = timesteps[i]
         if sde.config.training.sde == 'poisson':
-          dt = - (1 - torch.exp(timesteps[i+1] - timesteps[i]))
-          dt = float(dt.cpu().numpy())
+          vec_t = torch.ones(shape[0], device=t.device) * t
+          x, x_mean = corrector_update_fn(x, vec_t, model=model)
+          x, x_mean = predictor_update_fn(x, vec_t, model=model, t_list=timesteps, idx=i)
         else:
-          dt = None
-        vec_t = torch.ones(shape[0], device=t.device) * t
-        x, x_mean = corrector_update_fn(x, vec_t, model=model)
-        x, x_mean = predictor_update_fn(x, vec_t, model=model, dt=dt)
+          vec_t = torch.ones(shape[0], device=t.device) * t
+          x, x_mean = corrector_update_fn(x, vec_t, model=model)
+          x, x_mean = predictor_update_fn(x, vec_t, model=model)
 
 
       return inverse_scaler(x_mean if denoise else x), sde.N if sde.config.sampling.corrector == 'none' else sde.N * (n_steps + 1)
@@ -522,7 +561,7 @@ def get_ode_sampler_exp(sde, shape, rtol=1e-4, atol=1e-4,
       if x is None:
         x = sde.prior_sampling(shape).to(device)
 
-      z = torch.ones((len(x), 1, 1, 1)).cuda()
+      z = torch.ones((len(x), 1, 1, 1)).(x.device)
       z = z.repeat((1, 1, sde.config.data.image_size, sde.config.data.image_size)) * sde.config.sampling.z_max
       x = x.view(shape)
       x = torch.cat((x, z), dim=1)
@@ -543,26 +582,25 @@ def get_ode_sampler_exp(sde, shape, rtol=1e-4, atol=1e-4,
         x_drift, z_drift = score_fn(x[:, :-1], torch.ones((len(x))).cuda() * z)
         x_drift = x_drift.view(len(x_drift), -1)
 
+        # Substitute the predicted z with the ground-truth
+        # Please see Appendix B.2.3 in PFGM paper (https://arxiv.org/abs/2209.11178) for details
+        z_exp = sde.config.sampling.z_exp
+        if z < z_exp and sde.config.training.threshold > 0:
+          data_dim = sde.config.data.image_size * sde.config.data.image_size * sde.config.data.channels
+          sqrt_dim = np.sqrt(data_dim)
+          norm_1 = x_drift.norm(p=2, dim=1) / sqrt_dim
+          x_norm = sde.config.training.threshold * norm_1 / (1 - norm_1)
+          x_norm = torch.sqrt(x_norm ** 2 + z ** 2)
+          z_drift = -sqrt_dim * torch.ones_like(z_drift) * z / (x_norm + sde.config.training.threshold)
 
-        if z < sde.config.sampling.z_exp and sde.config.training.threshold > 0:
-          x_norm = x_drift.norm(p=2, dim=1) / constant
-          v_norm = sde.config.training.threshold * x_norm / (1-x_norm)
-          v_norm = torch.sqrt(v_norm ** 2 + z ** 2)
-          z_drift_ = -constant * torch.ones_like(z_drift) * z / (v_norm + sde.config.training.threshold)
-          z_drift = z_drift_
-
-        ### normalized to unit vector ###
         v = torch.cat([x_drift, z_drift[:, None]], dim=1)
-        v_norm = v.norm(p=2, dim=1, keepdim=True)
-        v /= (v_norm + 1e-7)
-
         dt_dz = 1 / (v[:, -1] + 1e-5)
         dx_dt = v[:, :-1].view(shape)
 
         dx_dz = z * dx_dt * dt_dz.view(-1, *([1] * len(x.size()[1:])))
         drift = torch.cat([dx_dz,
                            torch.ones((len(dx_dz), 1, sde.config.data.image_size,
-                                       sde.config.data.image_size)).cuda() * z], dim=1)
+                                       sde.config.data.image_size)).to(dx_dz.device) * z], dim=1)
         return to_flattened_numpy(drift)
 
       # Black-box ODE solver for the probability flow ODE. Note that Z = exp(t)
