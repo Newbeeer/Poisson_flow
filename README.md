@@ -93,8 +93,8 @@ All checkpoints are provided in this [Google drive folder](https://drive.google.
 
 | Checkpoint path                                              |    Invertible?     |  IS  |  FID  | NFE  |
 | :----------------------------------------------------------- | :----------------: | :--: | :---: | :--: |
-| [`poisson/cifar10_ddpmpp/`](https://drive.google.com/drive/folders/1UBRMPrABFoho4_laa4VZW733RJ0H_TI0?usp=sharing) | :heavy_check_mark: | 9.62 | 2.54  | ~110 |
-| [`poisson/cifar10_ddpmpp_deep/`](https://drive.google.com/drive/folders/1mM-VjygRzF2Z_v4MapdDcZZaUyLy3QOU?usp=sharing) | :heavy_check_mark: | 9.68 | 2.48  | ~110 |
+| [`poisson/cifar10_ddpmpp/`](https://drive.google.com/drive/folders/1UBRMPrABFoho4_laa4VZW733RJ0H_TI0?usp=sharing) | :heavy_check_mark: | 9.70 | 2.48  | ~104 |
+| [`poisson/cifar10_ddpmpp_deep/`](https://drive.google.com/drive/folders/1mM-VjygRzF2Z_v4MapdDcZZaUyLy3QOU?usp=sharing) | :heavy_check_mark: | 9.71 | 2.48  | ~110 |
 | [`poisson/bedroom_ddpmpp/`](https://drive.google.com/drive/folders/1uFmlcBTQmUI_ZfyUiYoR54H4V2uBsuS7?usp=sharing) | :heavy_check_mark: |  -   | 13.66 | ~122 |
 | [`poisson/celeba_ddpmpp/`]() (TODO)                          |                    |      |       |      |
 

@@ -316,7 +316,9 @@ class Poisson():
       x_norm = torch.sqrt(x_norm ** 2 + z ** 2)
       z_drift = -sqrt_dim * torch.ones_like(z_drift) * z / (x_norm + self.config.training.threshold)
 
+
     v = torch.cat([x_drift, z_drift[:, None]], dim=1)
+
     dt_dz = 1 / (v[:, -1] + 1e-5)
     dx_dt = v[:, :-1].view(len(x), self.config.data.num_channels,
                       self.config.data.image_size, self.config.data.image_size)
