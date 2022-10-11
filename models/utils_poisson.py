@@ -6,6 +6,9 @@ def forward_pz(sde, config, samples_batch, M):
 
     eps = config.training.eps
     z = torch.randn((len(samples_batch), 1, 1, 1)).to(samples_batch.device) * config.model.sigma_end
+
+    # Confine the norms of perturbed data.
+    # see Appendix B.1.1 of https://arxiv.org/abs/2209.11178
     if config.training.restrict_M:
         idx = (z < 0.005).squeeze()
         num = int(idx.int().sum())
