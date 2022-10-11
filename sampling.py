@@ -561,7 +561,7 @@ def get_ode_sampler_exp(sde, shape, rtol=1e-4, atol=1e-4,
       if x is None:
         x = sde.prior_sampling(shape).to(device)
 
-      z = torch.ones((len(x), 1, 1, 1)).(x.device)
+      z = torch.ones((len(x), 1, 1, 1)).to(x.device)
       z = z.repeat((1, 1, sde.config.data.image_size, sde.config.data.image_size)) * sde.config.sampling.z_max
       x = x.view(shape)
       x = torch.cat((x, z), dim=1)
