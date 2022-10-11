@@ -17,7 +17,7 @@
 """
 
 import torch
-import sde_lib
+import methods
 import numpy as np
 
 _MODELS = {}
@@ -129,7 +129,7 @@ def get_score_fn(sde, model, train=False, continuous=False):
   """Wraps `score_fn` so that the model output corresponds to a real time-dependent score function.
 
   Args:
-    sde: An `sde_lib.SDE` object that represents the forward SDE.
+    sde: An `methods.SDE` object that represents the forward SDE.
     model: A score model.
     train: `True` for training and `False` for evaluation.
     continuous: If `True`, the score-based model is expected to directly take continuous time steps.
@@ -139,10 +139,10 @@ def get_score_fn(sde, model, train=False, continuous=False):
   """
   model_fn = get_model_fn(model, train=train)
 
-  if isinstance(sde, sde_lib.VPSDE) or isinstance(sde, sde_lib.subVPSDE):
+  if isinstance(sde, methods.VPSDE) or isinstance(sde, methods.subVPSDE):
     def score_fn(x, t):
       # Scale neural network output by standard deviation and flip sign
-      if continuous or isinstance(sde, sde_lib.subVPSDE):
+      if continuous or isinstance(sde, methods.subVPSDE):
         # For VP-trained models, t=0 corresponds to the lowest noise level
         # The maximum value of time embedding is assumed to 999 for
         # continuously-trained models.
@@ -158,7 +158,7 @@ def get_score_fn(sde, model, train=False, continuous=False):
       score = -score / std[:, None, None, None]
       return score
 
-  elif isinstance(sde, sde_lib.VESDE):
+  elif isinstance(sde, methods.VESDE):
     def score_fn(x, t):
       if continuous:
         # get sigmas by t
@@ -172,7 +172,7 @@ def get_score_fn(sde, model, train=False, continuous=False):
       score = model_fn(x, labels)
       return score
 
-  elif isinstance(sde, sde_lib.Poisson):
+  elif isinstance(sde, methods.Poisson):
     def score_fn(x, z):
       score = model_fn(x, z)
       return score

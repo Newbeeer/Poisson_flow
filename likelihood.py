@@ -42,7 +42,7 @@ def get_likelihood_fn(sde, inverse_scaler, hutchinson_type='Rademacher',
   """Create a function to compute the unbiased log-likelihood estimate of a given data point.
 
   Args:
-    sde: A `sde_lib.SDE` object that represents the forward SDE.
+    sde: A `methods.SDE` object that represents the forward SDE.
     inverse_scaler: The inverse data normalizer.
     hutchinson_type: "Rademacher" or "Gaussian". The type of noise for Hutchinson-Skilling trace estimator.
     rtol: A `float` number. The relative tolerance level of the black-box ODE solver.
@@ -133,7 +133,7 @@ def get_likelihood_fn_poisson(sde, hutchinson_type='Rademacher',
   """Create a function to compute the unbiased log-likelihood estimate of a given data point.
 
   Args:
-    sde: A `sde_lib.SDE` object that represents the forward SDE.
+    sde: A `methods.SDE` object that represents the forward SDE.
     inverse_scaler: The inverse data normalizer.
     hutchinson_type: "Rademacher" or "Gaussian". The type of noise for Hutchinson-Skilling trace estimator.
     rtol: A `float` number. The relative tolerance level of the black-box ODE solver.

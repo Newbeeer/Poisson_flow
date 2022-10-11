@@ -35,7 +35,7 @@ from models.ema import ExponentialMovingAverage
 import datasets
 import evaluation
 import likelihood
-import sde_lib
+import methods
 from absl import flags
 import torch
 torch.cuda.empty_cache()
@@ -103,16 +103,16 @@ def train(config, workdir):
   inverse_scaler = datasets.get_data_inverse_scaler(config)
   # Setup SDEs
   if config.training.sde.lower() == 'vpsde':
-    sde = sde_lib.VPSDE(config=config, beta_min=config.model.beta_min, beta_max=config.model.beta_max, N=config.model.num_scales)
+    sde = methods.VPSDE(config=config, beta_min=config.model.beta_min, beta_max=config.model.beta_max, N=config.model.num_scales)
     sampling_eps = 1e-3
   elif config.training.sde.lower() == 'subvpsde':
-    sde = sde_lib.subVPSDE(config=config, beta_min=config.model.beta_min, beta_max=config.model.beta_max, N=config.model.num_scales)
+    sde = methods.subVPSDE(config=config, beta_min=config.model.beta_min, beta_max=config.model.beta_max, N=config.model.num_scales)
     sampling_eps = 1e-3
   elif config.training.sde.lower() == 'vesde':
-    sde = sde_lib.VESDE(config=config, sigma_min=config.model.sigma_min, sigma_max=config.model.sigma_max, N=config.model.num_scales)
+    sde = methods.VESDE(config=config, sigma_min=config.model.sigma_min, sigma_max=config.model.sigma_max, N=config.model.num_scales)
     sampling_eps = 1e-5
   elif config.training.sde.lower() == 'poisson':
-    sde = sde_lib.Poisson(config=config)
+    sde = methods.Poisson(config=config)
     sampling_eps = 1e-3
   else:
     raise NotImplementedError(f"SDE {config.training.sde} unknown.")
@@ -250,16 +250,16 @@ def evaluate(config,
 
   # Setup SDEs
   if config.training.sde.lower() == 'vpsde':
-    sde = sde_lib.VPSDE(config=config, beta_min=config.model.beta_min, beta_max=config.model.beta_max, N=config.sampling.N)
+    sde = methods.VPSDE(config=config, beta_min=config.model.beta_min, beta_max=config.model.beta_max, N=config.sampling.N)
     sampling_eps = 1e-3
   elif config.training.sde.lower() == 'subvpsde':
-    sde = sde_lib.subVPSDE(config=config, beta_min=config.model.beta_min, beta_max=config.model.beta_max, N=config.model.num_scales)
+    sde = methods.subVPSDE(config=config, beta_min=config.model.beta_min, beta_max=config.model.beta_max, N=config.model.num_scales)
     sampling_eps = 1e-3
   elif config.training.sde.lower() == 'vesde':
-    sde = sde_lib.VESDE(config=config, sigma_min=config.model.sigma_min, sigma_max=config.model.sigma_max, N=config.model.num_scales)
+    sde = methods.VESDE(config=config, sigma_min=config.model.sigma_min, sigma_max=config.model.sigma_max, N=config.model.num_scales)
     sampling_eps = 1e-5
   elif config.training.sde.lower() == 'poisson':
-    sde = sde_lib.Poisson(config=config)
+    sde = methods.Poisson(config=config)
     sampling_eps = 1e-3
     print("--- sampling eps:", sampling_eps)
   else:

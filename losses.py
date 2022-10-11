@@ -20,7 +20,7 @@ import torch
 import torch.optim as optim
 import numpy as np
 from models import utils as mutils
-from sde_lib import VESDE, VPSDE
+from methods import VESDE, VPSDE
 from models import utils_poisson
 from utils import cal_scores
 
@@ -57,7 +57,7 @@ def get_sde_loss_fn(sde, train, reduce_mean=True, continuous=True, eps=1e-5, sde
   """Create a loss function for training with arbirary SDEs.
 
   Args:
-    sde: An `sde_lib.SDE` object that represents the forward SDE.
+    sde: An `methods.SDE` object that represents the forward SDE.
     train: `True` for training loss and `False` for evaluation loss.
     reduce_mean: If `True`, average the loss across data dimensions. Otherwise sum the loss across data dimensions.
     continuous: `Truec` indicates that the model is defined to take continuous time steps. Otherwise it requires
@@ -198,7 +198,7 @@ def get_step_fn(sde, train, optimize_fn=None, reduce_mean=False, continuous=True
   """Create a one-step training/evaluation function.
 
   Args:
-    sde: An `sde_lib.SDE` object that represents the forward SDE.
+    sde: An `methods.SDE` object that represents the forward SDE.
     optimize_fn: An optimization function.
     reduce_mean: If `True`, average the loss across data dimensions. Otherwise sum the loss across data dimensions.
     continuous: `True` indicates that the model is defined to take continuous time steps.
