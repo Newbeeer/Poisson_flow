@@ -260,7 +260,7 @@ class VESDE(SDE):
 
 class Poisson():
   def __init__(self, config):
-    """Construct a Variance Exploding SDE.
+    """Construct a PFGM.
 
     Args:
     """
@@ -268,7 +268,7 @@ class Poisson():
     self.N = config.sampling.N
 
   @property
-  def T(self):
+  def M(self):
     if self.config.data.dataset == 'LSUN':
       return 356
     else:
@@ -278,15 +278,15 @@ class Poisson():
 
     max_z = self.config.sampling.z_max
     N = self.config.data.channels * self.config.data.image_size * self.config.data.image_size + 1
-    samples = np.random.beta(a=N / 2. - 0.5, b=0.5, size=shape[0])
-    inverse_beta = samples / (1 - samples)
-    samples = np.sqrt(max_z ** 2 * inverse_beta)
-    samples = np.clip(samples, 1, self.config.sampling.upper_norm)
-    r = torch.from_numpy(samples).cuda().view(len(samples), -1)
+    samples_norm = np.random.beta(a=N / 2. - 0.5, b=0.5, size=shape[0])
+    inverse_beta = samples_norm / (1 - samples_norm)
+    samples_norm = np.sqrt(max_z ** 2 * inverse_beta)
+    samples_norm = np.clip(samples_norm, 1, self.config.sampling.upper_norm)
+    samples_norm = torch.from_numpy(samples_norm).cuda().view(len(samples_norm), -1)
 
     gaussian = torch.randn(shape[0], N - 1).cuda()
     unit_gaussian = gaussian / torch.norm(gaussian, p=2, dim=1, keepdim=True)
-    init_samples = unit_gaussian * r
+    init_samples = unit_gaussian * samples_norm
 
     return init_samples.float().view(len(init_samples), self.config.data.num_channels,
                                 self.config.data.image_size, self.config.data.image_size)

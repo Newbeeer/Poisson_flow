@@ -28,7 +28,7 @@ def get_config():
   training.batch_size = 512
   training.small_batch_size = 128
   training.threshold = 5
-  training.restrict_T = True
+  training.restrict_M = True
   training.eps = 0.03
   training.snapshot_freq = 50000
   training.model = 'ddpmpp'

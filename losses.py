@@ -86,8 +86,8 @@ def get_sde_loss_fn(sde, train, reduce_mean=True, continuous=True, eps=1e-5, sde
       # centering the data
       samples_batch = batch[: sde.config.training.small_batch_size]
       samples_full = batch
-      T = torch.rand((samples_batch.shape[0],), device=samples_batch.device) * sde.T
-      perturbed_samples_vec, T = utils_poisson.forward_pz(sde, sde.config, samples_batch, T)
+      M = torch.rand((samples_batch.shape[0],), device=samples_batch.device) * sde.M
+      perturbed_samples_vec, M = utils_poisson.forward_pz(sde, sde.config, samples_batch, M)
 
       z = torch.clamp(perturbed_samples_vec[:, -1], 1e-10)
       z = torch.ones((1, 1, sde.config.data.image_size, sde.config.data.image_size)).to(z.device) * z.view(-1, 1, 1, 1)
