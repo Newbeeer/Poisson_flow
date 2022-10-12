@@ -452,20 +452,20 @@ def get_pc_sampler(sde, shape, predictor, corrector, inverse_scaler, snr,
     """
     with torch.no_grad():
       # Initial sample
-      x = sde.prior_sampling(shape).to(device)
+      x = sde.prior_sampling(shape).to(device).float()
       if sde.config.training.sde == 'poisson':
-        timesteps = torch.linspace(np.log(sde.config.sampling.z_max), np.log(eps), sde.N + 1, device=device)
+        timesteps = torch.linspace(np.log(sde.config.sampling.z_max), np.log(eps), sde.N + 1, device=device).float()
       else:
-        timesteps = torch.linspace(sde.T, eps, sde.N+1, device=device)
+        timesteps = torch.linspace(sde.T, eps, sde.N+1, device=device).float()
 
       for i in tqdm(range(sde.N)):
         t = timesteps[i]
         if sde.config.training.sde == 'poisson':
-          vec_t = torch.ones(shape[0], device=t.device) * t
+          vec_t = torch.ones(shape[0], device=t.device).float() * t
           x, x_mean = corrector_update_fn(x, vec_t, model=model)
           x, x_mean = predictor_update_fn(x, vec_t, model=model, t_list=timesteps, idx=i)
         else:
-          vec_t = torch.ones(shape[0], device=t.device) * t
+          vec_t = torch.ones(shape[0], device=t.device).float() * t
           x, x_mean = corrector_update_fn(x, vec_t, model=model)
           x, x_mean = predictor_update_fn(x, vec_t, model=model)
 
@@ -476,8 +476,8 @@ def get_pc_sampler(sde, shape, predictor, corrector, inverse_scaler, snr,
 
 
 def get_ode_sampler(sde, shape, inverse_scaler,
-                    denoise=False, rtol=1e-5, atol=1e-5,
-                    method='RK45', eps=1e-3, device='cuda'):
+                    denoise=False, rtol=1e-4, atol=1e-5,
+                    method='RK45', eps=1e-5, device='cuda'):
   """Probability flow ODE sampler with the black-box ODE solver.
 
   Args:

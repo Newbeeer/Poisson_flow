@@ -449,14 +449,13 @@ def evaluate(config,
 
     # Generate samples and compute IS/FID/KID when enabled
     if config.eval.enable_sampling:
-      num_sampling_rounds = config.eval.num_samples // config.eval.batch_size + 1
+      num_sampling_rounds = config.eval.num_samples // config.eval.batch_size
+      # Directory to save samples. Different for each host to avoid writing conflicts
+      this_sample_dir = os.path.join(eval_dir, f"ckpt_{ckpt}")
+      tf.io.gfile.makedirs(this_sample_dir)
 
       for r in range(num_sampling_rounds):
         logging.info("sampling -- ckpt: %d, round: %d" % (ckpt, r))
-        # Directory to save samples. Different for each host to avoid writing conflicts
-        this_sample_dir = os.path.join(
-          eval_dir, f"ckpt_{ckpt}")
-        tf.io.gfile.makedirs(this_sample_dir)
         samples, n = sampling_fn(score_model)
         print("nfe:", n)
         samples_torch = copy.deepcopy(samples)
@@ -465,7 +464,6 @@ def evaluate(config,
         samples = np.clip(samples.permute(0, 2, 3, 1).cpu().numpy() * 255., 0, 255).astype(np.uint8)
         samples = samples.reshape(
           (-1, config.data.image_size, config.data.image_size, config.data.num_channels))
-
 
         # Write samples to disk or Google Cloud Storage
         with tf.io.gfile.GFile(
@@ -478,8 +476,6 @@ def evaluate(config,
           image_grid = make_grid(samples_torch, nrow=int(np.sqrt(len(samples_torch))))
           save_image(image_grid, os.path.join(eval_dir, f'ode_images_{ckpt}.png'))
           exit(0)
-
-
 
         # Force garbage collection before calling TensorFlow code for Inception network
         gc.collect()
@@ -495,12 +491,10 @@ def evaluate(config,
             io_buffer, pool_3=latents["pool_3"], logits=latents["logits"])
           fout.write(io_buffer.getvalue())
 
-
       # Compute inception scores, FIDs and KIDs.
       # Load all statistics that have been previously computed and saved for each host
       all_logits = []
       all_pools = []
-      this_sample_dir = os.path.join(eval_dir, f"ckpt_{ckpt}")
       stats = tf.io.gfile.glob(os.path.join(this_sample_dir, "statistics_*.npz"))
       for stat_file in stats:
         with tf.io.gfile.GFile(stat_file, "rb") as fin:
@@ -516,7 +510,6 @@ def evaluate(config,
       # Load pre-computed dataset statistics.
       data_stats = evaluation.load_dataset_stats(config)
       data_pools = data_stats["pool_3"]
-
       # Compute FID/IS on all samples together.
       if not inceptionv3:
         inception_score = tfgan.eval.classifier_score_from_logits(all_logits)
