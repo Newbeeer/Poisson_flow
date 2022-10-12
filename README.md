@@ -93,8 +93,8 @@ All checkpoints are provided in this [Google drive folder](https://drive.google.
 
 | Dataset              | Checkpoint path                                              |    Invertible?     |  IS  |  FID  | NFE  |
 | -------------------- | :----------------------------------------------------------- | :----------------: | :--: | :---: | :--: |
-| CIFAR-10             | [`poisson/cifar10_ddpmpp/`](https://drive.google.com/drive/folders/1UBRMPrABFoho4_laa4VZW733RJ0H_TI0?usp=sharing) | :heavy_check_mark: | 9.70 | 2.48  | ~104 |
-| CIFAR-10             | [`poisson/cifar10_ddpmpp_deep/`](https://drive.google.com/drive/folders/1mM-VjygRzF2Z_v4MapdDcZZaUyLy3QOU?usp=sharing) | :heavy_check_mark: | 9.71 | 2.48  | ~110 |
+| CIFAR-10             | [`poisson/cifar10_ddpmpp/`](https://drive.google.com/drive/folders/1UBRMPrABFoho4_laa4VZW733RJ0H_TI0?usp=sharing) | :heavy_check_mark: | 9.65 | 2.48  | ~104 |
+| CIFAR-10             | [`poisson/cifar10_ddpmpp_deep/`](https://drive.google.com/file/d/1BeJGD0WP230u8nkHEWqywOvhH2_5F-Q0/view?usp=sharing) | :heavy_check_mark: | 9.68 | 2.35  | ~110 |
 | LSUN bedroom $256^2$ | [`poisson/bedroom_ddpmpp/`](https://drive.google.com/drive/folders/1uFmlcBTQmUI_ZfyUiYoR54H4V2uBsuS7?usp=sharing) | :heavy_check_mark: |  -   | 13.66 | ~122 |
 | CelebA $64^2$        | [`poisson/celeba_ddpmpp/`](https://drive.google.com/drive/folders/1LjplqjwIfZbp6LeK3_M2rIW-CaVhgn6p?usp=sharing) | :heavy_check_mark: |  -   | 3.68  | ~110 |
 
