@@ -16,7 +16,7 @@ Experimentally, PFGM achieves **current state-of-the-art** performance among the
 
 
 
-*Acknowledgement:* Our implementation heavily relies on the repo https://github.com/yang-song/score_sde_pytorch. 
+*Acknowledgement:* Our implementation relies on the repo https://github.com/yang-song/score_sde_pytorch. 
 
 ## Dependencies
 
