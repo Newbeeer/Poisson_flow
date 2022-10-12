@@ -42,7 +42,7 @@ def get_config():
   # sampling
   sampling = config.sampling
   sampling.method = 'ode'
-  sampling.z_max = 40
+  sampling.z_max = 70
   sampling.upper_norm = 6000
   sampling.vs = False
 

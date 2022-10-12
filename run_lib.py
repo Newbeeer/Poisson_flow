@@ -449,7 +449,7 @@ def evaluate(config,
 
     # Generate samples and compute IS/FID/KID when enabled
     if config.eval.enable_sampling:
-      num_sampling_rounds = config.eval.num_samples // config.eval.batch_size
+      num_sampling_rounds = config.eval.num_samples // config.eval.batch_size + 1
       # Directory to save samples. Different for each host to avoid writing conflicts
       this_sample_dir = os.path.join(eval_dir, f"ckpt_{ckpt}")
       tf.io.gfile.makedirs(this_sample_dir)

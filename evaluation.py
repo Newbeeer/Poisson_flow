@@ -45,7 +45,7 @@ def load_dataset_stats(config):
   if config.data.dataset == 'CIFAR10':
     filename = '../assets/stats/cifar10_stats.npz'
   elif config.data.dataset == 'CELEBA':
-    filename = 'assets/stats/celeba_stats.npz'
+    filename = '../assets/stats/celeba_stats.npz'
   elif config.data.dataset == 'LSUN':
     filename = f'assets/stats/lsun_{config.data.category}_{config.data.image_size}_stats.npz'
   else:

@@ -31,7 +31,7 @@ def get_default_configs():
 
   # evaluation
   config.eval = evaluate = ml_collections.ConfigDict()
-  evaluate.begin_ckpt = 5
+  evaluate.begin_ckpt = 6
   evaluate.end_ckpt = 26
   evaluate.batch_size = 1000
   evaluate.enable_sampling = False
