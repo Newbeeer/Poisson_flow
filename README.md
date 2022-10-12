@@ -96,7 +96,7 @@ All checkpoints are provided in this [Google drive folder](https://drive.google.
 | [`poisson/cifar10_ddpmpp/`](https://drive.google.com/drive/folders/1UBRMPrABFoho4_laa4VZW733RJ0H_TI0?usp=sharing) | :heavy_check_mark: | 9.70 | 2.48  | ~104 |
 | [`poisson/cifar10_ddpmpp_deep/`](https://drive.google.com/drive/folders/1mM-VjygRzF2Z_v4MapdDcZZaUyLy3QOU?usp=sharing) | :heavy_check_mark: | 9.71 | 2.48  | ~110 |
 | [`poisson/bedroom_ddpmpp/`](https://drive.google.com/drive/folders/1uFmlcBTQmUI_ZfyUiYoR54H4V2uBsuS7?usp=sharing) | :heavy_check_mark: |  -   | 13.66 | ~122 |
-| [`poisson/celeba_ddpmpp/`]() (TODO)                          |                    |      |       |      |
+| [`poisson/celeba_ddpmpp/`](https://drive.google.com/drive/folders/1LjplqjwIfZbp6LeK3_M2rIW-CaVhgn6p?usp=sharing) | :heavy_check_mark: |  -   | 3.68  | ~110 |
 
 
 
@@ -104,7 +104,7 @@ All checkpoints are provided in this [Google drive folder](https://drive.google.
 
 Please find the statistics for FID scores in the following links:
 
-[CIFAR-10](https://drive.google.com/file/d/1YyympxZ95l6_ane0TxYt94yqeiGcOBNG/view?usp=sharing),  [CelebA 64](https://drive.google.com/file/d/10PAjLIsasZ-O7YLWXs51RmkSiIBXql_V/view?usp=sharing), [LSUN bedroom 256](https://drive.google.com/file/d/16zTW5DhwmK4Hl-Vhez9LDyqN-CXi4Lhi/view?usp=sharing)
+[CIFAR-10](https://drive.google.com/file/d/1YyympxZ95l6_ane0TxYt94yqeiGcOBNG/view?usp=sharing),  [CelebA 64](https://drive.google.com/file/d/1dzSsmBvJOjDy12VzdypWDVYBF8b9yRkm/view?usp=sharing), [LSUN bedroom 256](https://drive.google.com/file/d/16zTW5DhwmK4Hl-Vhez9LDyqN-CXi4Lhi/view?usp=sharing)
 
 
 
