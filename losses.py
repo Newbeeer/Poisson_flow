@@ -104,10 +104,10 @@ def get_sde_loss_fn(sde, train, reduce_mean=True, continuous=True, eps=1e-5, sde
         distance = torch.min(gt_distance, dim=1, keepdim=True)[0] / (gt_distance + 1e-7)
         distance = distance ** (data_dim + 1)
         distance = distance[:, :, None]
-        distance = distance / (torch.sum(distance, dim=1, keepdim=True) + 1e-7)
+        coeff = distance / (torch.sum(distance, dim=1, keepdim=True) + 1e-7)
         diff = - (perturbed_samples_vec.unsqueeze(1) - real_samples_vec)
 
-        gt_direction = torch.sum(distance * diff, dim=1)
+        gt_direction = torch.sum(coeff * diff, dim=1)
         gt_direction = gt_direction.view(gt_direction.size(0), -1)
 
       threshold = sde.config.training.threshold
