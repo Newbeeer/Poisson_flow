@@ -40,16 +40,12 @@ def get_config():
   # sampling
   sampling = config.sampling
   sampling.method = 'ode'
-
-  ## parameters for euler method
-  # sampling.method = 'pc'
-  # sampling.predictor = 'euler_maruyama'
-  # #sampling.predictor = 'improved_euler'
-  # sampling.corrector = 'none'
-  # sampling.N = 100
-
-  sampling.z_max = 50
-  sampling.upper_norm = 4000
+  #sampling.ode_solver = 'rk45'
+  #sampling.ode_solver = 'forward_euler'
+  sampling.ode_solver = 'improved_euler'
+  sampling.N = 100
+  sampling.z_max = 40
+  sampling.upper_norm = 3000
   # verbose
   sampling.vs = False
 

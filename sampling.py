@@ -30,7 +30,25 @@ from tqdm import tqdm
 
 _CORRECTORS = {}
 _PREDICTORS = {}
+_ODESOLVER = {}
 
+def register_odesolver(cls=None, *, name=None):
+  """A decorator for registering predictor classes."""
+
+  def _register(cls):
+    if name is None:
+      local_name = cls.__name__
+    else:
+      local_name = name
+    if local_name in _ODESOLVER:
+      raise ValueError(f'Already registered model with name: {local_name}')
+    _ODESOLVER[local_name] = cls
+    return cls
+
+  if cls is None:
+    return _register
+  else:
+    return _register(cls)
 
 def register_predictor(cls=None, *, name=None):
   """A decorator for registering predictor classes."""
@@ -73,6 +91,8 @@ def register_corrector(cls=None, *, name=None):
 def get_predictor(name):
   return _PREDICTORS[name]
 
+def get_ode_solver(name):
+  return _ODESOLVER[name]
 
 def get_corrector(name):
   return _CORRECTORS[name]
@@ -96,20 +116,30 @@ def get_sampling_fn(config, sde, shape, inverse_scaler, eps):
   sampler_name = config.sampling.method
   # ODE sampling with black-box ODE solvers
   if sampler_name.lower() == 'ode':
-    if config.training.sde == 'poisson':
-      # RK45 ode sampler for PFGM
-      sampling_fn = get_ode_sampler_pfgm(sde=sde,
-                                    shape=shape,
-                                    inverse_scaler=inverse_scaler,
-                                    eps=eps,
-                                    device=config.device)
+    if config.sampling.ode_solver == 'rk45':
+      if config.training.sde == 'poisson':
+        # RK45 ode sampler for PFGM
+        sampling_fn = get_rk45_sampler_pfgm(sde=sde,
+                                           shape=shape,
+                                           inverse_scaler=inverse_scaler,
+                                           eps=eps,
+                                           device=config.device)
+      else:
+        sampling_fn = get_rk45_sampler(sde=sde,
+                                      shape=shape,
+                                      inverse_scaler=inverse_scaler,
+                                      denoise=config.sampling.noise_removal,
+                                      eps=eps,
+                                      device=config.device)
     else:
+      ode_solver = get_ode_solver(config.sampling.ode_solver.lower())
       sampling_fn = get_ode_sampler(sde=sde,
                                     shape=shape,
+                                    ode_solver=ode_solver,
                                     inverse_scaler=inverse_scaler,
-                                    denoise=config.sampling.noise_removal,
                                     eps=eps,
                                     device=config.device)
+
   # Predictor-Corrector sampling. Predictor-only and Corrector-only samplers are special cases.
   elif sampler_name.lower() == 'pc':
     predictor = get_predictor(config.sampling.predictor.lower())
@@ -131,6 +161,31 @@ def get_sampling_fn(config, sde, shape, inverse_scaler, eps):
 
   return sampling_fn
 
+class ODE_Solver(abc.ABC):
+  """The abstract class for a predictor algorithm."""
+
+  def __init__(self, sde, net_fn, eps=None):
+    super().__init__()
+    self.sde = sde
+    # Compute the reverse SDE/ODE
+    if sde.config.training.sde != 'poisson':
+      self.rsde = sde.reverse(net_fn, probability_flow=True)
+    self.net_fn = net_fn
+    self.eps = eps
+
+  @abc.abstractmethod
+  def update_fn(self, x, t, t_list=None, idx=None):
+    """One update of the predictor.
+
+    Args:
+      x: A PyTorch tensor representing the current state
+      t: A Pytorch tensor representing the current time step.
+
+    Returns:
+      x: A PyTorch tensor of the next state.
+      x_mean: A PyTorch tensor. The next state without random noise. Useful for denoising.
+    """
+    pass
 
 class Predictor(abc.ABC):
   """The abstract class for a predictor algorithm."""
@@ -208,10 +263,32 @@ class EulerMaruyamaPredictor(Predictor):
     x = x_mean + diffusion[:, None, None, None] * np.sqrt(-dt) * z
     return x, x_mean
 
-@register_predictor(name='improved_euler')
-class ImprovedEulerPredictor(Predictor):
-  def __init__(self, sde, net_fn, probability_flow=False, eps=None):
-    super().__init__(sde, net_fn, probability_flow, eps)
+@register_odesolver(name='forward_euler')
+class ForwardEulerPredictor(ODE_Solver):
+  def __init__(self, sde, net_fn, eps=None):
+    super().__init__(sde, net_fn, eps)
+
+  def update_fn(self, x, t, t_list=None, idx=None):
+
+    if self.sde.config.training.sde == 'poisson':
+      if t_list is None:
+        dt = - (np.log(self.sde.config.sampling.z_max) - np.log(self.eps)) / self.sde.N
+      else:
+        # integration over z
+        dt = - (1 - torch.exp(t_list[idx + 1] - t_list[idx]))
+        dt = float(dt.cpu().numpy())
+      drift = self.sde.ode(self.net_fn, x, t)
+    else:
+      if t_list is None:
+        dt = -1. / self.sde.N
+      drift, _ = self.rsde.sde(x, t)
+    x = x + drift * dt
+    return x
+
+@register_odesolver(name='improved_euler')
+class ImprovedEulerPredictor(ODE_Solver):
+  def __init__(self, sde, net_fn, eps=None):
+    super().__init__(sde, net_fn, eps)
 
   def update_fn(self, x, t, t_list=None, idx=None):
     if self.sde.config.training.sde == 'poisson':
@@ -224,11 +301,12 @@ class ImprovedEulerPredictor(Predictor):
     else:
       if t_list is None:
         dt = -1. / self.sde.N
-      drift, diffusion = self.rsde.sde(x, t)
+      drift, _ = self.rsde.sde(x, t)
     x_new = x + drift * dt
 
     if idx == self.sde.N - 1:
-      return x_new, x_new
+      return x_new
+
     else:
       idx_new = idx + 1
       t_new = t_list[idx_new]
@@ -237,10 +315,10 @@ class ImprovedEulerPredictor(Predictor):
       if self.sde.config.training.sde == 'poisson':
         drift_new = self.sde.ode(self.net_fn, x_new, t_new)
       else:
-        drift_new, diffusion = self.rsde.sde(x_new, t_new)
+        drift_new, _ = self.rsde.sde(x_new, t_new)
 
       x = x + (0.5 * drift + 0.5 * drift_new) * dt
-      return x, x
+      return x
 
 
 
@@ -255,45 +333,6 @@ class ReverseDiffusionPredictor(Predictor):
     x_mean = x - f
     x = x_mean + G[:, None, None, None] * z
     return x, x_mean
-
-
-@register_predictor(name='ancestral_sampling')
-class AncestralSamplingPredictor(Predictor):
-  """The ancestral sampling predictor. Currently only supports VE/VP SDEs."""
-
-  def __init__(self, sde, net_fn, probability_flow=False):
-    super().__init__(sde, net_fn, probability_flow)
-    if not isinstance(sde, methods.VPSDE) and not isinstance(sde, methods.VESDE):
-      raise NotImplementedError(f"SDE class {sde.__class__.__name__} not yet supported.")
-    assert not probability_flow, "Probability flow not supported by ancestral sampling"
-
-  def vesde_update_fn(self, x, t):
-    sde = self.sde
-    timestep = (t * (sde.N - 1) / sde.T).long()
-    sigma = sde.discrete_sigmas[timestep]
-    adjacent_sigma = torch.where(timestep == 0, torch.zeros_like(t), sde.discrete_sigmas.to(t.device)[timestep - 1])
-    score = self.net_fn(x, t)
-    x_mean = x + score * (sigma ** 2 - adjacent_sigma ** 2)[:, None, None, None]
-    std = torch.sqrt((adjacent_sigma ** 2 * (sigma ** 2 - adjacent_sigma ** 2)) / (sigma ** 2))
-    noise = torch.randn_like(x)
-    x = x_mean + std[:, None, None, None] * noise
-    return x, x_mean
-
-  def vpsde_update_fn(self, x, t):
-    sde = self.sde
-    timestep = (t * (sde.N - 1) / sde.T).long()
-    beta = sde.discrete_betas.to(t.device)[timestep]
-    score = self.net_fn(x, t)
-    x_mean = (x + beta[:, None, None, None] * score) / torch.sqrt(1. - beta)[:, None, None, None]
-    noise = torch.randn_like(x)
-    x = x_mean + torch.sqrt(beta)[:, None, None, None] * noise
-    return x, x_mean
-
-  def update_fn(self, x, t, t_list=None, idx=None):
-    if isinstance(self.sde, methods.VESDE):
-      return self.vesde_update_fn(x, t)
-    elif isinstance(self.sde, methods.VPSDE):
-      return self.vpsde_update_fn(x, t)
 
 
 @register_predictor(name='none')
@@ -386,6 +425,11 @@ class NoneCorrector(Corrector):
   def update_fn(self, x, t):
     return x, x
 
+def shared_ode_solver_update_fn(x, t, sde, model, ode_solver, eps, t_list=None, idx=None):
+  """A wrapper that configures and returns the update function of ODE solvers."""
+  net_fn = mutils.get_predict_fn(sde, model, train=False, continuous=True)
+  ode_solver_obj = ode_solver(sde, net_fn, eps)
+  return ode_solver_obj.update_fn(x, t, t_list=t_list, idx=idx)
 
 def shared_predictor_update_fn(x, t, sde, model, predictor, probability_flow, continuous, eps, t_list=None, idx=None):
   """A wrapper that configures and returns the update function of predictors."""
@@ -477,8 +521,58 @@ def get_pc_sampler(sde, shape, predictor, corrector, inverse_scaler, snr,
 
   return pc_sampler
 
+def get_ode_sampler(sde, shape, ode_solver, inverse_scaler, eps=1e-3, device='cuda'):
+  """Create a ODE sampler, for foward Euler or Improved Euler method.
 
-def get_ode_sampler(sde, shape, inverse_scaler,
+  Args:
+    sde: An `methods.SDE` object representing the forward SDE.
+    shape: A sequence of integers. The expected shape of a single sample.
+    ode_solver: A subclass of `sampling.ODE_Solver` representing the predictor algorithm.
+    inverse_scaler: The inverse data normalizer.
+    eps: A `float` number. The reverse-time SDE and ODE are integrated to `epsilon` to avoid numerical issues.
+    device: PyTorch device.
+
+  Returns:
+    A sampling function that returns samples and the number of function evaluations during sampling.
+  """
+  # Create predictor & corrector update functions
+  ode_update_fn = functools.partial(shared_ode_solver_update_fn,
+                                    sde=sde,
+                                    ode_solver=ode_solver,
+                                    eps=eps)
+
+  def ode_sampler(model):
+    """ The PC sampler funciton.
+
+    Args:
+      model: A PFGM or score model.
+    Returns:
+      Samples, number of function evaluations.
+    """
+    with torch.no_grad():
+      # Initial sample
+      x = sde.prior_sampling(shape).to(device).float()
+      if sde.config.training.sde == 'poisson':
+        timesteps = torch.linspace(np.log(sde.config.sampling.z_max), np.log(eps), sde.N + 1, device=device).float()
+      else:
+        timesteps = torch.linspace(sde.T, eps, sde.N+1, device=device).float()
+
+      for i in tqdm(range(sde.N)):
+        t = timesteps[i]
+        if sde.config.training.sde == 'poisson':
+          vec_t = torch.ones(shape[0], device=t.device).float() * t
+          x = ode_update_fn(x, vec_t, model=model, t_list=timesteps, idx=i)
+        else:
+          vec_t = torch.ones(shape[0], device=t.device).float() * t
+          x = ode_update_fn(x, vec_t, model=model)
+
+      return inverse_scaler(x), 2 * sde.N - 1 if sde.config.sampling.ode_solver == 'improved_euler' else sde.N
+
+  return ode_sampler
+
+
+
+def get_rk45_sampler(sde, shape, inverse_scaler,
                     denoise=False, rtol=1e-5, atol=1e-5,
                     method='RK45', eps=1e-3, device='cuda'):
   """Probability flow ODE sampler with the black-box ODE solver.
@@ -553,7 +647,7 @@ def get_ode_sampler(sde, shape, inverse_scaler,
   return ode_sampler
 
 
-def get_ode_sampler_pfgm(sde, shape, inverse_scaler, rtol=1e-4, atol=1e-4,
+def get_rk45_sampler_pfgm(sde, shape, inverse_scaler, rtol=1e-4, atol=1e-4,
                     method='RK45', eps=1e-3, device='cuda'):
 
   """RK45 ODE sampler for PFGM.
