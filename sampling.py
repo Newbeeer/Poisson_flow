@@ -271,16 +271,10 @@ class ForwardEulerPredictor(ODE_Solver):
   def update_fn(self, x, t, t_list=None, idx=None):
 
     if self.sde.config.training.sde == 'poisson':
-      if t_list is None:
-        dt = - (np.log(self.sde.config.sampling.z_max) - np.log(self.eps)) / self.sde.N
-      else:
-        # integration over z
-        dt = - (1 - torch.exp(t_list[idx + 1] - t_list[idx]))
-        dt = float(dt.cpu().numpy())
+      dt = - (np.log(self.sde.config.sampling.z_max) - np.log(self.eps)) / self.sde.N
       drift = self.sde.ode(self.net_fn, x, t)
     else:
-      if t_list is None:
-        dt = -1. / self.sde.N
+      dt = -1. / self.sde.N
       drift, _ = self.rsde.sde(x, t)
     x = x + drift * dt
     return x
@@ -292,15 +286,10 @@ class ImprovedEulerPredictor(ODE_Solver):
 
   def update_fn(self, x, t, t_list=None, idx=None):
     if self.sde.config.training.sde == 'poisson':
-      if t_list is None:
-        dt = - (np.log(self.sde.config.sampling.z_max) - np.log(self.eps)) / self.sde.N
-      else:
-        dt = (torch.exp(t_list[idx + 1] - t_list[idx]) - 1)
-        dt = float(dt.cpu().numpy())
+      dt = - (np.log(self.sde.config.sampling.z_max) - np.log(self.eps)) / self.sde.N
       drift = self.sde.ode(self.net_fn, x, t)
     else:
-      if t_list is None:
-        dt = -1. / self.sde.N
+      dt = -1. / self.sde.N
       drift, _ = self.rsde.sde(x, t)
     x_new = x + drift * dt
 
@@ -312,16 +301,11 @@ class ImprovedEulerPredictor(ODE_Solver):
       t_new = torch.ones(len(t), device=t.device) * t_new
 
       if self.sde.config.training.sde == 'poisson':
-        if t_list is None:
-          dt_new = - (np.log(self.sde.config.sampling.z_max) - np.log(self.eps)) / self.sde.N
-        else:
-          dt_new = (1 - torch.exp(t_list[idx] - t_list[idx+1]))
-          dt_new = float(dt_new.cpu().numpy())
         drift_new = self.sde.ode(self.net_fn, x_new, t_new)
       else:
         drift_new, _ = self.rsde.sde(x_new, t_new)
 
-      x = x + (0.5 * drift * dt + 0.5 * drift_new * dt_new)
+      x = x + (0.5 * drift + 0.5 * drift_new) * dt
       return x
 
 
