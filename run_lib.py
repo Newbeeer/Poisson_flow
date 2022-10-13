@@ -137,7 +137,6 @@ def train(config, workdir):
 
   # In case there are multiple hosts (e.g., TPU pods), only log to host 0
   logging.info("Starting training loop at step %d." % (initial_step,))
-  #print(" Faster training with pz:", sde.config.training.pz)
   for step in range(initial_step, num_train_steps + 1):
     # Convert data to JAX arrays and normalize them. Use ._numpy() to avoid copy.
     if config.data.dataset == 'CELEBA':

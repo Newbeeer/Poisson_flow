@@ -33,7 +33,6 @@ def get_config():
   training.tau = 0.03
   training.snapshot_freq = 50000
   training.model = 'ddpmpp'
-  training.pz = True
   training.reduce_mean = True
 
   # data
