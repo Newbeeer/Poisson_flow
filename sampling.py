@@ -626,6 +626,8 @@ def get_ode_sampler_pfgm(sde, shape, inverse_scaler, rtol=1e-4, atol=1e-4,
       nfe = solution.nfev
       x = torch.tensor(solution.y[:, -1]).reshape(new_shape).to(device).type(torch.float32)
 
+      # detach augmented z dimension
+      x = x[:, :-1]
       x = inverse_scaler(x)
       return x, nfe
 
