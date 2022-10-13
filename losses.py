@@ -88,12 +88,6 @@ def get_loss_fn(sde, train, reduce_mean=True, continuous=True, eps=1e-5, method_
       # Perturb the mini-batch data
       perturbed_samples_vec = utils_poisson.forward_pz(sde, sde.config, samples_batch, m)
 
-      z = torch.clamp(perturbed_samples_vec[:, -1], 1e-10)
-      z = torch.ones((1, 1, sde.config.data.image_size, sde.config.data.image_size)).to(z.device) * z.view(-1, 1, 1, 1)
-
-      # Augment the perturb data
-      perturbed_samples = torch.cat((perturbed_samples_vec[:, :-1].view_as(samples_batch), z), dim=1)
-
       with torch.no_grad():
         real_samples_vec = torch.cat(
           (samples_full.reshape(len(samples_full), -1), torch.zeros((len(samples_full), 1)).to(samples_full.device)), dim=1)
@@ -115,20 +109,21 @@ def get_loss_fn(sde, train, reduce_mean=True, continuous=True, eps=1e-5, method_
 
       gamma = sde.config.training.gamma
       gt_norm = gt_direction.norm(p=2, dim=1)
-
       # Normalization
       gt_direction /= (gt_norm.view(-1, 1) + gamma)
       gt_direction *= np.sqrt(data_dim)
 
       target = gt_direction
       net_fn = mutils.get_predict_fn(sde, model, train=train, continuous=continuous)
-      net_x, net_z = net_fn(perturbed_samples[:, :-1], torch.clamp(perturbed_samples_vec[:, -1], 1e-10))
+
+      perturbed_samples_x = perturbed_samples_vec[:, :-1].view_as(samples_batch)
+      perturbed_samples_z = torch.clamp(perturbed_samples_vec[:, -1], 1e-10)
+      net_x, net_z = net_fn(perturbed_samples_x, perturbed_samples_z)
 
       net_x = net_x.view(net_x.shape[0], -1)
       net = torch.cat([net_x, net_z[:, None]], dim=1)
       loss = ((net - target) ** 2)
       loss = reduce_op(loss.reshape(loss.shape[0], -1), dim=-1)
-
       loss = torch.mean(loss)
 
       return loss

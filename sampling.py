@@ -97,6 +97,7 @@ def get_sampling_fn(config, sde, shape, inverse_scaler, eps):
   # ODE sampling with black-box ODE solvers
   if sampler_name.lower() == 'ode':
     if config.training.sde == 'poisson':
+      # RK45 ode sampler for PFGM
       sampling_fn = get_ode_sampler_pfgm(sde=sde,
                                     shape=shape,
                                     inverse_scaler=inverse_scaler,
@@ -194,6 +195,7 @@ class EulerMaruyamaPredictor(Predictor):
       if t_list is None:
         dt = - (np.log(self.sde.config.sampling.z_max) - np.log(self.eps)) / self.sde.N
       else:
+        # integration over z
         dt = - (1 - torch.exp(t_list[idx + 1] - t_list[idx]))
         dt = float(dt.cpu().numpy())
       drift = self.sde.ode(self.net_fn, x, t)

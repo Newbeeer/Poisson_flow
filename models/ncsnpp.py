@@ -382,6 +382,7 @@ class NCSNpp(nn.Module):
       h = h / used_sigmas
 
     if self.config.training.sde == 'poisson':
+      # Predict the direction on the extra z dimension
       scalar = F.adaptive_avg_pool2d(h[:, -1], (1, 1))
       return h[:, :-1], scalar.reshape(len(scalar))
     else:
