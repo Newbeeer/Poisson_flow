@@ -107,6 +107,7 @@ def get_sde_loss_fn(sde, train, reduce_mean=True, continuous=True, eps=1e-5, sde
         coeff = distance / (torch.sum(distance, dim=1, keepdim=True) + 1e-7)
         diff = - (perturbed_samples_vec.unsqueeze(1) - real_samples_vec)
 
+        # empirical Poisson field
         gt_direction = torch.sum(coeff * diff, dim=1)
         gt_direction = gt_direction.view(gt_direction.size(0), -1)
 
