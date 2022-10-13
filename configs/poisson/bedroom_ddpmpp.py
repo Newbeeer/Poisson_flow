@@ -44,9 +44,9 @@ def get_config():
   # sampling
   sampling = config.sampling
   sampling.method = 'ode'
-  #sampling.ode_solver = 'rk45'
+  sampling.ode_solver = 'rk45'
   #sampling.ode_solver = 'forward_euler'
-  sampling.ode_solver = 'improved_euler'
+  #sampling.ode_solver = 'improved_euler'
   sampling.N = 100
   sampling.z_max = 100
   sampling.upper_norm = 30000
