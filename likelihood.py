@@ -184,7 +184,7 @@ def get_likelihood_fn_pfgm(sde, hutchinson_type='Rademacher',
     """Compute an unbiased estimate to the log-likelihood in bits/dim.
 
     Args:
-      model: A score model.
+      model: A pfgm model.
       data: A PyTorch tensor.
 
     Returns:

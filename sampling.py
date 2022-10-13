@@ -447,7 +447,7 @@ def get_pc_sampler(sde, shape, predictor, corrector, inverse_scaler, snr,
     """ The PC sampler funciton.
 
     Args:
-      model: A score model.
+      model: A PFGM or score model.
     Returns:
       Samples, number of function evaluations.
     """

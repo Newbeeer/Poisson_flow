@@ -14,7 +14,7 @@
 # limitations under the License.
 
 # pylint: skip-file
-"""Common layers for defining score networks.
+"""Common layers for defining PFGM / score networks.
 """
 import math
 import string

@@ -72,7 +72,8 @@ class SDE(abc.ABC):
     """Create the reverse-time SDE/ODE.
 
     Args:
-      net_fn: A time-dependent score-based model that takes x and t and returns the score.
+      net_fn: a z-dependent PFGM that takes x and z and returns the normalized Poisson field.
+        Or a time-dependent score-based model that takes x and t and returns the score.
       probability_flow: If `True`, create the reverse-time ODE used for probability flow sampling.
     """
     N = self.N

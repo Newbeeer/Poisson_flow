@@ -61,8 +61,6 @@ def get_loss_fn(sde, train, reduce_mean=True, continuous=True, eps=1e-5, method_
     reduce_mean: If `True`, average the loss across data dimensions. Otherwise sum the loss across data dimensions.
     continuous: `Truec` indicates that the model is defined to take continuous time steps. Otherwise it requires
       ad-hoc interpolation to take continuous time steps.
-    likelihood_weighting: If `True`, weight the mixture of score matching losses
-      according to https://arxiv.org/abs/2101.09258; otherwise use the weighting recommended in our paper.
     eps: A `float` number. The smallest time step to sample from.
 
   Returns:
@@ -74,7 +72,7 @@ def get_loss_fn(sde, train, reduce_mean=True, continuous=True, eps=1e-5, method_
     """Compute the loss function.
 
     Args:
-      model: A score model.
+      model: A PFGM or score model.
       batch: A mini-batch of training data.
 
     Returns:
@@ -136,13 +134,13 @@ def get_loss_fn(sde, train, reduce_mean=True, continuous=True, eps=1e-5, method_
       return loss
 
     else:
-      score_fn = mutils.get_predict_fn(sde, model, train=train, continuous=continuous)
+      net_fn = mutils.get_predict_fn(sde, model, train=train, continuous=continuous)
 
       t = torch.rand(batch.shape[0], device=batch.device) * (sde.T - eps) + eps
       z = torch.randn_like(batch)
       mean, std = sde.marginal_prob(batch, t)
       perturbed_data = mean + std[:, None, None, None] * z
-      score = score_fn(perturbed_data, t)
+      score = net_fn(perturbed_data, t)
       losses = torch.square(score * std[:, None, None, None] + z)
 
       losses = reduce_op(losses.reshape(losses.shape[0], -1), dim=-1)
@@ -161,8 +159,6 @@ def get_step_fn(sde, train, optimize_fn=None, reduce_mean=False, method_name=Non
     optimize_fn: An optimization function.
     reduce_mean: If `True`, average the loss across data dimensions. Otherwise sum the loss across data dimensions.
     continuous: `True` indicates that the model is defined to take continuous time steps.
-    likelihood_weighting: If `True`, weight the mixture of score matching losses according to
-      https://arxiv.org/abs/2101.09258; otherwise use the weighting recommended by our paper.
 
   Returns:
     A one-step function for training or evaluation.
@@ -178,7 +174,7 @@ def get_step_fn(sde, train, optimize_fn=None, reduce_mean=False, method_name=Non
     for faster execution.
 
     Args:
-      state: A dictionary of training information, containing the score model, optimizer,
+      state: A dictionary of training information, containing the PFGM or score model, optimizer,
        EMA status, and number of optimization steps.
       batch: A mini-batch of training/evaluation data.
 

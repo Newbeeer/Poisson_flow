@@ -72,7 +72,7 @@ def get_model_fn(model, train=False):
   """Create a function to give the output of the PFGM / score-based model.
 
   Args:
-    model: The score model.
+    model: The PFGM or score model.
     train: `True` for training and `False` for evaluation.
 
   Returns:
@@ -105,12 +105,12 @@ def get_predict_fn(sde, model, train=False, continuous=False):
 
   Args:
     sde: An `methods.SDE` object that represents the forward SDE.
-    model: A score model.
+    model: A PFGM or score model.
     train: `True` for training and `False` for evaluation.
     continuous: If `True`, the score-based model is expected to directly take continuous time steps.
 
   Returns:
-    A score function.
+    A vector function.
   """
   model_fn = get_model_fn(model, train=train)
 
