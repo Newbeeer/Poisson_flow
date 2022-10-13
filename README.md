@@ -112,7 +112,7 @@ Please find the statistics for FID scores in the following links:
 
 - :star2:**Important** : We use a large batch (e.g. current `training.batch_size=4096` for CIFAR-10, ~25G GPU memory usage) to calculate the Poisson field for each mini-batch samples (e.g. `training.small_batch_size=128` for CIFAR-10). To adjust GPU memory cost, please modify the `training.batch_size` parameter in the config files. 
 
-- The prior distribution on the $z=z_{max}$ hyperplane is a long-tail distribution. We recommend clipping the sample norm by the hyper-parameters `sampling.upper_norm`
+- The prior distribution on the $z=z_{max}$ hyperplane is a long-tail distribution. We recommend clipping the sample norm by the hyper-parameters `sampling.upper_norm`. Please refer to Appendix B.2.1 in the paper (https://arxiv.org/abs/2209.11178) for our recommended setups for $z_{max}$, clipping value and $M$ for general datasets.
 - To use the Euler forward method for solving PFGM ODE, please uncomment the Euler method code block in config files.
 - TODO
 
