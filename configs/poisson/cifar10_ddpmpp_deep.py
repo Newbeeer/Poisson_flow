@@ -49,7 +49,6 @@ def get_config():
   # sampling.method = 'pc'
   # sampling.predictor = 'euler_maruyama'
   # sampling.corrector = 'none'
-  # sampling.schedule = 'exp'
   # sampling.N = 100
 
   # model

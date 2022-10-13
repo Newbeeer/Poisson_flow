@@ -47,7 +47,6 @@ def get_config():
   # sampling.predictor = 'euler_maruyama'
   # #sampling.predictor = 'improved_euler'
   # sampling.corrector = 'none'
-  # sampling.schedule = 'exp'
   # sampling.N = 100
 
   sampling.z_max = 50

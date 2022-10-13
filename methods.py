@@ -301,12 +301,8 @@ class Poisson():
 
   def ode(self, net_fn, x, t):
 
-    if self.config.sampling.schedule == 'quadratic':
-      z = t.mean().cpu() ** 2
-    elif self.config.sampling.schedule == 'linear':
-      z = t.mean().cpu()
-    else:
-      z = np.exp(t.mean().cpu())
+
+    z = np.exp(t.mean().cpu())
     if self.config.sampling.vs:
       print(z)
     x_drift, z_drift = net_fn(x, torch.ones((len(x))).cuda() * z)
@@ -329,10 +325,6 @@ class Poisson():
     dt_dz = 1 / (v[:, -1] + 1e-5)
     dx_dt = v[:, :-1].view(len(x), self.config.data.num_channels,
                       self.config.data.image_size, self.config.data.image_size)
-    if self.config.sampling.schedule == 'quadratic':
-      dx_dz = 2 * torch.sqrt(z) * dx_dt * dt_dz.view(-1, *([1] * len(x.size()[1:])))
-    elif self.config.sampling.schedule == 'linear':
-      dx_dz = dx_dt * dt_dz.view(-1, *([1] * len(x.size()[1:])))
-    else:
-      dx_dz = z * dx_dt * dt_dz.view(-1, *([1] * len(x.size()[1:])))
+
+    dx_dz = z * dx_dt * dt_dz.view(-1, *([1] * len(x.size()[1:])))
     return dx_dz
