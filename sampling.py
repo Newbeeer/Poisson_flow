@@ -295,7 +295,7 @@ class ImprovedEulerPredictor(ODE_Solver):
       if t_list is None:
         dt = - (np.log(self.sde.config.sampling.z_max) - np.log(self.eps)) / self.sde.N
       else:
-        dt = - (1 - torch.exp(t_list[idx + 1] - t_list[idx]))
+        dt = (torch.exp(t_list[idx + 1] - t_list[idx]) - 1)
         dt = float(dt.cpu().numpy())
       drift = self.sde.ode(self.net_fn, x, t)
     else:
@@ -306,18 +306,22 @@ class ImprovedEulerPredictor(ODE_Solver):
 
     if idx == self.sde.N - 1:
       return x_new
-
     else:
       idx_new = idx + 1
       t_new = t_list[idx_new]
       t_new = torch.ones(len(t), device=t.device) * t_new
 
       if self.sde.config.training.sde == 'poisson':
+        if t_list is None:
+          dt_new = - (np.log(self.sde.config.sampling.z_max) - np.log(self.eps)) / self.sde.N
+        else:
+          dt_new = (1 - torch.exp(t_list[idx] - t_list[idx+1]))
+          dt_new = float(dt_new.cpu().numpy())
         drift_new = self.sde.ode(self.net_fn, x_new, t_new)
       else:
         drift_new, _ = self.rsde.sde(x_new, t_new)
 
-      x = x + (0.5 * drift + 0.5 * drift_new) * dt
+      x = x + (0.5 * drift * dt + 0.5 * drift_new * dt_new)
       return x
 
 
