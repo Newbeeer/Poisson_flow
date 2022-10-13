@@ -269,10 +269,7 @@ class Poisson():
 
   @property
   def M(self):
-    if self.config.data.dataset == 'LSUN':
-      return 356
-    else:
-      return 291
+    return self.config.training.M
 
   def prior_sampling(self, shape):
 

@@ -28,7 +28,7 @@ def get_config():
   training.small_batch_size = 128
   training.threshold = 5
   training.restrict_M = True
-  training.eps = 0.03
+  training.tau = 0.03
   training.snapshot_freq = 50000
   training.model = 'nscnpp'
   training.pz = True

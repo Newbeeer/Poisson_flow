@@ -4,7 +4,7 @@ import numpy as np
 
 def forward_pz(sde, config, samples_batch, m):
 
-    eps = config.training.eps
+    tau = config.training.tau
     z = torch.randn((len(samples_batch), 1, 1, 1)).to(samples_batch.device) * config.model.sigma_end
     z = z.abs()
 
@@ -17,7 +17,7 @@ def forward_pz(sde, config, samples_batch, m):
         m[idx] = torch.rand((num,), device=samples_batch.device) * restrict_m
 
     data_dim = config.data.channels * config.data.image_size * config.data.image_size
-    multiplier = (1+eps) ** m
+    multiplier = (1+tau) ** m
 
     noise = torch.randn_like(samples_batch).reshape(len(samples_batch), -1) * config.model.sigma_end
     norm_m = torch.norm(noise, p=2, dim=1) * multiplier
