@@ -20,7 +20,15 @@ Experimentally, PFGM achieves **current state-of-the-art** performance among the
 
 ## Dependencies
 
-Run the following to install a subset of necessary python packages for our code
+We provide two solutions to install a subset of necessary python packages for our code. Please find the best fit for you.
+
+1. The old dependency in repo https://github.com/yang-song/score_sde_pytorch
+
+```sh
+pip install -r requirements_old.txt
+```
+
+2. Our dependency (Python 3.9.12, CUDA Version 11.6)
 
 ```sh
 pip install -r requirements.txt
