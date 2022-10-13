@@ -150,7 +150,7 @@ def get_predict_fn(sde, model, train=False, continuous=False):
   elif isinstance(sde, methods.Poisson):
     # PFGM
     def predict_fn(x, z):
-      normalized_poisson_field = predict_fn(x, z)
+      normalized_poisson_field = model_fn(x, z)
       return normalized_poisson_field
   else:
     raise NotImplementedError(f"Method class {sde.__class__.__name__} not yet supported.")

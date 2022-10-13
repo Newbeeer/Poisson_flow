@@ -60,9 +60,7 @@ python3 main.py --config ./configs/poisson/cifar10_ddpmpp.py --mode train \
 
   **Naming conventions of config files**: the path of a config file is a combination of the following dimensions:
 
-  - Method: :star2:**PFGM**: `poisson`
-
-    ​					 **Score-based models**:`ve`, `vp`, `sub_vp`
+  - Method: :star2:**PFGM**:   `poisson`;  **Score-based models** :  `ve`, `vp`, `sub_vp`
 
   *  dataset: One of `cifar10`, `celeba`, `celebahq`, `celebahq_256`, `ffhq_256`, `celebahq`, `ffhq`.
   * model: One of `ncsn`, `ncsnv2`, `ncsnpp`, `ddpm`, `ddpmpp`.
