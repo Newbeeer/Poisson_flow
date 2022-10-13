@@ -103,14 +103,13 @@ def get_loss_fn(sde, train, reduce_mean=True, continuous=True, eps=1e-5, method_
         coeff = distance / (torch.sum(distance, dim=1, keepdim=True) + 1e-7)
         diff = - (perturbed_samples_vec.unsqueeze(1) - real_samples_vec)
 
-        # Calculate empirical Poisson field
+        # Calculate empirical Poisson field (N+1 dimension in the augmented space)
         gt_direction = torch.sum(coeff * diff, dim=1)
         gt_direction = gt_direction.view(gt_direction.size(0), -1)
 
-      gamma = sde.config.training.gamma
       gt_norm = gt_direction.norm(p=2, dim=1)
-      # Normalization
-      gt_direction /= (gt_norm.view(-1, 1) + gamma)
+      # Normalizing the N+1-dimensional Poisson field
+      gt_direction /= (gt_norm.view(-1, 1) + sde.config.training.gamma)
       gt_direction *= np.sqrt(data_dim)
 
       target = gt_direction
@@ -121,6 +120,7 @@ def get_loss_fn(sde, train, reduce_mean=True, continuous=True, eps=1e-5, method_
       net_x, net_z = net_fn(perturbed_samples_x, perturbed_samples_z)
 
       net_x = net_x.view(net_x.shape[0], -1)
+      # Predicted N+1-dimensional Poisson field
       net = torch.cat([net_x, net_z[:, None]], dim=1)
       loss = ((net - target) ** 2)
       loss = reduce_op(loss.reshape(loss.shape[0], -1), dim=-1)

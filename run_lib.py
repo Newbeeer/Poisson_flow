@@ -92,6 +92,7 @@ def train(config, workdir):
 
   # Build data iterators
   if config.data.dataset == 'CELEBA':
+    # I cannot load CelebA from tfds loader. So I write a pytorch loader instead.
     train_ds, eval_ds = datasets_utils.celeba.get_celeba(config)
   else:
     train_ds, eval_ds, _ = datasets.get_dataset(config, uniform_dequantization=config.data.uniform_dequantization)
@@ -101,7 +102,7 @@ def train(config, workdir):
   # Create data normalizer and its inverse
   scaler = datasets.get_data_scaler(config)
   inverse_scaler = datasets.get_data_inverse_scaler(config)
-  # Setup SDEs
+  # Setup methods
   if config.training.sde.lower() == 'vpsde':
     sde = methods.VPSDE(config=config, beta_min=config.model.beta_min, beta_max=config.model.beta_max, N=config.model.num_scales)
     sampling_eps = 1e-3
@@ -112,6 +113,7 @@ def train(config, workdir):
     sde = methods.VESDE(config=config, sigma_min=config.model.sigma_min, sigma_max=config.model.sigma_max, N=config.model.num_scales)
     sampling_eps = 1e-5
   elif config.training.sde.lower() == 'poisson':
+    # PFGM
     sde = methods.Poisson(config=config)
     sampling_eps = 1e-3
   else:
@@ -119,7 +121,6 @@ def train(config, workdir):
 
   # Build one-step training and evaluation functions
   optimize_fn = losses.optimization_manager(config)
-  continuous = config.training.continuous
   reduce_mean = config.training.reduce_mean
   method_name = config.training.sde.lower()
   train_step_fn = losses.get_step_fn(sde, train=True, optimize_fn=optimize_fn,
@@ -469,6 +470,7 @@ def evaluate(config,
           fout.write(io_buffer.getvalue())
 
         if config.eval.save_images:
+          # Saving a few generated images for debugging / visualization
           image_grid = make_grid(samples_torch, nrow=int(np.sqrt(len(samples_torch))))
           save_image(image_grid, os.path.join(eval_dir, f'ode_images_{ckpt}.png'))
           exit(0)
@@ -487,7 +489,7 @@ def evaluate(config,
             io_buffer, pool_3=latents["pool_3"], logits=latents["logits"])
           fout.write(io_buffer.getvalue())
 
-      # Compute inception scores, FIDs and KIDs.
+      # Compute inception scores, FIDs
       # Load all statistics that have been previously computed and saved for each host
       all_logits = []
       all_pools = []
