@@ -6,6 +6,7 @@ def forward_pz(sde, config, samples_batch, m):
 
     eps = config.training.eps
     z = torch.randn((len(samples_batch), 1, 1, 1)).to(samples_batch.device) * config.model.sigma_end
+    z = z.abs()
 
     # Confine the norms of perturbed data.
     # see Appendix B.1.1 of https://arxiv.org/abs/2209.11178
@@ -14,7 +15,7 @@ def forward_pz(sde, config, samples_batch, m):
         num = int(idx.int().sum())
         restrict_m = 250 if config.data.dataset == 'LSUN' else 200
         m[idx] = torch.rand((num,), device=samples_batch.device) * restrict_m
-    z = z.abs()
+
     data_dim = config.data.channels * config.data.image_size * config.data.image_size
     multiplier = (1+eps) ** m
 
