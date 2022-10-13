@@ -22,7 +22,6 @@ import numpy as np
 from models import utils as mutils
 from methods import VESDE, VPSDE
 from models import utils_poisson
-from utils import cal_scores
 
 def get_optimizer(config, params):
   """Returns a flax optimizer object based on `config`."""
@@ -53,7 +52,7 @@ def optimization_manager(config):
   return optimize_fn
 
 
-def get_sde_loss_fn(sde, train, reduce_mean=True, continuous=True, eps=1e-5, sde_name=None):
+def get_loss_fn(sde, train, reduce_mean=True, continuous=True, eps=1e-5, method_name=None):
   """Create a loss function for training with arbirary SDEs.
 
   Args:
@@ -81,17 +80,20 @@ def get_sde_loss_fn(sde, train, reduce_mean=True, continuous=True, eps=1e-5, sde
     Returns:
       loss: A scalar that represents the average loss value across the mini-batch.
     """
-    if sde_name == 'poisson':
+    if method_name == 'poisson':
 
-      # centering the data
-      samples_batch = batch[: sde.config.training.small_batch_size]
       samples_full = batch
+      # Get the mini-batch with size `training.small_batch_size`
+      samples_batch = batch[: sde.config.training.small_batch_size]
+
       m = torch.rand((samples_batch.shape[0],), device=samples_batch.device) * sde.M
-      perturbed_samples_vec, m = utils_poisson.forward_pz(sde, sde.config, samples_batch, m)
+      # Perturb the mini-batch data
+      perturbed_samples_vec = utils_poisson.forward_pz(sde, sde.config, samples_batch, m)
 
       z = torch.clamp(perturbed_samples_vec[:, -1], 1e-10)
       z = torch.ones((1, 1, sde.config.data.image_size, sde.config.data.image_size)).to(z.device) * z.view(-1, 1, 1, 1)
 
+      # Augment the perturb data
       perturbed_samples = torch.cat((perturbed_samples_vec[:, :-1].view_as(samples_batch), z), dim=1)
 
       with torch.no_grad():
@@ -101,30 +103,32 @@ def get_sde_loss_fn(sde, train, reduce_mean=True, continuous=True, eps=1e-5, sde
         data_dim = sde.config.data.image_size * sde.config.data.image_size * sde.config.data.channels
         gt_distance = torch.sum((perturbed_samples_vec.unsqueeze(1) - real_samples_vec) ** 2,
                                 dim=[-1]).sqrt()
+
+        # For numerical stability, timing each row by its minimum value
         distance = torch.min(gt_distance, dim=1, keepdim=True)[0] / (gt_distance + 1e-7)
         distance = distance ** (data_dim + 1)
         distance = distance[:, :, None]
         coeff = distance / (torch.sum(distance, dim=1, keepdim=True) + 1e-7)
         diff = - (perturbed_samples_vec.unsqueeze(1) - real_samples_vec)
 
-        # empirical Poisson field
+        # Calculate empirical Poisson field
         gt_direction = torch.sum(coeff * diff, dim=1)
         gt_direction = gt_direction.view(gt_direction.size(0), -1)
 
       gamma = sde.config.training.gamma
       gt_norm = gt_direction.norm(p=2, dim=1)
 
+      # Normalization
       gt_direction /= (gt_norm.view(-1, 1) + gamma)
       gt_direction *= np.sqrt(data_dim)
 
       target = gt_direction
-      score_fn = mutils.get_score_fn(sde, model, train=train, continuous=continuous)
+      net_fn = mutils.get_predict_fn(sde, model, train=train, continuous=continuous)
+      net_x, net_z = net_fn(perturbed_samples[:, :-1], torch.clamp(perturbed_samples_vec[:, -1], 1e-10))
 
-      scores, z_score = score_fn(perturbed_samples[:, :-1], torch.clamp(perturbed_samples_vec[:, -1], 1e-10))
-
-      scores = scores.view(scores.shape[0], -1)
-      scores = torch.cat([scores, z_score[:, None]], dim=1)
-      loss = ((scores - target) ** 2)
+      net_x = net_x.view(net_x.shape[0], -1)
+      net = torch.cat([net_x, net_z[:, None]], dim=1)
+      loss = ((net - target) ** 2)
       loss = reduce_op(loss.reshape(loss.shape[0], -1), dim=-1)
 
       loss = torch.mean(loss)
@@ -132,7 +136,7 @@ def get_sde_loss_fn(sde, train, reduce_mean=True, continuous=True, eps=1e-5, sde
       return loss
 
     else:
-      score_fn = mutils.get_score_fn(sde, model, train=train, continuous=continuous)
+      score_fn = mutils.get_predict_fn(sde, model, train=train, continuous=continuous)
 
       t = torch.rand(batch.shape[0], device=batch.device) * (sde.T - eps) + eps
       z = torch.randn_like(batch)
@@ -148,54 +152,8 @@ def get_sde_loss_fn(sde, train, reduce_mean=True, continuous=True, eps=1e-5, sde
   return loss_fn
 
 
-def get_smld_loss_fn(vesde, train, reduce_mean=False):
-  """Legacy code to reproduce previous results on SMLD(NCSN). Not recommended for new work."""
-  assert isinstance(vesde, VESDE), "SMLD training only works for VESDEs."
 
-  # Previous SMLD models assume descending sigmas
-  smld_sigma_array = torch.flip(vesde.discrete_sigmas, dims=(0,))
-  reduce_op = torch.mean if reduce_mean else lambda *args, **kwargs: 0.5 * torch.sum(*args, **kwargs)
-
-  def loss_fn(model, batch):
-    model_fn = mutils.get_model_fn(model, train=train)
-    labels = torch.randint(0, vesde.N, (batch.shape[0],), device=batch.device)
-    sigmas = smld_sigma_array.to(batch.device)[labels]
-    noise = torch.randn_like(batch) * sigmas[:, None, None, None]
-    perturbed_data = noise + batch
-    score = model_fn(perturbed_data, labels)
-    target = -noise / (sigmas ** 2)[:, None, None, None]
-    losses = torch.square(score - target)
-    losses = reduce_op(losses.reshape(losses.shape[0], -1), dim=-1) * sigmas ** 2
-    loss = torch.mean(losses)
-    return loss
-
-  return loss_fn
-
-
-def get_ddpm_loss_fn(vpsde, train, reduce_mean=True):
-  """Legacy code to reproduce previous results on DDPM. Not recommended for new work."""
-  assert isinstance(vpsde, VPSDE), "DDPM training only works for VPSDEs."
-
-  reduce_op = torch.mean if reduce_mean else lambda *args, **kwargs: 0.5 * torch.sum(*args, **kwargs)
-
-  def loss_fn(model, batch):
-    model_fn = mutils.get_model_fn(model, train=train)
-    labels = torch.randint(0, vpsde.N, (batch.shape[0],), device=batch.device)
-    sqrt_alphas_cumprod = vpsde.sqrt_alphas_cumprod.to(batch.device)
-    sqrt_1m_alphas_cumprod = vpsde.sqrt_1m_alphas_cumprod.to(batch.device)
-    noise = torch.randn_like(batch)
-    perturbed_data = sqrt_alphas_cumprod[labels, None, None, None] * batch + \
-                     sqrt_1m_alphas_cumprod[labels, None, None, None] * noise
-    score = model_fn(perturbed_data, labels)
-    losses = torch.square(score - noise)
-    losses = reduce_op(losses.reshape(losses.shape[0], -1), dim=-1)
-    loss = torch.mean(losses)
-    return loss
-
-  return loss_fn
-
-
-def get_step_fn(sde, train, optimize_fn=None, reduce_mean=False, continuous=True, sde_name=None):
+def get_step_fn(sde, train, optimize_fn=None, reduce_mean=False, method_name=None):
   """Create a one-step training/evaluation function.
 
   Args:
@@ -210,8 +168,8 @@ def get_step_fn(sde, train, optimize_fn=None, reduce_mean=False, continuous=True
     A one-step function for training or evaluation.
   """
 
-  loss_fn = get_sde_loss_fn(sde, train, reduce_mean=reduce_mean,
-                            continuous=True, sde_name=sde_name)
+  loss_fn = get_loss_fn(sde, train, reduce_mean=reduce_mean,
+                            continuous=True, method_name=method_name)
 
   def step_fn(state, batch):
     """Running one step of training or evaluation.

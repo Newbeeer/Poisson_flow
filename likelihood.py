@@ -21,7 +21,7 @@ import torch
 import numpy as np
 from scipy import integrate
 from models import utils as mutils
-from models.utils import get_score_fn
+from models.utils import get_predict_fn
 
 def get_div_fn(fn):
   """Create the divergence function of `fn` using the Hutchinson-Skilling trace estimator."""
@@ -58,9 +58,9 @@ def get_likelihood_fn(sde, inverse_scaler, hutchinson_type='Rademacher',
 
   def drift_fn(model, x, t):
     """The drift function of the reverse-time SDE."""
-    score_fn = mutils.get_score_fn(sde, model, train=False, continuous=True)
+    net_fn = mutils.get_predict_fn(sde, model, train=False, continuous=True)
     # Probability flow ODE is a special case of Reverse SDE
-    rsde = sde.reverse(score_fn, probability_flow=True)
+    rsde = sde.reverse(net_fn, probability_flow=True)
     return rsde.sde(x, t)[0]
 
   def div_fn(model, x, t, noise):
@@ -128,7 +128,7 @@ def cat_z_scalar(x, z, img_size):
   cat_z = torch.ones((len(x), 1, img_size, img_size)).cuda() * z
   return torch.cat((x, cat_z), dim=1)
 
-def get_likelihood_fn_poisson(sde, hutchinson_type='Rademacher',
+def get_likelihood_fn_pfgm(sde, hutchinson_type='Rademacher',
                       rtol=1e-4, atol=1e-4, method='RK45', eps=1e-3):
   """Create a function to compute the unbiased log-likelihood estimate of a given data point.
 
@@ -152,9 +152,9 @@ def get_likelihood_fn_poisson(sde, hutchinson_type='Rademacher',
 
     if sde.config.sampling.vs:
       print(z)
-    score_fn = get_score_fn(sde, model, train=False, continuous=True)
+    net_fn = get_predict_fn(sde, model, train=False, continuous=True)
 
-    x_drift, z_drift = score_fn(x, torch.ones((len(x))).cuda() * z)
+    x_drift, z_drift = net_fn(x, torch.ones((len(x))).cuda() * z)
     x_drift = x_drift.view(len(x_drift), -1)
 
     z_exp = 5

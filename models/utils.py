@@ -59,42 +59,17 @@ def get_sigmas(config):
   return sigmas
 
 
-def get_ddpm_params(config):
-  """Get betas and alphas --- parameters used in the original DDPM paper."""
-  num_diffusion_timesteps = 1000
-  # parameters need to be adapted if number of time steps differs from 1000
-  beta_start = config.model.beta_min / config.model.num_scales
-  beta_end = config.model.beta_max / config.model.num_scales
-  betas = np.linspace(beta_start, beta_end, num_diffusion_timesteps, dtype=np.float64)
-
-  alphas = 1. - betas
-  alphas_cumprod = np.cumprod(alphas, axis=0)
-  sqrt_alphas_cumprod = np.sqrt(alphas_cumprod)
-  sqrt_1m_alphas_cumprod = np.sqrt(1. - alphas_cumprod)
-
-  return {
-    'betas': betas,
-    'alphas': alphas,
-    'alphas_cumprod': alphas_cumprod,
-    'sqrt_alphas_cumprod': sqrt_alphas_cumprod,
-    'sqrt_1m_alphas_cumprod': sqrt_1m_alphas_cumprod,
-    'beta_min': beta_start * (num_diffusion_timesteps - 1),
-    'beta_max': beta_end * (num_diffusion_timesteps - 1),
-    'num_diffusion_timesteps': num_diffusion_timesteps
-  }
-
-
 def create_model(config):
-  """Create the score model."""
+  """Create the model."""
   model_name = config.model.name
-  score_model = get_model(model_name)(config)
-  score_model = score_model.to(config.device)
-  score_model = torch.nn.DataParallel(score_model)
-  return score_model
+  model = get_model(model_name)(config)
+  model = model.to(config.device)
+  model = torch.nn.DataParallel(model)
+  return model
 
 
 def get_model_fn(model, train=False):
-  """Create a function to give the output of the score-based model.
+  """Create a function to give the output of the PFGM / score-based model.
 
   Args:
     model: The score model.
@@ -105,7 +80,7 @@ def get_model_fn(model, train=False):
   """
 
   def model_fn(x, labels):
-    """Compute the output of the score-based model.
+    """Compute the output of the PFGM / score-based model.
 
     Args:
       x: A mini-batch of input data.
@@ -125,8 +100,8 @@ def get_model_fn(model, train=False):
   return model_fn
 
 
-def get_score_fn(sde, model, train=False, continuous=False):
-  """Wraps `score_fn` so that the model output corresponds to a real time-dependent score function.
+def get_predict_fn(sde, model, train=False, continuous=False):
+  """Wraps `predict_fn` so that the model output corresponds to a vector prediction
 
   Args:
     sde: An `methods.SDE` object that represents the forward SDE.
@@ -140,7 +115,7 @@ def get_score_fn(sde, model, train=False, continuous=False):
   model_fn = get_model_fn(model, train=train)
 
   if isinstance(sde, methods.VPSDE) or isinstance(sde, methods.subVPSDE):
-    def score_fn(x, t):
+    def predict_fn(x, t):
       # Scale neural network output by standard deviation and flip sign
       if continuous or isinstance(sde, methods.subVPSDE):
         # For VP-trained models, t=0 corresponds to the lowest noise level
@@ -159,7 +134,7 @@ def get_score_fn(sde, model, train=False, continuous=False):
       return score
 
   elif isinstance(sde, methods.VESDE):
-    def score_fn(x, t):
+    def predict_fn(x, t):
       if continuous:
         # get sigmas by t
         labels = sde.marginal_prob(torch.zeros_like(x), t)[1]
@@ -173,13 +148,14 @@ def get_score_fn(sde, model, train=False, continuous=False):
       return score
 
   elif isinstance(sde, methods.Poisson):
-    def score_fn(x, z):
-      score = model_fn(x, z)
-      return score
+    # PFGM
+    def predict_fn(x, z):
+      normalized_poisson_field = predict_fn(x, z)
+      return normalized_poisson_field
   else:
-    raise NotImplementedError(f"SDE class {sde.__class__.__name__} not yet supported.")
+    raise NotImplementedError(f"Method class {sde.__class__.__name__} not yet supported.")
 
-  return score_fn
+  return predict_fn
 
 
 def to_flattened_numpy(x):

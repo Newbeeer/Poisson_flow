@@ -3,7 +3,17 @@ import numpy as np
 
 
 def forward_pz(sde, config, samples_batch, m):
+    """Perturbing the augmented training data. See Algorithm 2 in PFGM paper.
 
+    Args:
+      sde: An `methods.SDE` object that represents the forward SDE.
+      config: `True` for training loss and `False` for evaluation loss.
+      samples_batch: A mini-batch of un-augmented training data
+      m: A 1D torch tensor. The exponents of (1+\tau).
+
+    Returns:
+      Perturbed samples
+    """
     tau = config.training.tau
     z = torch.randn((len(samples_batch), 1, 1, 1)).to(samples_batch.device) * config.model.sigma_end
     z = z.abs()
@@ -30,4 +40,4 @@ def forward_pz(sde, config, samples_batch, m):
     perturbed_samples = samples_batch + init_samples
     perturbed_samples_vec = torch.cat((perturbed_samples.reshape(len(samples_batch), -1),
                                        z_m[:, None]), dim=1)
-    return perturbed_samples_vec, m
+    return perturbed_samples_vec

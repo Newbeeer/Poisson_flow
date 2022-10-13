@@ -14,7 +14,7 @@
 # limitations under the License.
 
 # pylint: skip-file
-"""Training and evaluation for score-based generative models. """
+"""Training and evaluation for PFGM or score-based generative models. """
 
 import gc
 import io
@@ -75,10 +75,10 @@ def train(config, workdir):
   writer = tensorboard.SummaryWriter(tb_dir)
 
   # Initialize model.
-  score_model = mutils.create_model(config)
-  ema = ExponentialMovingAverage(score_model.parameters(), decay=config.model.ema_rate)
-  optimizer = losses.get_optimizer(config, score_model.parameters())
-  state = dict(optimizer=optimizer, model=score_model, ema=ema, step=0)
+  net = mutils.create_model(config)
+  ema = ExponentialMovingAverage(net.parameters(), decay=config.model.ema_rate)
+  optimizer = losses.get_optimizer(config, net.parameters())
+  state = dict(optimizer=optimizer, model=net, ema=ema, step=0)
 
   # Create checkpoints directory
   checkpoint_dir = os.path.join(workdir, "checkpoints")
@@ -115,20 +115,17 @@ def train(config, workdir):
     sde = methods.Poisson(config=config)
     sampling_eps = 1e-3
   else:
-    raise NotImplementedError(f"SDE {config.training.sde} unknown.")
+    raise NotImplementedError(f"Method {config.training.sde} unknown.")
 
   # Build one-step training and evaluation functions
   optimize_fn = losses.optimization_manager(config)
   continuous = config.training.continuous
   reduce_mean = config.training.reduce_mean
-  likelihood_weighting = config.training.likelihood_weighting
-  sde_name = config.training.sde.lower()
+  method_name = config.training.sde.lower()
   train_step_fn = losses.get_step_fn(sde, train=True, optimize_fn=optimize_fn,
-                                     reduce_mean=reduce_mean, continuous=continuous,
-                                     sde_name=sde_name)
+                                     reduce_mean=reduce_mean, method_name=method_name)
   eval_step_fn = losses.get_step_fn(sde, train=False, optimize_fn=optimize_fn,
-                                    reduce_mean=reduce_mean, continuous=continuous,
-                                    sde_name=sde_name)
+                                    reduce_mean=reduce_mean, method_name=method_name)
 
   # Building sampling functions
   if config.training.snapshot_sampling:
@@ -191,10 +188,10 @@ def train(config, workdir):
 
       # # Generate and save samples
       if config.training.snapshot_sampling:
-        ema.store(score_model.parameters())
-        ema.copy_to(score_model.parameters())
-        sample, n = sampling_fn(score_model)
-        ema.restore(score_model.parameters())
+        ema.store(net.parameters())
+        ema.copy_to(net.parameters())
+        sample, n = sampling_fn(net)
+        ema.restore(net.parameters())
         this_sample_dir = os.path.join(sample_dir, "iter_{}".format(step))
         tf.io.gfile.makedirs(this_sample_dir)
         nrow = int(np.sqrt(sample.shape[0]))
@@ -241,14 +238,14 @@ def evaluate(config,
   inverse_scaler = datasets.get_data_inverse_scaler(config)
 
   # Initialize model
-  score_model = mutils.create_model(config)
-  optimizer = losses.get_optimizer(config, score_model.parameters())
-  ema = ExponentialMovingAverage(score_model.parameters(), decay=config.model.ema_rate)
-  state = dict(optimizer=optimizer, model=score_model, ema=ema, step=0)
+  net = mutils.create_model(config)
+  optimizer = losses.get_optimizer(config, net.parameters())
+  ema = ExponentialMovingAverage(net.parameters(), decay=config.model.ema_rate)
+  state = dict(optimizer=optimizer, model=net, ema=ema, step=0)
 
   checkpoint_dir = os.path.join(workdir, "checkpoints")
 
-  # Setup SDEs
+  # Setup methods
   if config.training.sde.lower() == 'vpsde':
     sde = methods.VPSDE(config=config, beta_min=config.model.beta_min, beta_max=config.model.beta_max, N=config.sampling.N)
     sampling_eps = 1e-3
@@ -259,23 +256,23 @@ def evaluate(config,
     sde = methods.VESDE(config=config, sigma_min=config.model.sigma_min, sigma_max=config.model.sigma_max, N=config.model.num_scales)
     sampling_eps = 1e-5
   elif config.training.sde.lower() == 'poisson':
+    # PFGM
     sde = methods.Poisson(config=config)
     sampling_eps = 1e-3
     print("--- sampling eps:", sampling_eps)
   else:
-    raise NotImplementedError(f"SDE {config.training.sde} unknown.")
+    raise NotImplementedError(f"Method {config.training.sde} unknown.")
 
   # Create the one-step evaluation function when loss computation is enabled
   if config.eval.enable_loss:
     optimize_fn = losses.optimization_manager(config)
     continuous = config.training.continuous
-    likelihood_weighting = config.training.likelihood_weighting
 
     reduce_mean = config.training.reduce_mean
     eval_step = losses.get_step_fn(sde, train=False, optimize_fn=optimize_fn,
                                    reduce_mean=reduce_mean,
                                    continuous=continuous,
-                                   sde_name=config.training.sde.lower())
+                                   method_name=config.training.sde.lower())
 
 
   # Build the likelihood computation function when likelihood is enabled
@@ -293,7 +290,7 @@ def evaluate(config,
     else:
       raise ValueError(f"No bpd dataset {config.eval.bpd_dataset} recognized.")
     if config.training.sde.lower() == 'poisson':
-      likelihood_fn = likelihood.get_likelihood_fn_poisson(sde)
+      likelihood_fn = likelihood.get_likelihood_fn_pfgm(sde)
     else:
       likelihood_fn = likelihood.get_likelihood_fn(sde, inverse_scaler)
 
@@ -342,7 +339,7 @@ def evaluate(config,
       except:
         time.sleep(120)
         state = restore_checkpoint(ckpt_path, state, device=config.device)
-    ema.copy_to(score_model.parameters())
+    ema.copy_to(net.parameters())
     # Compute the loss function on the full evaluation dataset if loss computation is enabled
     if config.eval.enable_loss:
       all_losses = []
@@ -373,7 +370,7 @@ def evaluate(config,
           eval_batch = torch.from_numpy(batch['image']._numpy()).to(config.device).float()
           eval_batch = eval_batch.permute(0, 3, 1, 2)
           eval_batch = scaler(eval_batch)
-          bpd = likelihood_fn(score_model, eval_batch)[0]
+          bpd = likelihood_fn(net, eval_batch)[0]
           bpd = bpd.detach().cpu().numpy().reshape(-1)
           bpds.extend(bpd)
           logging.info(
@@ -413,7 +410,7 @@ def evaluate(config,
         result = result * config.sampling.upper_norm
         result = torch.from_numpy(result).cuda()
 
-        samples, n = sampling_fn(score_model, x=result)
+        samples, n = sampling_fn(net, x=result)
         imgs[i * inter_num: (i + 1) * inter_num] = torch.clamp(samples, 0.0, 1.0).to('cpu')
 
       image_grid = make_grid(imgs, nrow=inter_num)
@@ -441,7 +438,7 @@ def evaluate(config,
         t_vals = t_vals.view((-1, 1))
         result = unit_vec * t_vals
 
-        samples, n = sampling_fn(score_model, x=result)
+        samples, n = sampling_fn(net, x=result)
         imgs[i * inter_num: (i + 1) * inter_num] = torch.clamp(samples, 0.0, 1.0).to('cpu')
 
       image_grid = make_grid(imgs, nrow=inter_num)
@@ -456,7 +453,7 @@ def evaluate(config,
 
       for r in range(num_sampling_rounds):
         logging.info("sampling -- ckpt: %d, round: %d" % (ckpt, r))
-        samples, n = sampling_fn(score_model)
+        samples, n = sampling_fn(net)
         print("nfe:", n)
         samples_torch = copy.deepcopy(samples)
         samples_torch = samples_torch.view(-1, config.data.num_channels, config.data.image_size, config.data.image_size)

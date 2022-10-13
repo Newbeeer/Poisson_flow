@@ -68,11 +68,11 @@ class SDE(abc.ABC):
     G = diffusion * torch.sqrt(torch.tensor(dt, device=t.device))
     return f, G
 
-  def reverse(self, score_fn, probability_flow=False):
+  def reverse(self, net_fn, probability_flow=False):
     """Create the reverse-time SDE/ODE.
 
     Args:
-      score_fn: A time-dependent score-based model that takes x and t and returns the score.
+      net_fn: A time-dependent score-based model that takes x and t and returns the score.
       probability_flow: If `True`, create the reverse-time ODE used for probability flow sampling.
     """
     N = self.N
@@ -94,7 +94,7 @@ class SDE(abc.ABC):
         """Create the drift and diffusion functions for the reverse SDE/ODE."""
 
         drift, diffusion = sde_fn(x, t)
-        score = score_fn(x.float(), t.float())
+        score = net_fn(x.float(), t.float())
         drift = drift - diffusion[:, None, None, None] ** 2 * score * (0.5 if self.probability_flow else 1.)
         # Set the diffusion function to zero for ODEs.
         diffusion = torch.zeros_like(diffusion) if self.probability_flow else diffusion
@@ -103,7 +103,7 @@ class SDE(abc.ABC):
       def discretize(self, x, t):
         """Create discretized iteration rules for the reverse diffusion sampler."""
         f, G = discretize_fn(x, t)
-        rev_f = f - G[:, None, None, None] ** 2 * score_fn(x, t) * (0.5 if self.probability_flow else 1.)
+        rev_f = f - G[:, None, None, None] ** 2 * net_fn(x, t) * (0.5 if self.probability_flow else 1.)
         rev_G = torch.zeros_like(G) if self.probability_flow else G
         return rev_f, rev_G
 
@@ -263,6 +263,7 @@ class Poisson():
     """Construct a PFGM.
 
     Args:
+      config: configurations
     """
     self.config = config
     self.N = config.sampling.N
@@ -272,25 +273,33 @@ class Poisson():
     return self.config.training.M
 
   def prior_sampling(self, shape):
+    """
+    Sampling initial data from z=z_max hyperplane.
+    See Section 3.3 in PFGM paper
+    """
 
+    # Sample the radius
     max_z = self.config.sampling.z_max
     N = self.config.data.channels * self.config.data.image_size * self.config.data.image_size + 1
     samples_norm = np.random.beta(a=N / 2. - 0.5, b=0.5, size=shape[0])
     inverse_beta = samples_norm / (1 - samples_norm)
     samples_norm = np.sqrt(max_z ** 2 * inverse_beta)
+    # clip the sample norm (radius)
     samples_norm = np.clip(samples_norm, 1, self.config.sampling.upper_norm)
     samples_norm = torch.from_numpy(samples_norm).cuda().view(len(samples_norm), -1)
 
+    # Uniformly sample the angle
     gaussian = torch.randn(shape[0], N - 1).cuda()
     unit_gaussian = gaussian / torch.norm(gaussian, p=2, dim=1, keepdim=True)
+
+    # Radius times angle direction
     init_samples = unit_gaussian * samples_norm
 
     return init_samples.float().view(len(init_samples), self.config.data.num_channels,
                                 self.config.data.image_size, self.config.data.image_size)
 
-  def ode(self, score_fn, x, t):
+  def ode(self, net_fn, x, t):
 
-    # z = x[:, -1].mean()
     if self.config.sampling.schedule == 'quadratic':
       z = t.mean().cpu() ** 2
     elif self.config.sampling.schedule == 'linear':
@@ -299,7 +308,7 @@ class Poisson():
       z = np.exp(t.mean().cpu())
     if self.config.sampling.vs:
       print(z)
-    x_drift, z_drift = score_fn(x, torch.ones((len(x))).cuda() * z)
+    x_drift, z_drift = net_fn(x, torch.ones((len(x))).cuda() * z)
     x_drift = x_drift.view(len(x_drift), -1)
 
     # Substitute the predicted z with the ground-truth
