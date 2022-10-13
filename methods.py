@@ -275,25 +275,27 @@ class Poisson():
 
   def prior_sampling(self, shape):
     """
-    Sampling initial data from z=z_max hyperplane.
+    Sampling initial data from p_prior on z=z_max hyperplane.
     See Section 3.3 in PFGM paper
     """
 
-    # Sample the radius
+    # Sample the radius from p_radius (details in Appendix A.4 in the PFGM paper)
     max_z = self.config.sampling.z_max
     N = self.config.data.channels * self.config.data.image_size * self.config.data.image_size + 1
+    # Sampling form inverse-beta distribution
     samples_norm = np.random.beta(a=N / 2. - 0.5, b=0.5, size=shape[0])
     inverse_beta = samples_norm / (1 - samples_norm)
+    # Sampling from p_radius(R) by change-of-variable
     samples_norm = np.sqrt(max_z ** 2 * inverse_beta)
     # clip the sample norm (radius)
     samples_norm = np.clip(samples_norm, 1, self.config.sampling.upper_norm)
     samples_norm = torch.from_numpy(samples_norm).cuda().view(len(samples_norm), -1)
 
-    # Uniformly sample the angle
+    # Uniformly sample the angle direction
     gaussian = torch.randn(shape[0], N - 1).cuda()
     unit_gaussian = gaussian / torch.norm(gaussian, p=2, dim=1, keepdim=True)
 
-    # Radius times angle direction
+    # Radius times the angle direction
     init_samples = unit_gaussian * samples_norm
 
     return init_samples.float().view(len(init_samples), self.config.data.num_channels,
