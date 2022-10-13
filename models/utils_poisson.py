@@ -23,7 +23,7 @@ def forward_pz(sde, config, samples_batch, m):
     if config.training.restrict_M:
         idx = (z < 0.005).squeeze()
         num = int(idx.int().sum())
-        restrict_m = 250 if config.data.dataset == 'LSUN' else 200
+        restrict_m = int(sde.M * 0.7)
         m[idx] = torch.rand((num,), device=samples_batch.device) * restrict_m
 
     data_dim = config.data.channels * config.data.image_size * config.data.image_size

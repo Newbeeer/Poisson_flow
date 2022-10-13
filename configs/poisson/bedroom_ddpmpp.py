@@ -44,8 +44,8 @@ def get_config():
   # sampling
   sampling = config.sampling
   sampling.method = 'ode'
-  sampling.z_max = 50
-  sampling.upper_norm = 20000
+  sampling.z_max = 100
+  sampling.upper_norm = 30000
   sampling.vs = False
 
   ## parameters for euler method
