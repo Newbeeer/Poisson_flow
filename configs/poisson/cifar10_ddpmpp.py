@@ -50,6 +50,7 @@ def get_config():
 
   sampling.z_max = 50
   sampling.upper_norm = 4000
+  # verbose
   sampling.vs = False
 
   # model
