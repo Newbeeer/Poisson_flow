@@ -33,7 +33,6 @@ def get_config():
   training.snapshot_sampling = True
   training.sde = 'vesde'
   training.continuous = True
-  training.likelihood_weighting = False
   training.reduce_mean = False
 
   # sampling

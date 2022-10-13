@@ -31,14 +31,17 @@ def forward_pz(sde, config, samples_batch, m):
 
     noise = torch.randn_like(samples_batch).reshape(len(samples_batch), -1) * config.model.sigma_end
     norm_m = torch.norm(noise, p=2, dim=1) * multiplier
-    z_m = z.squeeze() * multiplier
+    # Perturb z
+    perturbed_z = z.squeeze() * multiplier
+    # Sample uniform angle
     gaussian = torch.randn(len(samples_batch), data_dim).to(samples_batch.device)
     unit_gaussian = gaussian / torch.norm(gaussian, p=2, dim=1, keepdim=True)
-    perturbation = unit_gaussian * norm_m[:, None]
-    perturbation = perturbation.view_as(samples_batch)
-
-    perturbed_samples = samples_batch + perturbation
+    # Construct the perturbation for x
+    perturbation_x = unit_gaussian * norm_m[:, None]
+    perturbation_x = perturbation_x.view_as(samples_batch)
+    # Perturb x
+    perturbed_x = samples_batch + perturbation_x
     # Augment the data with extra dimension z
-    perturbed_samples_vec = torch.cat((perturbed_samples.reshape(len(samples_batch), -1),
-                                       z_m[:, None]), dim=1)
+    perturbed_samples_vec = torch.cat((perturbed_x.reshape(len(samples_batch), -1),
+                                       perturbed_z[:, None]), dim=1)
     return perturbed_samples_vec

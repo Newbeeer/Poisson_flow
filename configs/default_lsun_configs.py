@@ -15,7 +15,6 @@ def get_default_configs():
   training.snapshot_freq_for_preemption = 5000
   ## produce samples at each snapshot.
   training.snapshot_sampling = True
-  training.likelihood_weighting = False
   training.continuous = True
   training.reduce_mean = False
   training.M = 356

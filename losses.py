@@ -85,7 +85,7 @@ def get_loss_fn(sde, train, reduce_mean=True, continuous=True, eps=1e-5, method_
       samples_batch = batch[: sde.config.training.small_batch_size]
 
       m = torch.rand((samples_batch.shape[0],), device=samples_batch.device) * sde.M
-      # Perturb the mini-batch data
+      # Perturb the (augmented) mini-batch data
       perturbed_samples_vec = utils_poisson.forward_pz(sde, sde.config, samples_batch, m)
 
       with torch.no_grad():
@@ -100,6 +100,7 @@ def get_loss_fn(sde, train, reduce_mean=True, continuous=True, eps=1e-5, method_
         distance = torch.min(gt_distance, dim=1, keepdim=True)[0] / (gt_distance + 1e-7)
         distance = distance ** (data_dim + 1)
         distance = distance[:, :, None]
+        # Normalize the coefficients
         coeff = distance / (torch.sum(distance, dim=1, keepdim=True) + 1e-7)
         diff = - (perturbed_samples_vec.unsqueeze(1) - real_samples_vec)
 

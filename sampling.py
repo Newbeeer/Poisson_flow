@@ -583,7 +583,8 @@ def get_ode_sampler_pfgm(sde, shape, inverse_scaler, rtol=1e-4, atol=1e-4,
       z = torch.ones((len(x), 1, 1, 1)).to(x.device)
       z = z.repeat((1, 1, sde.config.data.image_size, sde.config.data.image_size)) * sde.config.sampling.z_max
       x = x.view(shape)
-      # Augment the samples
+      # Augment the samples with extra dimension z
+      # We concatenate the extra dimension z as an addition channel to accomondate this solver
       x = torch.cat((x, z), dim=1)
       x = x.float()
       new_shape = (len(x), sde.config.data.channels + 1, sde.config.data.image_size, sde.config.data.image_size)
@@ -593,9 +594,9 @@ def get_ode_sampler_pfgm(sde, shape, inverse_scaler, rtol=1e-4, atol=1e-4,
         if sde.config.sampling.vs:
           print(np.exp(t))
         x = from_flattened_numpy(x, new_shape).to(device).type(torch.float32)
-
+        # Change-of-variable z=exp(t)
         z = np.exp(t)
-        net_fn = get_predict_fn(sde, model, train=False, continuous=True)
+        net_fn = get_predict_fn(sde, model, train=False)
 
         x_drift, z_drift = net_fn(x[:, :-1], torch.ones((len(x))).cuda() * z)
         x_drift = x_drift.view(len(x_drift), -1)
@@ -611,24 +612,28 @@ def get_ode_sampler_pfgm(sde, shape, inverse_scaler, rtol=1e-4, atol=1e-4,
           x_norm = torch.sqrt(x_norm ** 2 + z ** 2)
           z_drift = -sqrt_dim * torch.ones_like(z_drift) * z / (x_norm + sde.config.training.gamma)
 
+        # Predicted normalized Poisson field
         v = torch.cat([x_drift, z_drift[:, None]], dim=1)
         dt_dz = 1 / (v[:, -1] + 1e-5)
         dx_dt = v[:, :-1].view(shape)
 
-        dx_dz = z * dx_dt * dt_dz.view(-1, *([1] * len(x.size()[1:])))
-        drift = torch.cat([dx_dz,
+        # Get dx/dz
+        dx_dz = dx_dt * dt_dz.view(-1, *([1] * len(x.size()[1:])))
+        # drift = z * (dx/dz, dz/dz) = z * (dx/dz, 1)
+        drift = torch.cat([z * dx_dz,
                            torch.ones((len(dx_dz), 1, sde.config.data.image_size,
                                        sde.config.data.image_size)).to(dx_dz.device) * z], dim=1)
         return to_flattened_numpy(drift)
 
-      # Black-box ODE solver for the probability flow ODE. Note that Z = exp(t)
+      # Black-box ODE solver for the probability flow ODE.
+      # Note that we use z = exp(t) for change-of-variable to accelearte the ODE simulation
       solution = integrate.solve_ivp(ode_func, (np.log(sde.config.sampling.z_max), np.log(eps)), to_flattened_numpy(x),
                                      rtol=rtol, atol=atol, method=method)
 
       nfe = solution.nfev
       x = torch.tensor(solution.y[:, -1]).reshape(new_shape).to(device).type(torch.float32)
 
-      # detach augmented z dimension
+      # Detach augmented z dimension
       x = x[:, :-1]
       x = inverse_scaler(x)
       return x, nfe

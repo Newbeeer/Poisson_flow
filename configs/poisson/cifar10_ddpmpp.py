@@ -41,7 +41,7 @@ def get_config():
   sampling = config.sampling
   sampling.method = 'ode'
 
-  # parameters for euler method
+  ## parameters for euler method
   # sampling.method = 'pc'
   # sampling.predictor = 'euler_maruyama'
   # #sampling.predictor = 'improved_euler'

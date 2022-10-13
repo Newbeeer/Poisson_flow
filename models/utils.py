@@ -100,7 +100,7 @@ def get_model_fn(model, train=False):
   return model_fn
 
 
-def get_predict_fn(sde, model, train=False, continuous=False):
+def get_predict_fn(sde, model, train=False, continuous=True):
   """Wraps `predict_fn` so that the model output corresponds to a vector prediction
 
   Args:
@@ -150,6 +150,7 @@ def get_predict_fn(sde, model, train=False, continuous=False):
   elif isinstance(sde, methods.Poisson):
     # PFGM
     def predict_fn(x, z):
+      # For PFGM, z is the augmented dimension
       normalized_poisson_field = model_fn(x, z)
       return normalized_poisson_field
   else:

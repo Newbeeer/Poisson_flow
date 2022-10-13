@@ -226,6 +226,7 @@ class NCSNpp(nn.Module):
       modules.append(nn.GroupNorm(num_groups=min(in_ch // 4, 32),
                                   num_channels=in_ch, eps=1e-6))
       if self.config.training.sde == 'poisson':
+        # output an extra channel for PFGM z-dimension
         modules.append(conv3x3(in_ch, config.data.num_channels + 1, init_scale=init_scale))
       else:
         modules.append(conv3x3(in_ch, config.data.num_channels, init_scale=init_scale))
