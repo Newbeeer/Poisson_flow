@@ -111,10 +111,10 @@ def get_sde_loss_fn(sde, train, reduce_mean=True, continuous=True, eps=1e-5, sde
         gt_direction = torch.sum(coeff * diff, dim=1)
         gt_direction = gt_direction.view(gt_direction.size(0), -1)
 
-      threshold = sde.config.training.threshold
+      gamma = sde.config.training.gamma
       gt_norm = gt_direction.norm(p=2, dim=1)
 
-      gt_direction /= (gt_norm.view(-1, 1) + threshold)
+      gt_direction /= (gt_norm.view(-1, 1) + gamma)
       gt_direction *= np.sqrt(data_dim)
 
       target = gt_direction

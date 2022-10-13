@@ -26,7 +26,7 @@ def get_config():
   training.continuous = True
   training.batch_size = 4096
   training.small_batch_size = 128
-  training.threshold = 5
+  training.gamma = 5
   training.restrict_M = True
   training.tau = 0.03
   training.snapshot_freq = 50000

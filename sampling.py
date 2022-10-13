@@ -585,13 +585,13 @@ def get_ode_sampler_exp(sde, shape, rtol=1e-4, atol=1e-4,
         # Substitute the predicted z with the ground-truth
         # Please see Appendix B.2.3 in PFGM paper (https://arxiv.org/abs/2209.11178) for details
         z_exp = sde.config.sampling.z_exp
-        if z < z_exp and sde.config.training.threshold > 0:
+        if z < z_exp and sde.config.training.gamma > 0:
           data_dim = sde.config.data.image_size * sde.config.data.image_size * sde.config.data.channels
           sqrt_dim = np.sqrt(data_dim)
           norm_1 = x_drift.norm(p=2, dim=1) / sqrt_dim
-          x_norm = sde.config.training.threshold * norm_1 / (1 - norm_1)
+          x_norm = sde.config.training.gamma * norm_1 / (1 - norm_1)
           x_norm = torch.sqrt(x_norm ** 2 + z ** 2)
-          z_drift = -sqrt_dim * torch.ones_like(z_drift) * z / (x_norm + sde.config.training.threshold)
+          z_drift = -sqrt_dim * torch.ones_like(z_drift) * z / (x_norm + sde.config.training.gamma)
 
         v = torch.cat([x_drift, z_drift[:, None]], dim=1)
         dt_dz = 1 / (v[:, -1] + 1e-5)

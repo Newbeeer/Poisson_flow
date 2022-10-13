@@ -158,11 +158,11 @@ def get_likelihood_fn_poisson(sde, hutchinson_type='Rademacher',
     x_drift = x_drift.view(len(x_drift), -1)
 
     z_exp = 5
-    if z < z_exp and sde.config.training.threshold > 0:
+    if z < z_exp and sde.config.training.gamma > 0:
       x_norm = x_drift.norm(p=2, dim=1) / constant
-      v_norm = sde.config.training.threshold * x_norm / (1 - x_norm)
+      v_norm = sde.config.training.gamma * x_norm / (1 - x_norm)
       v_norm = torch.sqrt(v_norm ** 2 + z ** 2)
-      z_drift_ = - constant * torch.ones_like(z_drift) * z / (v_norm + sde.config.training.threshold)
+      z_drift_ = - constant * torch.ones_like(z_drift) * z / (v_norm + sde.config.training.gamma)
       z_drift = z_drift_
 
     ### normalized to unit vector ###
