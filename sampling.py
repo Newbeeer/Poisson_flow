@@ -546,7 +546,7 @@ def get_ode_sampler(sde, shape, ode_solver, inverse_scaler, eps=1e-3, device='cu
                                     eps=eps)
 
   def ode_sampler(model):
-    """ The PC sampler funciton.
+    """ The ODE sampler funciton.
 
     Args:
       model: A PFGM or score model.
