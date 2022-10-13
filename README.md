@@ -10,7 +10,7 @@ We propose a new **Poisson flow** generative model (**PFGM**) that maps a unifor
 
 ![schematic](assets/combine.png)
 
-Experimentally, PFGM achieves **current state-of-the-art** performance among the normalizing flow models on CIFAR-10, with an Inception score of **9.68** and a FID score of **2.48**. It also performs on par with the state-of-the-art SDE approaches **(e.g., score-based SDEs or Diffusion models)** while offering **10x** to **20x** acceleration on image generation tasks. Additionally, PFGM appears more tolerant of estimation errors on a weaker network architecture and robust to the step size in the Euler method, and capable of scale-up to higher resolution datasets.
+Experimentally, PFGM achieves **current state-of-the-art** performance among the normalizing flow models on CIFAR-10, with an Inception score of **9.68** and a FID score of **2.35**. It also performs on par with the state-of-the-art SDE approaches **(e.g., score-based SDEs or Diffusion models)** while offering **10x** to **20x** acceleration on image generation tasks. Additionally, PFGM appears more tolerant of estimation errors on a weaker network architecture and robust to the step size in the Euler method, and capable of scale-up to higher resolution datasets.
 
 ---
 
