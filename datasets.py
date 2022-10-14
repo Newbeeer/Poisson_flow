@@ -121,7 +121,8 @@ def get_dataset(config, uniform_dequantization=False, evaluation=False):
       return img
 
   elif config.data.dataset == 'LSUN':
-    dataset_builder = tfds.builder(f'lsun/{config.data.category}')
+    dataset_builder = tfds.builder(f'lsun/{config.data.category}',
+                                   data_dir='/scratch/ylxu/tensorflow_datasets')
     train_split_name = 'train'
     eval_split_name = 'validation'
 

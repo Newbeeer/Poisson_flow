@@ -72,7 +72,8 @@ def get_config():
   model.attention_type = 'ddpm'
   model.init_scale = 0.
   model.fourier_scale = 16
-  model.embedding_type = 'positional'
+  #model.embedding_type = 'positional'
+  model.embedding_type = 'fourier'
   model.conv_size = 3
   model.sigma_end = 0.01
 

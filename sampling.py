@@ -27,6 +27,8 @@ from scipy import integrate
 import methods
 from models import utils as mutils
 from tqdm import tqdm
+from PIL import Image
+from torchvision.utils import make_grid, save_image
 
 _CORRECTORS = {}
 _PREDICTORS = {}
@@ -545,6 +547,7 @@ def get_ode_sampler(sde, shape, ode_solver, inverse_scaler, eps=1e-3, device='cu
       else:
         timesteps = torch.linspace(sde.T, eps, sde.N+1, device=device).float()
 
+      imgs = []
       for i in tqdm(range(sde.N)):
         t = timesteps[i]
         if sde.config.training.sde == 'poisson':
@@ -554,6 +557,15 @@ def get_ode_sampler(sde, shape, ode_solver, inverse_scaler, eps=1e-3, device='cu
           vec_t = torch.ones(shape[0], device=t.device).float() * t
           x = ode_update_fn(x, vec_t, model=model)
 
+      #   image_grid = make_grid(inverse_scaler(x), nrow=int(np.sqrt(len(x))))
+      #   im = Image.fromarray(
+      #     image_grid.mul_(255).add_(0.5).clamp_(0, 255).permute(1, 2, 0).to('cpu', torch.uint8).numpy())
+      #   imgs.append(im)
+      #
+      # import os
+      # imgs[0].save(os.path.join("celeba_movie_50.gif"), save_all=True, append_images=imgs[1:],
+      #              duration=1, loop=0)
+      # exit(0)
       return inverse_scaler(x), 2 * sde.N - 1 if sde.config.sampling.ode_solver == 'improved_euler' else sde.N
 
   return ode_sampler

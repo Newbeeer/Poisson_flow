@@ -239,6 +239,7 @@ class NCSNpp(nn.Module):
     m_idx = 0
     if self.embedding_type == 'fourier':
       # Gaussian Fourier features embeddings.
+      # used z (PFGM) or sigmas
       used_sigmas = time_cond
       temb = modules[m_idx](torch.log(used_sigmas))
       m_idx += 1
@@ -248,7 +249,6 @@ class NCSNpp(nn.Module):
       timesteps = time_cond
       used_sigmas = self.sigmas[time_cond.long()]
       temb = layers.get_timestep_embedding(timesteps, self.nf)
-
     else:
       raise ValueError(f'embedding type {self.embedding_type} unknown.')
 
