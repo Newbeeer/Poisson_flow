@@ -115,7 +115,7 @@ def train(config, workdir):
   elif config.training.sde.lower() == 'poisson':
     # PFGM
     sde = methods.Poisson(config=config)
-    sampling_eps = 1e-3
+    sampling_eps = config.sampling.z_min
   else:
     raise NotImplementedError(f"Method {config.training.sde} unknown.")
 

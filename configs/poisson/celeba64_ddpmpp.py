@@ -46,6 +46,7 @@ def get_config():
   #sampling.ode_solver = 'improved_euler'
   sampling.N = 100
   sampling.z_max = 60
+  sampling.z_min = 1e-3
   sampling.upper_norm = 6000
   sampling.vs = False
 
