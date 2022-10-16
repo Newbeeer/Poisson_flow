@@ -69,7 +69,7 @@ class NCSNpp(nn.Module):
     combiner = functools.partial(Combine, method=combine_method)
 
     modules = []
-    # timestep/noise_level embedding; only for continuous training
+    # z/noise_level embedding; only for continuous training
     if embedding_type == 'fourier':
       # Gaussian Fourier features embeddings.
       assert config.training.continuous, "Fourier features are only used for continuous training."
@@ -121,7 +121,7 @@ class NCSNpp(nn.Module):
                                       dropout=dropout,
                                       init_scale=init_scale,
                                       skip_rescale=skip_rescale,
-                                      temb_dim=nf * 4)
+                                      zemb_dim=nf * 4)
 
     elif resblock_type == 'biggan':
       ResnetBlock = functools.partial(ResnetBlockBigGAN,
@@ -131,7 +131,7 @@ class NCSNpp(nn.Module):
                                       fir_kernel=fir_kernel,
                                       init_scale=init_scale,
                                       skip_rescale=skip_rescale,
-                                      temb_dim=nf * 4)
+                                      zemb_dim=nf * 4)
 
     else:
       raise ValueError(f'resblock type {resblock_type} unrecognized.')
@@ -235,32 +235,39 @@ class NCSNpp(nn.Module):
 
     self.all_modules = nn.ModuleList(modules)
 
-  def forward(self, x, time_cond):
-    # timestep/noise_level embedding; only for continuous training
+  def forward(self, x, cond):
+    # z (PFGM)/noise_level embedding; only for continuous training
     modules = self.all_modules
     m_idx = 0
     if self.embedding_type == 'fourier':
       # Gaussian Fourier features embeddings.
       # used z (PFGM) or sigmas
-      used_sigmas = time_cond
-      temb = modules[m_idx](torch.log(used_sigmas))
+
+      ### only used for score-based models (VE)
+      used_sigmas = cond
+      ###
+
+      zemb = modules[m_idx](torch.log(cond))
       m_idx += 1
 
     elif self.embedding_type == 'positional':
       # Sinusoidal positional embeddings.
-      timesteps = time_cond
-      used_sigmas = self.sigmas[time_cond.long()]
-      temb = layers.get_timestep_embedding(timesteps, self.nf)
+
+      ### only used for score-based models (VE)
+      used_sigmas = self.sigmas[cond.long()]
+      ###
+
+      zemb = layers.get_positional_embedding(cond, self.nf)
     else:
       raise ValueError(f'embedding type {self.embedding_type} unknown.')
 
     if self.conditional:
-      temb = modules[m_idx](temb)
+      zemb = modules[m_idx](zemb)
       m_idx += 1
-      temb = modules[m_idx](self.act(temb))
+      zemb = modules[m_idx](self.act(zemb))
       m_idx += 1
     else:
-      temb = None
+      zemb = None
 
     if not self.config.data.centered:
       # If input data is in [0, 1]
@@ -276,7 +283,7 @@ class NCSNpp(nn.Module):
     for i_level in range(self.num_resolutions):
       # Residual blocks for this resolution
       for i_block in range(self.num_res_blocks):
-        h = modules[m_idx](hs[-1], temb)
+        h = modules[m_idx](hs[-1], zemb)
         m_idx += 1
         if h.shape[-1] in self.attn_resolutions:
           h = modules[m_idx](h)
@@ -289,7 +296,7 @@ class NCSNpp(nn.Module):
           h = modules[m_idx](hs[-1])
           m_idx += 1
         else:
-          h = modules[m_idx](hs[-1], temb)
+          h = modules[m_idx](hs[-1], zemb)
           m_idx += 1
 
         if self.progressive_input == 'input_skip':
@@ -309,11 +316,11 @@ class NCSNpp(nn.Module):
         hs.append(h)
 
     h = hs[-1]
-    h = modules[m_idx](h, temb)
+    h = modules[m_idx](h, zemb)
     m_idx += 1
     h = modules[m_idx](h)
     m_idx += 1
-    h = modules[m_idx](h, temb)
+    h = modules[m_idx](h, zemb)
     m_idx += 1
 
     pyramid = None
@@ -321,7 +328,7 @@ class NCSNpp(nn.Module):
     # Upsampling block
     for i_level in reversed(range(self.num_resolutions)):
       for i_block in range(self.num_res_blocks + 1):
-        h = modules[m_idx](torch.cat([h, hs.pop()], dim=1), temb)
+        h = modules[m_idx](torch.cat([h, hs.pop()], dim=1), zemb)
         m_idx += 1
 
       if h.shape[-1] in self.attn_resolutions:
@@ -366,7 +373,7 @@ class NCSNpp(nn.Module):
           h = modules[m_idx](h)
           m_idx += 1
         else:
-          h = modules[m_idx](h, temb)
+          h = modules[m_idx](h, zemb)
           m_idx += 1
 
     assert not hs
@@ -381,6 +388,7 @@ class NCSNpp(nn.Module):
 
     assert m_idx == len(modules)
     if self.config.model.scale_by_sigma:
+      # only for score-based models VE
       used_sigmas = used_sigmas.reshape((x.shape[0], *([1] * len(x.shape[1:]))))
       h = h / used_sigmas
 
