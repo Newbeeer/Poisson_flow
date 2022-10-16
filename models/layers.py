@@ -618,15 +618,15 @@ class Downsample(nn.Module):
 
 class ResnetBlockDDPM(nn.Module):
   """The ResNet Blocks used in DDPM."""
-  def __init__(self, act, in_ch, out_ch=None, temb_dim=None, conv_shortcut=False, dropout=0.1):
+  def __init__(self, act, in_ch, out_ch=None, zemb_dim=None, conv_shortcut=False, dropout=0.1):
     super().__init__()
     if out_ch is None:
       out_ch = in_ch
     self.GroupNorm_0 = nn.GroupNorm(num_groups=32, num_channels=in_ch, eps=1e-6)
     self.act = act
     self.Conv_0 = ddpm_conv3x3(in_ch, out_ch)
-    if temb_dim is not None:
-      self.Dense_0 = nn.Linear(temb_dim, out_ch)
+    if zemb_dim is not None:
+      self.Dense_0 = nn.Linear(zemb_dim, out_ch)
       self.Dense_0.weight.data = default_init()(self.Dense_0.weight.data.shape)
       nn.init.zeros_(self.Dense_0.bias)
 
@@ -642,15 +642,15 @@ class ResnetBlockDDPM(nn.Module):
     self.in_ch = in_ch
     self.conv_shortcut = conv_shortcut
 
-  def forward(self, x, temb=None):
+  def forward(self, x, zemb=None):
     B, C, H, W = x.shape
     assert C == self.in_ch
     out_ch = self.out_ch if self.out_ch else self.in_ch
     h = self.act(self.GroupNorm_0(x))
     h = self.Conv_0(h)
     # Add bias to each feature map conditioned on the time embedding
-    if temb is not None:
-      h += self.Dense_0(self.act(temb))[:, :, None, None]
+    if zemb is not None:
+      h += self.Dense_0(self.act(zemb))[:, :, None, None]
     h = self.act(self.GroupNorm_1(h))
     h = self.Dropout_0(h)
     h = self.Conv_1(h)
