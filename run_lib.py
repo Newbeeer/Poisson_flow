@@ -258,7 +258,7 @@ def evaluate(config,
   elif config.training.sde.lower() == 'poisson':
     # PFGM
     sde = methods.Poisson(config=config)
-    sampling_eps = 1e-3
+    sampling_eps = config.sampling.z_min
     print("--- sampling eps:", sampling_eps)
   else:
     raise NotImplementedError(f"Method {config.training.sde} unknown.")
