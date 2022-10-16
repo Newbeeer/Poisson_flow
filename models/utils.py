@@ -58,18 +58,6 @@ def get_sigmas(config):
 
   return sigmas
 
-def get_zs(config):
-  """Get sigmas --- the set of z values for PFGM from config files.
-  Args:
-    config: A ConfigDict object parsed from the config file
-  Returns:
-    zs: a jax numpy arrary of augmented dimension z
-  """
-  zs = np.exp(
-    np.linspace(np.log(config.sampling.z_max), np.log(config.model.z_min), config.model.num_scales))
-
-  return zs
-
 
 def create_model(config):
   """Create the model."""

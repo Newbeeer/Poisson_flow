@@ -41,8 +41,6 @@ class NCSNpp(nn.Module):
     self.config = config
     self.act = act = get_act(config)
     self.register_buffer('sigmas', torch.tensor(utils.get_sigmas(config)))
-    if self.config.training.sde == 'poisson':
-      self.register_buffer('zs', torch.tensor(utils.get_zs(config)))
 
     self.nf = nf = config.model.nf
     ch_mult = config.model.ch_mult
