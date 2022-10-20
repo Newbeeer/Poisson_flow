@@ -273,8 +273,13 @@ class ForwardEulerPredictor(ODE_Solver):
   def update_fn(self, x, t, t_list=None, idx=None):
 
     if self.sde.config.training.sde == 'poisson':
-      dt = - (np.log(self.sde.config.sampling.z_max) - np.log(self.eps)) / self.sde.N
+      # dt = - (np.log(self.sde.config.sampling.z_max) - np.log(self.eps)) / self.sde.N
       drift = self.sde.ode(self.net_fn, x, t)
+      if t_list is None:
+        dt = - (np.log(self.sde.config.sampling.z_max) - np.log(self.eps)) / self.sde.N
+      else:
+        dt = - (1 - torch.exp(t_list[idx + 1] - t_list[idx]))
+        dt = float(dt.cpu().numpy())
     else:
       dt = -1. / self.sde.N
       drift, _ = self.rsde.sde(x, t)
