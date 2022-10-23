@@ -128,4 +128,13 @@ Please find the statistics for FID scores in the following links:
 
 
 
-![cifar-movie](assets/cifar-movie.gif )![celeba-movie](assets/celeba-movie.gif)
+
+
+<img src="assets/cifar-movie.gif" width="250" height="250"/><img src="assets/celeba-movie.gif" width="250" height="250"/>
+
+
+
+
+
+
+
