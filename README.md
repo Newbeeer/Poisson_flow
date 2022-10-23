@@ -130,7 +130,7 @@ Please find the statistics for FID scores in the following links:
 
 
 
-<img src="assets/pfgm_cat.gif" width="750" height="250"/>
+<center><img src="assets/pfgm_cat.gif" width="750" height="250"/></center>
 
 
 
