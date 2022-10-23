@@ -64,7 +64,7 @@ python3 main.py --config ./configs/poisson/cifar10_ddpmpp.py --mode train \
 
   *  dataset: One of `cifar10`, `celeba64`, `celebahq_256`, `ffhq_256`, `celebahq`, `ffhq`.
   * model: One of `ncsnpp`, `ddpmpp`.
-  * continuous: train the model with continuously sampled time steps (for score-based models). 
+  * continuous: train the model with continuously sampled time steps (only for score-based models). 
 
   :star2:**Important Notes** : We use a large batch (e.g. current `training.batch_size=4096` for CIFAR-10, ~25G GPU memory usage) to calculate the Poisson field for each mini-batch samples (e.g. `training.small_batch_size=128` for CIFAR-10). To adjust GPU memory cost, please modify the `training.batch_size` parameter in the config files. We also list a few other useful tips in [Tips section](#tips).
 
