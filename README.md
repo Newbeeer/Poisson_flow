@@ -102,12 +102,25 @@ python3 main.py --config ./configs/poisson/cifar10_ddpmpp.py --mode train \
 
 ## Checkpoints
 
-Please place the pretrained checkpoints under the directory `workdir/checkpoints`, e.g., `cifar10_ddpmpp/checkpoints`.  To generate and evaluate the samples of the PFGM w/ DDPM++ model, you could execute:
+Please place the pretrained checkpoints under the directory `workdir/checkpoints`, e.g., `cifar10_ddpmpp/checkpoints`.  
+
+To generate and evaluate the FID/IS of  (10k) samples of the PFGM w/ DDPM++ model, you could execute:
 
 ```shell
 python3 main.py --config ./configs/poisson/cifar10_ddpmpp.py --mode eval \ 
---workdir cifar10_ddpmpp --config.eval.enable_sampling
+--workdir cifar10_ddpmpp --config.eval.enable_sampling --config.eval.num_samples 10000
 ```
+
+To only generate and visualize 100 samples of the PFGM w/ DDPM++ model, you could execute:
+
+```shell
+python3 main.py --config ./configs/poisson/cifar10_ddpmpp.py --mode eval \ 
+--workdir cifar10_ddpmpp --config.eval.enable_sampling --config.eval.save_images --config.eval.batch_size 100
+```
+
+The samples will be saved to `cifar10_ddpmpp/eval/ode_images_{ckpt}.png`.
+
+
 
 All checkpoints are provided in this [Google drive folder](https://drive.google.com/drive/folders/1v4u0OhZ0rxjgch51pZLySztMQATQQOeK?usp=sharing).
 
