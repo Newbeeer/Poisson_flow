@@ -32,10 +32,10 @@ def get_default_configs():
   config.eval = evaluate = ml_collections.ConfigDict()
   evaluate.begin_ckpt = 11
   evaluate.end_ckpt = 20
-  evaluate.batch_size = 4
+  evaluate.batch_size = 100
   evaluate.enable_sampling = True
   evaluate.enable_interpolate = False
-  evaluate.num_samples = 50000
+  evaluate.num_samples = 10000
   evaluate.enable_loss = False
   evaluate.enable_bpd = False
   evaluate.bpd_dataset = 'test'
