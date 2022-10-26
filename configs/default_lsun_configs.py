@@ -36,7 +36,7 @@ def get_default_configs():
   evaluate.enable_sampling = True
   evaluate.enable_interpolate = False
   evaluate.num_samples = 50000
-  evaluate.enable_loss = True
+  evaluate.enable_loss = False
   evaluate.enable_bpd = False
   evaluate.bpd_dataset = 'test'
   evaluate.save_images = False
