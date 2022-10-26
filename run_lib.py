@@ -226,12 +226,14 @@ def evaluate(config,
   tf.io.gfile.makedirs(eval_dir)
 
   # Build data pipeline
-  if config.data.dataset == 'CELEBA':
-    train_ds, eval_ds = datasets_utils.celeba.get_celeba(config)
-  else:
-    train_ds, eval_ds, _ = datasets.get_dataset(config,
-                                              uniform_dequantization=config.data.uniform_dequantization,
-                                              evaluation=True)
+
+  if not config.eval.save_images:
+    if config.data.dataset == 'CELEBA':
+      train_ds, eval_ds = datasets_utils.celeba.get_celeba(config)
+    else:
+      train_ds, eval_ds, _ = datasets.get_dataset(config,
+                                                  uniform_dequantization=config.data.uniform_dequantization,
+                                                  evaluation=True)
 
   # Create data normalizer and its inverse
   scaler = datasets.get_data_scaler(config)
