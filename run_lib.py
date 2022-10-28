@@ -341,6 +341,7 @@ def evaluate(config,
     ema.copy_to(net.parameters())
     # Compute the loss function on the full evaluation dataset if loss computation is enabled
     if config.eval.enable_loss:
+      print("please don't set the config.eval.save_images flag, or the datasets wouldn't be loaded.")
       all_losses = []
       eval_iter = iter(eval_ds)  # pytype: disable=wrong-arg-types
       for i, batch in enumerate(eval_iter):
