@@ -5,9 +5,9 @@ numpy==1.22.4
 pandas==1.4.2
 Pillow==9.2.0
 requests==2.27.1
-scipy==1.7.3
 six==1.15.0
 tensorflow==2.9.0
+tensorflow-probability==0.17.0
 tensorflow_datasets==4.5.2
 tensorflow_gan==2.0.0
 tensorflow_hub==0.12.0
