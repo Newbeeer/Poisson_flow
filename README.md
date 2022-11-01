@@ -66,7 +66,17 @@ python3 main.py --config ./configs/poisson/cifar10_ddpmpp.py --mode train \
   * model: One of `ncsnpp`, `ddpmpp`.
   * continuous: train the model with continuously sampled time steps (only for score-based models). 
 
-  :star2:**Important Notes** : We use a large batch (e.g. current `training.batch_size=4096` for CIFAR-10, ~25G GPU memory usage) to calculate the Poisson field for each mini-batch samples (e.g. `training.small_batch_size=128` for CIFAR-10). To adjust GPU memory cost, please modify the `training.batch_size` parameter in the config files. We also list a few other useful tips in [Tips section](#tips).
+  :star2:**Important Notes** : We use a large batch (e.g. current `training.batch_size=4096` for CIFAR-10, ~25G GPU memory usage) to calculate the Poisson field for each mini-batch samples (e.g. `training.small_batch_size=128` for CIFAR-10). To adjust GPU memory cost, please modify the `training.batch_size` parameter in the config files. 
+
+  Please set some key hyper-parameters for specific dataset by running
+
+  ```shell
+  python3 hyper-parameters.py 
+  	--data_norm: Average data norm of the dataset 
+  	--data_dim: Data dimension
+  ```
+
+  We also list a few other useful tips in [Tips section](#tips).
 
 *  `workdir` is the path that stores all artifacts of one experiment, like checkpoints, samples, and evaluation results.
 
