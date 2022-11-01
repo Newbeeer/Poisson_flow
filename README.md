@@ -104,6 +104,14 @@ python3 main.py --config ./configs/poisson/cifar10_ddpmpp.py --mode train \
 
 - :star2: **How to set the hyper-parameters** :  The prior distribution on the $z=z_{max}$ hyperplane is a long-tail distribution. We recommend clipping the sample norm by the hyper-parameters `sampling.upper_norm`. Please refer to `Appendix B.1.1 `  and `Appendix B.2.1` in the paper (https://arxiv.org/abs/2209.11178) for our recommended setups for hyper-parameters `training.M`, `sampling.z_max` and `sampling.upper_norm` for general datasets.
 
+  We provide a script for easily calculating those hyper-parameters:
+
+  ```shell
+  python3 hyper-parameters.py 
+  	--data_norm: Average data norm of the dataset 
+  	--data_dim: Data dimension
+  ```
+
 - If `rk45` solver exibits unstability for your dataset/neural network, please try to use the forward Euler method or Improved Euler method by modifying the `config.sampling.ode_solver` parameter to `forward_euler` or `improved_euler`. 
 
 - TODO
