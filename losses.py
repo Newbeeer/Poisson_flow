@@ -100,7 +100,7 @@ def get_loss_fn(sde, train, reduce_mean=True, continuous=True, eps=1e-5, method_
         distance = torch.min(gt_distance, dim=1, keepdim=True)[0] / (gt_distance + 1e-7)
         distance = distance ** (data_dim + 1)
         distance = distance[:, :, None]
-        # Normalize the coefficients
+        # Normalize the coefficients (effectively multiply by c(\tilde{x}) in the paper)
         coeff = distance / (torch.sum(distance, dim=1, keepdim=True) + 1e-7)
         diff = - (perturbed_samples_vec.unsqueeze(1) - real_samples_vec)
 
