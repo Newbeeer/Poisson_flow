@@ -7,7 +7,7 @@ def forward_pz(sde, config, samples_batch, m):
 
     Args:
       sde: An `methods.SDE` object that represents the forward SDE.
-      config: `True` for training loss and `False` for evaluation loss.
+      config: configurations
       samples_batch: A mini-batch of un-augmented training data
       m: A 1D torch tensor. The exponents of (1+\tau).
 
