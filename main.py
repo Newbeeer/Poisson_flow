@@ -14,6 +14,15 @@
 # limitations under the License.
 
 """Training and evaluation"""
+# collections fix for python 10
+import collections 
+import collections.abc
+collections.Container = collections.abc.Container
+collections.Mapping = collections.abc.Mapping
+collections.MutableMapping = collections.abc.MutableMapping
+collections.Iterable = collections.abc.Iterable
+collections.MutableSet = collections.abc.MutableSet
+collections.Callable = collections.abc.Callable
 
 import run_lib
 from absl import app
