@@ -89,12 +89,12 @@ def get_loss_fn(sde, train, reduce_mean=True, continuous=True, eps=1e-5, method_
       perturbed_samples_vec = utils_poisson.forward_pz(sde, sde.config, samples_batch, m)
 
       with torch.no_grad():
+        # calculate the vector field on the full batch, to get a less biased estimate
         real_samples_vec = torch.cat(
           (samples_full.reshape(len(samples_full), -1), torch.zeros((len(samples_full), 1)).to(samples_full.device)), dim=1)
 
         data_dim = sde.config.data.image_size * sde.config.data.image_size * sde.config.data.channels
-        gt_distance = torch.sum((perturbed_samples_vec.unsqueeze(1) - real_samples_vec) ** 2,
-                                dim=[-1]).sqrt()
+        gt_distance = torch.sum((perturbed_samples_vec.unsqueeze(1) - real_samples_vec) ** 2,dim=[-1]).sqrt()
 
         # For numerical stability, timing each row by its minimum value
         distance = torch.min(gt_distance, dim=1, keepdim=True)[0] / (gt_distance + 1e-7)
@@ -123,6 +123,7 @@ def get_loss_fn(sde, train, reduce_mean=True, continuous=True, eps=1e-5, method_
       net_x = net_x.view(net_x.shape[0], -1)
       # Predicted N+1-dimensional Poisson field
       net = torch.cat([net_x, net_z[:, None]], dim=1)
+      # calculate the loss => squared L2 distance
       loss = ((net - target) ** 2)
       loss = reduce_op(loss.reshape(loss.shape[0], -1), dim=-1)
       loss = torch.mean(loss)
