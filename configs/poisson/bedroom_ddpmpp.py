@@ -14,7 +14,7 @@
 # limitations under the License.
 
 # Lint as: python3
-"""Config file for reproducing the results of DDPM on bedrooms."""
+"""Config file for reproducing the results of PFGM on bedrooms."""
 
 from configs.default_lsun_configs import get_default_configs
 

@@ -14,7 +14,7 @@
 # limitations under the License.
 
 # Lint as: python3
-"""Training NCSN++ on CIFAR-10 with VE SDE."""
+"""Training DDPM++ on CIFAR-10 with PFGM."""
 from configs.default_cifar10_configs import get_default_configs
 
 

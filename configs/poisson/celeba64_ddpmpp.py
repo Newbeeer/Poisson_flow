@@ -14,7 +14,7 @@
 # limitations under the License.
 
 # Lint as: python3
-"""Training NCSN++ on CelebA with SMLD."""
+"""Training DDPM++ on CelebA with PFGM."""
 
 from configs.default_celeba_configs import get_default_configs
 
