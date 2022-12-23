@@ -14,28 +14,32 @@
 # limitations under the License.
 
 # Lint as: python3
-"""Training NCSN++ on CIFAR-10 with VE SDE."""
-from configs.default_cifar10_configs import get_default_configs
+"""Config file for reproducing the results of DDPM on bedrooms."""
+
+from configs.default_audio_configs import get_default_configs
 
 
 def get_config():
   config = get_default_configs()
+
   # training
   training = config.training
   training.sde = 'poisson'
   training.continuous = True
-  training.batch_size = 2048
-  training.small_batch_size = 2
+  training.batch_size = 32
+  training.small_batch_size = 32
   training.gamma = 5
   training.restrict_M = True
   training.tau = 0.03
-  training.snapshot_freq = 50000
+  training.snapshot_freq = 10000
   training.model = 'ddpmpp'
+  training.reduce_mean = True
 
   # data
   data = config.data
-  data.channels = 3
-  data.centered = True
+  data.channels = 1
+  data.category = 'audio'
+  data.centered = True # centered at 0 data
 
   # sampling
   sampling = config.sampling
@@ -44,22 +48,21 @@ def get_config():
   #sampling.ode_solver = 'forward_euler'
   #sampling.ode_solver = 'improved_euler'
   sampling.N = 100
-  sampling.z_max = 40
+  sampling.z_max = 100 #TODO find good value
   sampling.z_min = 1e-3
-  sampling.upper_norm = 3000
-  # verbose
+  sampling.upper_norm = 30000
   sampling.vs = False
 
-  # model
+  # model TODO adapt a 1d attention unet not a 
   model = config.model
-  model.name = 'ncsnpp'
+  model.name = 'ncsnpp_audio'
   model.scale_by_sigma = False
   model.ema_rate = 0.9999
   model.normalization = 'GroupNorm'
   model.nonlinearity = 'swish'
   model.nf = 128
-  model.ch_mult = (1, 2, 2, 2)
-  model.num_res_blocks = 4
+  model.ch_mult = (1, 1, 2, 2, 4, 4)
+  model.num_res_blocks = 2
   model.attn_resolutions = (16,)
   model.resamp_with_conv = True
   model.conditional = True
@@ -76,5 +79,9 @@ def get_config():
   model.embedding_type = 'positional'
   model.conv_size = 3
   model.sigma_end = 0.01
+
+  # optim
+  optim = config.optim
+  optim.lr = 2e-5
 
   return config

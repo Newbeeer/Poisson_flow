@@ -44,6 +44,7 @@ def get_network(config):
 class NCSNv2(nn.Module):
   def __init__(self, config):
     super().__init__()
+    print("Generating NCSNv2 Model")
     self.centered = config.data.centered
     self.norm = get_normalization(config)
     self.nf = nf = config.model.nf
@@ -136,6 +137,7 @@ class NCSNv2(nn.Module):
 class NCSN(nn.Module):
   def __init__(self, config):
     super().__init__()
+    print("Generating NCSN Model")
     self.centered = config.data.centered
     self.norm = get_normalization(config)
     self.nf = nf = config.model.nf
@@ -223,6 +225,7 @@ class NCSNv2_128(nn.Module):
   """NCSNv2 model architecture for 128px images."""
   def __init__(self, config):
     super().__init__()
+    print("Generating NCSNv2 for 128px Model")
     self.centered = config.data.centered
     self.norm = get_normalization(config)
     self.nf = nf = config.model.nf
@@ -317,6 +320,7 @@ class NCSNv2_256(nn.Module):
   """NCSNv2 model architecture for 256px images."""
   def __init__(self, config):
     super().__init__()
+    print("Generating NCSNv2 for 256px Model")
     self.centered = config.data.centered
     self.norm = get_normalization(config)
     self.nf = nf = config.model.nf

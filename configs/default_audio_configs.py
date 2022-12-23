@@ -8,7 +8,7 @@ def get_default_configs():
   config.training = training = ml_collections.ConfigDict()
   config.training.batch_size = 64
   training.n_iters = 2400001
-  training.snapshot_freq = 50000
+  training.snapshot_freq = 10000
   training.log_freq = 50
   training.eval_freq = 5000
   ## store additional checkpoints for preemption in cloud computing environments
@@ -39,17 +39,18 @@ def get_default_configs():
   evaluate.enable_loss = False
   evaluate.enable_bpd = False
   evaluate.bpd_dataset = 'test'
-  evaluate.save_images = True
+  evaluate.save_images = False # debugging
   evaluate.enable_rescale = False
 
   # data
   config.data = data = ml_collections.ConfigDict()
-  data.dataset = 'LSUN'
-  data.image_size = 256
-  data.random_flip = True
+  data.dataset = 'speech_commands'
+  data.image_size = 64
+  data.num_mels = 128 #TODO use that info
+  data.random_flip = False # no flipping
   data.uniform_dequantization = False
   data.centered = False
-  data.num_channels = 3
+  data.num_channels = 1 # mono audio
 
   # model
   config.model = model = ml_collections.ConfigDict()

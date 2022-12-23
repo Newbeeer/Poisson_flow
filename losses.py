@@ -90,9 +90,8 @@ def get_loss_fn(sde, train, reduce_mean=True, continuous=True, eps=1e-5, method_
 
       with torch.no_grad():
         # calculate the vector field on the full batch, to get a less biased estimate
-        real_samples_vec = torch.cat(
-          (samples_full.reshape(len(samples_full), -1), torch.zeros((len(samples_full), 1)).to(samples_full.device)), dim=1)
-
+        real_samples_vec = torch.cat((samples_full.reshape(len(samples_full), -1), torch.zeros((len(samples_full), 1)).to(samples_full.device)), dim=1)
+        
         data_dim = sde.config.data.image_size * sde.config.data.image_size * sde.config.data.channels
         gt_distance = torch.sum((perturbed_samples_vec.unsqueeze(1) - real_samples_vec) ** 2,dim=[-1]).sqrt()
 
@@ -118,12 +117,13 @@ def get_loss_fn(sde, train, reduce_mean=True, continuous=True, eps=1e-5, method_
 
       perturbed_samples_x = perturbed_samples_vec[:, :-1].view_as(samples_batch)
       perturbed_samples_z = torch.clamp(perturbed_samples_vec[:, -1], 1e-10)
+
       net_x, net_z = net_fn(perturbed_samples_x, perturbed_samples_z)
 
       net_x = net_x.view(net_x.shape[0], -1)
       # Predicted N+1-dimensional Poisson field
       net = torch.cat([net_x, net_z[:, None]], dim=1)
-      # calculate the loss => squared L2 distance
+      # calculate the loss => squared L2 distance TODO add mel specific loss?
       loss = ((net - target) ** 2)
       loss = reduce_op(loss.reshape(loss.shape[0], -1), dim=-1)
       loss = torch.mean(loss)

@@ -19,6 +19,7 @@
 import torch
 import methods
 import numpy as np
+from torchsummary import summary
 
 _MODELS = {}
 

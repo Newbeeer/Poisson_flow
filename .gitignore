@@ -5,3 +5,6 @@ __pycache_
 slurm*
 events.out*
 *.pth
+/tensorflow_datasets/
+/SpeechCommands/
+/poisson_ddpm_audio/

@@ -27,7 +27,7 @@ import tensorflow as tf
 import tensorflow_gan as tfgan
 import logging
 # Keep the import below for registering all model definitions
-from models import ncsnv2, ncsnpp
+from models import ncsnv2, ncsnpp, ncsnpp_audio
 import losses
 import sampling
 from models import utils as mutils
@@ -149,6 +149,14 @@ def train(config, workdir):
       except StopIteration:
         train_iter = iter(train_ds)
         batch = next(train_iter)[0].cuda()
+    elif config.data.dataset == 'speech_commands':
+      try:
+        batch = next(train_iter).cuda()
+        if len(batch) != config.training.batch_size:
+          continue
+      except StopIteration:
+        train_iter = iter(train_ds)
+        batch = next(train_iter).cuda()
     else:
       batch = torch.from_numpy(next(train_iter)['image']._numpy()).to(config.device).float()
       batch = batch.permute(0, 3, 1, 2)
@@ -173,6 +181,14 @@ def train(config, workdir):
         except StopIteration:
           eval_iter = iter(eval_ds)
           eval_batch = next(eval_iter)[0].cuda()
+      elif config.data.dataset == 'speech_commands':
+        try:
+          eval_batch = next(eval_iter).cuda()
+          if len(batch) != config.eval.batch_size:
+            continue
+        except StopIteration:
+          eval_iter = iter(eval_ds)
+          eval_batch = next(eval_iter).cuda()
       else:
         eval_batch = torch.from_numpy(next(eval_iter)['image']._numpy()).to(config.device).float()
         eval_batch = eval_batch.permute(0, 3, 1, 2)
