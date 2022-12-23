@@ -10,11 +10,13 @@ from torchaudio import load as torch_load
 from torchaudio.transforms import MelSpectrogram, AmplitudeToDB
 from torch.utils.data import DataLoader
 import torch 
+import logging
 
 FOLDER_IN_ARCHIVE = "SpeechCommands"
 URL = "speech_commands_v0.02"
 HASH_DIVIDER = "_nohash_"
 EXCEPT_FOLDER = "_background_noise_"
+SC09 = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"]
 SAMPLE_RATE = 16000
 _CHECKSUMS = {
     "http://download.tensorflow.org/data/speech_commands_v0.01.tar.gz": "743935421bb51cccdb6bdd152e04c5c70274e935c82119ad7faeec31780d811d",  # noqa: E501
@@ -61,13 +63,14 @@ targets = ['backward', 'bed', 'bird', 'cat', 'dog', 'down', 'eight', 'five', 'fo
 def _map_label(label):
     return targets.index(label)
 
-
+# added filtering for SC09 equivalence
 def _load_list(root, *filenames):
     output = []
     for filename in filenames:
         filepath = os.path.join(root, filename)
+        # do filtering of SC09 dataset
         with open(filepath) as fileobj:
-            output += [os.path.normpath(os.path.join(root, line.strip())) for line in fileobj]
+            output += [os.path.normpath(os.path.join(root, line.strip())) for line in fileobj if line.split('/')[0] in SC09]
     return output
 
 
@@ -216,7 +219,7 @@ class SPEECHCOMMANDS(Dataset):
         return _get_speechcommands_metadata(fileid, self._archive)
 
 
-    def __getitem__(self, n: int) -> Tuple[Tensor, int, str, str, int]:
+    def __getitem__(self, n: int):
         """Load the n-th sample from the dataset.
 
         Args:

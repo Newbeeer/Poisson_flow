@@ -24,7 +24,7 @@ import copy
 
 import numpy as np
 import tensorflow as tf
-import tensorflow_gan as tfgan
+#import tensorflow_gan as tfgan
 import logging
 # Keep the import below for registering all model definitions
 from models import ncsnv2, ncsnpp, ncsnpp_audio
@@ -181,6 +181,7 @@ def train(config, workdir):
         except StopIteration:
           eval_iter = iter(eval_ds)
           eval_batch = next(eval_iter)[0].cuda()
+      # pytorch dataloader case
       elif config.data.dataset == 'speech_commands':
         try:
           eval_batch = next(eval_iter).cuda()
@@ -525,14 +526,16 @@ def evaluate(config,
       # Load pre-computed dataset statistics.
       data_stats = evaluation.load_dataset_stats(config)
       data_pools = data_stats["pool_3"]
+
       # Compute FID/IS on all samples together.
       if not inceptionv3:
-        inception_score = tfgan.eval.classifier_score_from_logits(all_logits)
+        #inception_score = tfgan.eval.classifier_score_from_logits(all_logits)
+        inception_score = -1
       else:
         inception_score = -1
 
-      fid = tfgan.eval.frechet_classifier_distance_from_activations(
-        data_pools, all_pools)
+      #fid = tfgan.eval.frechet_classifier_distance_from_activations(data_pools, all_pools)
+      fid = 0
 
       logging.info(
         "ckpt-%d --- inception_score: %.6e, FID: %.6e" % (
