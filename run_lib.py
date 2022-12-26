@@ -43,6 +43,7 @@ from torch.utils import tensorboard
 from torchvision.utils import make_grid, save_image
 from utils import save_checkpoint, restore_checkpoint
 import datasets_utils.celeba
+import wandb
 
 FLAGS = flags.FLAGS
 gpus = tf.config.list_physical_devices('GPU')
@@ -79,6 +80,10 @@ def train(config, workdir):
   ema = ExponentialMovingAverage(net.parameters(), decay=config.model.ema_rate)
   optimizer = losses.get_optimizer(config, net.parameters())
   state = dict(optimizer=optimizer, model=net, ema=ema, step=0)
+
+  # logging to weights and biases
+  wandb.init(config=config)
+  wandb.watch(net, log_freq=1000)
 
   # Create checkpoints directory
   checkpoint_dir = os.path.join(workdir, "checkpoints")
@@ -164,6 +169,7 @@ def train(config, workdir):
     # Execute one training step
     loss = train_step_fn(state, batch)
     if step % config.training.log_freq == 0:
+      wandb.log({"train_loss": loss.item()}, step = step // config.training.log_freq)
       logging.info("step: %d, training_loss: %.5e" % (step, loss.item()))
       writer.add_scalar("training_loss", loss, step)
 
@@ -196,6 +202,7 @@ def train(config, workdir):
       eval_batch = scaler(eval_batch)
       eval_loss = eval_step_fn(state, eval_batch)
       logging.info("step: %d, eval_loss: %.5e" % (step, eval_loss.item()))
+      wandb.log({"val_loss": eval_loss.item()}, step = step // config.training.eval_freq)
       writer.add_scalar("eval_loss", eval_loss.item(), step)
 
     # Save a checkpoint periodically and generate samples if needed

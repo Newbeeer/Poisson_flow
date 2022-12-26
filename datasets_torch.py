@@ -41,6 +41,7 @@ def get_loader(dataset="speech", mode="training", config=None):
         drop_last=True,
         num_workers=4,
         prefetch_factor=4,
+        pin_memory=True
     )
 
     return loader
