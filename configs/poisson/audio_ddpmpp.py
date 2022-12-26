@@ -26,12 +26,12 @@ def get_config():
   training = config.training
   training.sde = 'poisson'
   training.continuous = True
-  training.batch_size = 128
-  training.small_batch_size = 32
+  training.batch_size = 256
+  training.small_batch_size = 64
   training.gamma = 5
   training.restrict_M = True
   training.tau = 0.03
-  training.snapshot_freq = 10000
+  training.snapshot_freq = 5000
   training.model = 'ddpmpp'
   training.reduce_mean = True
 
@@ -44,13 +44,13 @@ def get_config():
   # sampling
   sampling = config.sampling
   sampling.method = 'ode'
-  sampling.ode_solver = 'rk45'
+  #sampling.ode_solver = 'rk45'
   #sampling.ode_solver = 'forward_euler'
-  #sampling.ode_solver = 'improved_euler'
+  sampling.ode_solver = 'improved_euler'
   sampling.N = 100
-  sampling.z_max = 100 #TODO find good value
+  sampling.z_max = 150 #TODO find good value
   sampling.z_min = 1e-3
-  sampling.upper_norm = 30000
+  sampling.upper_norm = 5000
   sampling.vs = False
 
   # model TODO adapt a 1d attention unet not a 
@@ -70,8 +70,6 @@ def get_config():
   model.fir_kernel = [1, 3, 3, 1]
   model.skip_rescale = True
   model.resblock_type = 'biggan'
-  model.progressive = 'none'
-  model.progressive_input = 'none'
   model.progressive_combine = 'sum'
   model.attention_type = 'ddpm'
   model.init_scale = 0.

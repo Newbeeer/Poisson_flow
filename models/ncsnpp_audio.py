@@ -157,12 +157,12 @@ class NCSNpp(nn.Module):
     fir_kernel = config.model.fir_kernel
     self.skip_rescale = skip_rescale = config.model.skip_rescale
     self.resblock_type = resblock_type = config.model.resblock_type.lower()
-    self.progressive = progressive = config.model.progressive.lower()
-    self.progressive_input = progressive_input = config.model.progressive_input.lower()
+    #self.progressive = progressive = config.model.progressive.lower()
+    #self.progressive_input = progressive_input = config.model.progressive_input.lower()
     self.embedding_type = embedding_type = config.model.embedding_type.lower()
     init_scale = config.model.init_scale
-    assert progressive in ['none', 'output_skip', 'residual']
-    assert progressive_input in ['none', 'input_skip', 'residual']
+    #assert progressive in ['none', 'output_skip', 'residual']
+    #assert progressive_input in ['none', 'input_skip', 'residual']
     assert embedding_type in ['fourier', 'positional']
     combine_method = config.model.progressive_combine.lower()
     combiner = functools.partial(Combine, method=combine_method)

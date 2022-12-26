@@ -17,7 +17,7 @@ URL = "speech_commands_v0.02"
 HASH_DIVIDER = "_nohash_"
 EXCEPT_FOLDER = "_background_noise_"
 SC09 = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"]
-SAMPLE_RATE = 16000
+
 _CHECKSUMS = {
     "http://download.tensorflow.org/data/speech_commands_v0.01.tar.gz": "743935421bb51cccdb6bdd152e04c5c70274e935c82119ad7faeec31780d811d",  # noqa: E501
     "http://download.tensorflow.org/data/speech_commands_v0.02.tar.gz": "af14739ee7dc311471de98f5f9d2c9191b18aedfe957f4a6ff791c709868ff58",  # noqa: E501
@@ -31,7 +31,7 @@ def get_loader(dataset="speech", mode="training", config=None):
     else:
         shuffling=True
     if dataset=="speech":
-        data = SPEECHCOMMANDS(root='.', download=True, subset=mode)
+        data = SPEECHCOMMANDS(root='.', download=True, subset=mode, config=config)
     
     # make a dataloader
     loader = DataLoader(
@@ -55,9 +55,6 @@ def _load_waveform(
     if exp_sample_rate != sample_rate:
         raise ValueError(f"sample rate should be {exp_sample_rate}, but got {sample_rate}")
     return waveform
-
-
-targets = ['backward', 'bed', 'bird', 'cat', 'dog', 'down', 'eight', 'five', 'follow', 'forward', 'four', 'go', 'happy', 'house', 'learn', 'left', 'marvin', 'nine', 'no', 'off', 'on', 'one', 'right', 'seven', 'sheila', 'six', 'stop', 'three', 'tree', 'two', 'up', 'visual', 'wow', 'yes', 'zero']
 
 
 def _map_label(label):
@@ -91,7 +88,7 @@ def _get_speechcommands_metadata(filepath: str, path: str) -> Tuple[str, int, st
     speaker_id, utterance_number = speaker.split(HASH_DIVIDER)
     utterance_number = int(utterance_number)
 
-    return relpath, SAMPLE_RATE, label, speaker_id, utterance_number
+    return relpath, 16_000, label, speaker_id, utterance_number
 
 
 class SPEECHCOMMANDS(Dataset):
@@ -123,6 +120,7 @@ class SPEECHCOMMANDS(Dataset):
         folder_in_archive: str = FOLDER_IN_ARCHIVE,
         download: bool = False,
         subset: Optional[str] = None,
+        config = None
     ) -> None:
 
         if subset is not None and subset not in ["training", "validation", "testing"]:
@@ -150,18 +148,19 @@ class SPEECHCOMMANDS(Dataset):
         self._path = os.path.join(root, folder_in_archive)
 
         # augmentations
-        self.duration_seconds = 1
-        self.sr = SAMPLE_RATE
-        self.fft_len = 512
-        self.hop_length = self.fft_len // 2
-        self.duration_mel = (self.duration_seconds * self.sr) // self.hop_length + 2 # will be 64
+        self.duration_mel = config.data.image_size
         self.meltransform = MelSpectrogram(
-            sample_rate=self.sr,
-            n_fft=self.fft_len,
-            n_mels=64,
-            win_length=512,
+            sample_rate=config.data.sample_rate,
+            n_fft=config.data.nfft,
+            n_mels=config.data.num_mels,
+            win_length=config.data.hop_length * 4,
+            hop_length=config.data.hop_length,
+            f_min=20.0,
+            f_max = config.data.sample_rate / 2.0,
+            power = 1.0, # coherent source
+            normalized=True
             )
-        self.amptodb = AmplitudeToDB()
+        self.ptodb = AmplitudeToDB(stype='magnitude', top_db=80)
         
 
         if download:
@@ -243,16 +242,17 @@ class SPEECHCOMMANDS(Dataset):
         waveform = _load_waveform(self._archive, metadata[0], metadata[1])
 
         # augment the data
-        mel = self.amptodb(self.meltransform(waveform)).squeeze()
-        # scale to 0-1 range
-        mel -= mel.min()
-        mel /= mel.max()
-        # pad with zeros
-        pad_len = self.duration_mel - mel.shape[1]
-        if pad_len > 0:
-            mel = torch.cat((mel, torch.zeros((mel.shape[0], pad_len))), axis=1)
+        with torch.no_grad():
+            mel = self.meltransform(waveform) # 1 MEL_BINS LENGTH = 1x64x64
+            mel = self.ptodb(mel) # amp to db
+            mel = mel - mel.min()
+            mel = mel / mel.max()
+            # pad with zeros
+            pad_len = self.duration_mel - mel.shape[2]
+            if pad_len > 0:
+                mel = torch.cat((mel, torch.zeros((mel.shape[0], mel.shape[1], pad_len))), axis=-1)
 
-        return mel.unsqueeze(0)
+        return mel
 
 
     def __len__(self) -> int:

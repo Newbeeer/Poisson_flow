@@ -335,8 +335,10 @@ def evaluate(config,
       torch.cuda.manual_seed_all(config.seed)
 
     if config.training.sde == 'poisson':
-      ckpt_filename = os.path.join(checkpoint_dir, "checkpoint_{}.pth".format(ckpt * config.training.snapshot_freq))
-      ckpt_path = os.path.join(checkpoint_dir, f'checkpoint_{ckpt * config.training.snapshot_freq}.pth')
+      #ckpt_filename = os.path.join(checkpoint_dir, "checkpoint_{}.pth".format(ckpt * config.training.snapshot_freq))
+      #ckpt_path = os.path.join(checkpoint_dir, f'checkpoint_{ckpt * config.training.snapshot_freq}.pth')
+      ckpt_filename = os.path.join(checkpoint_dir, "checkpoint_first_try.pth")
+      ckpt_path = os.path.join(checkpoint_dir, 'checkpoint_first_try.pth')
     else:
       ckpt_filename = os.path.join(checkpoint_dir, "checkpoint_{}.pth".format(ckpt * config.training.snapshot_freq))
       ckpt_path = os.path.join(checkpoint_dir, f'checkpoint_{ckpt * config.training.snapshot_freq}.pth')
@@ -350,6 +352,7 @@ def evaluate(config,
     try:
       state = restore_checkpoint(ckpt_path, state, device=config.device)
     except:
+      print("Loading Failed!")
       time.sleep(60)
       try:
         state = restore_checkpoint(ckpt_path, state, device=config.device)
@@ -412,8 +415,7 @@ def evaluate(config,
                         config.data.num_channels,
                         config.data.image_size, config.data.image_size)
       sampling_fn = sampling.get_sampling_fn(config, sde, sampling_shape, inverse_scaler, sampling_eps)
-      imgs = torch.empty(
-        (repeat * inter_num, config.data.num_channels, config.data.image_size, config.data.image_size))
+      imgs = torch.empty((repeat * inter_num, config.data.num_channels, config.data.image_size, config.data.image_size))
 
       for i in range(repeat):
         N = np.prod(sampling_shape[1:])
@@ -444,8 +446,7 @@ def evaluate(config,
                         config.data.num_channels,
                         config.data.image_size, config.data.image_size)
       sampling_fn = sampling.get_sampling_fn(config, sde, sampling_shape, inverse_scaler, sampling_eps)
-      imgs = torch.empty(
-        (repeat * inter_num, config.data.num_channels, config.data.image_size, config.data.image_size))
+      imgs = torch.empty((repeat * inter_num, config.data.num_channels, config.data.image_size, config.data.image_size))
 
       for i in range(repeat):
         N = np.prod(sampling_shape[1:])
@@ -468,21 +469,26 @@ def evaluate(config,
       # Directory to save samples. Different for each host to avoid writing conflicts
       this_sample_dir = os.path.join(eval_dir, f"ckpt_{ckpt}")
       tf.io.gfile.makedirs(this_sample_dir)
-
+      logging.info(f"Sampling for {num_sampling_rounds} rounds...")
       for r in range(num_sampling_rounds):
         logging.info("sampling -- ckpt: %d, round: %d" % (ckpt, r))
         samples, n = sampling_fn(net)
-        print("nfe:", n)
+        logging.info(f"nfe: {n}")
+        logging.info(f"sample shape: {samples.shape}")
         samples_torch = copy.deepcopy(samples)
         samples_torch = samples_torch.view(-1, config.data.num_channels, config.data.image_size, config.data.image_size)
 
-        samples = np.clip(samples.permute(0, 2, 3, 1).cpu().numpy() * 255., 0, 255).astype(np.uint8)
-        samples = samples.reshape(
-          (-1, config.data.image_size, config.data.image_size, config.data.num_channels))
+        # sample the output matrices differently for pictures vs mel spectograms
+        if config.data.category == "audio":
+          samples = samples.permute(0, 2, 3, 1).cpu().numpy()
+          logging.info("Saving images as raw mel specs.")
+        else:
+          samples = np.clip(samples.permute(0, 2, 3, 1).cpu().numpy() * 255., 0, 255).astype(np.uint8)
+        
+        samples = samples.reshape((-1, config.data.image_size, config.data.image_size, config.data.num_channels))
 
         # Write samples to disk or Google Cloud Storage
-        with tf.io.gfile.GFile(
-                os.path.join(this_sample_dir, f"samples_{r}.npz"), "wb") as fout:
+        with tf.io.gfile.GFile(os.path.join(this_sample_dir, f"samples_{r}.npz"), "wb") as fout:
           io_buffer = io.BytesIO()
           np.savez_compressed(io_buffer, samples=samples)
           fout.write(io_buffer.getvalue())
@@ -491,7 +497,6 @@ def evaluate(config,
           # Saving a few generated images for debugging / visualization
           image_grid = make_grid(samples_torch, nrow=int(np.sqrt(len(samples_torch))))
           save_image(image_grid, os.path.join(eval_dir, f'ode_images_{ckpt}.png'))
-          exit(0)
 
         # Force garbage collection before calling TensorFlow code for Inception network
         gc.collect()
