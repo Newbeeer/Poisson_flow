@@ -9,3 +9,7 @@ events.out*
 /SpeechCommands/
 /poisson_ddpm_audio/
 */eval/
+*.zip
+*.gz
+*.wav
+*.png
