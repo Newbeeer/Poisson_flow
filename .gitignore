@@ -13,3 +13,5 @@ events.out*
 *.gz
 *.wav
 *.png
+.vscode/
+*.pyc
