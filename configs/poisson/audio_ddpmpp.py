@@ -26,8 +26,8 @@ def get_config():
   training = config.training
   training.sde = 'poisson'
   training.continuous = True
-  training.batch_size = 256
-  training.small_batch_size = 64
+  training.batch_size = 1024
+  training.small_batch_size = 128
   training.gamma = 5
   training.restrict_M = True
   training.tau = 0.03
@@ -39,7 +39,7 @@ def get_config():
   data = config.data
   data.channels = 1
   data.category = 'tfmel' # audio, mel, tfmel
-  data.centered = True # centered at 0 data
+  data.centered = False
 
   # sampling
   sampling = config.sampling
