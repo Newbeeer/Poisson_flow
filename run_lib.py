@@ -344,8 +344,8 @@ def evaluate(config,
     if config.training.sde == 'poisson':
       #ckpt_filename = os.path.join(checkpoint_dir, "checkpoint_{}.pth".format(ckpt * config.training.snapshot_freq))
       #ckpt_path = os.path.join(checkpoint_dir, f'checkpoint_{ckpt * config.training.snapshot_freq}.pth')
-      ckpt_filename = os.path.join(checkpoint_dir, "checkpoint_first_try.pth")
-      ckpt_path = os.path.join(checkpoint_dir, 'checkpoint_first_try.pth')
+      ckpt_filename = os.path.join(checkpoint_dir, "checkpoint50000.pth")
+      ckpt_path = os.path.join(checkpoint_dir, 'checkpoint50000.pth')
     else:
       ckpt_filename = os.path.join(checkpoint_dir, "checkpoint_{}.pth".format(ckpt * config.training.snapshot_freq))
       ckpt_path = os.path.join(checkpoint_dir, f'checkpoint_{ckpt * config.training.snapshot_freq}.pth')

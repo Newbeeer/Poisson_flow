@@ -16,3 +16,6 @@ events.out*
 .vscode/
 *.pyc
 wandb
+SC09*
+.ipynb_checkpoints
+__pycache__
