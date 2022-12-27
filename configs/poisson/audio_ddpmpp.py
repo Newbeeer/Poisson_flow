@@ -38,7 +38,7 @@ def get_config():
   # data
   data = config.data
   data.channels = 1
-  data.category = 'audio'
+  data.category = 'tfmel' # audio, mel, tfmel
   data.centered = True # centered at 0 data
 
   # sampling

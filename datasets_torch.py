@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 from typing import Optional, Tuple, Union
-
+import numpy as np
 from torch import Tensor
 from torch.hub import download_url_to_file
 from torch.utils.data import Dataset
@@ -13,6 +13,7 @@ import torch
 import logging
 
 FOLDER_IN_ARCHIVE = "SpeechCommands"
+MELROOT = "SC09MEL"
 URL = "speech_commands_v0.02"
 HASH_DIVIDER = "_nohash_"
 EXCEPT_FOLDER = "_background_noise_"
@@ -31,7 +32,12 @@ def get_loader(dataset="speech", mode="training", config=None):
     else:
         shuffling=True
     if dataset=="speech":
-        data = SPEECHCOMMANDS(root='.', download=True, subset=mode, config=config)
+        if config.data.category == 'mel':
+            data = SPEECHCOMMANDS_MEL(root='.', download=True, subset=mode, config=config)
+        elif config.data.category == 'audio':
+            data = SPEECHCOMMANDS(root='.', download=True, subset=mode, config=config)
+        else:
+            exit("Wrong data category for speech dataset!")
     
     # make a dataloader
     loader = DataLoader(
@@ -39,7 +45,7 @@ def get_loader(dataset="speech", mode="training", config=None):
         batch_size=config.training.batch_size,
         shuffle=shuffling,
         drop_last=True,
-        num_workers=4,
+        num_workers=8,
         prefetch_factor=4,
         pin_memory=True
     )
@@ -62,13 +68,16 @@ def _map_label(label):
     return targets.index(label)
 
 # added filtering for SC09 equivalence
-def _load_list(root, *filenames):
+def _load_list(root, *filenames, number_filter=False):
     output = []
     for filename in filenames:
         filepath = os.path.join(root, filename)
         # do filtering of SC09 dataset
         with open(filepath) as fileobj:
-            output += [os.path.normpath(os.path.join(root, line.strip())) for line in fileobj if line.split('/')[0] in SC09]
+            if number_filter:
+                output += [os.path.normpath(os.path.join(root, line.strip())) for line in fileobj if line.split('/')[0] in SC09]
+            else:
+                output += [os.path.normpath(os.path.join(root, line.strip())) for line in fileobj]
     return output
 
 
@@ -121,7 +130,8 @@ class SPEECHCOMMANDS(Dataset):
         folder_in_archive: str = FOLDER_IN_ARCHIVE,
         download: bool = False,
         subset: Optional[str] = None,
-        config = None
+        config = None,
+        filter_numbers=True
     ) -> None:
 
         if subset is not None and subset not in ["training", "validation", "testing"]:
@@ -178,12 +188,15 @@ class SPEECHCOMMANDS(Dataset):
                 )
 
         if subset == "validation":
-            self._walker = _load_list(self._path, "validation_list.txt")
+            self._walker = _load_list(self._path, "validation_list.txt", number_filter=filter_numbers)
         elif subset == "testing":
-            self._walker = _load_list(self._path, "testing_list.txt")
+            self._walker = _load_list(self._path, "testing_list.txt", number_filter=filter_numbers)
         elif subset == "training":
             excludes = set(_load_list(self._path, "validation_list.txt", "testing_list.txt"))
             walker = sorted(str(p) for p in Path(self._path).glob("*/*.wav"))
+            if filter_numbers:
+                walker = [f for f in walker if f.split('/')[2] in SC09]
+            
             self._walker = [
                 w
                 for w in walker
@@ -254,6 +267,89 @@ class SPEECHCOMMANDS(Dataset):
                 mel = torch.cat((mel, torch.zeros((mel.shape[0], mel.shape[1], pad_len))), axis=-1)
 
         return mel
+
+
+    def __len__(self) -> int:
+        return len(self._walker)
+
+
+class SPEECHCOMMANDS_MEL(Dataset):
+
+    def __init__(
+        self,
+        root: Union[str, Path],
+        url: str = URL,
+        folder_in_archive: str = FOLDER_IN_ARCHIVE,
+        download: bool = False,
+        subset: Optional[str] = None,
+        config = None,
+        filter_numbers=True,
+        mel_root = MELROOT
+    ) -> None:
+
+        if subset is not None and subset not in ["training", "validation", "testing"]:
+            raise ValueError("When `subset` is not None, it must be one of ['training', 'validation', 'testing'].")
+
+        if url in [
+            "speech_commands_v0.01",
+            "speech_commands_v0.02",
+        ]:
+            base_url = "http://download.tensorflow.org/data/"
+            ext_archive = ".tar.gz"
+
+            url = os.path.join(base_url, url + ext_archive)
+
+        # Get string representation of 'root' in case Path object is passed
+        root = os.fspath(root)
+        self._archive = os.path.join(root, folder_in_archive)
+        self._mel_root = mel_root
+
+        basename = os.path.basename(url)
+        archive = os.path.join(root, basename)
+
+        basename = basename.rsplit(".", 2)[0]
+        folder_in_archive = os.path.join(folder_in_archive, basename)
+
+        self._path = os.path.join(root, folder_in_archive)
+        
+        if not os.path.exists(self._path):
+            raise RuntimeError(
+                f"The path {self._path} doesn't exist. "
+                "Please check the ``root`` path or set `download=True` to download it"
+            )
+
+        if subset == "validation":
+            self._walker = _load_list(self._path, "validation_list.txt", number_filter=filter_numbers)
+        elif subset == "testing":
+            self._walker = _load_list(self._path, "testing_list.txt", number_filter=filter_numbers)
+        elif subset == "training":
+            excludes = set(_load_list(self._path, "validation_list.txt", "testing_list.txt"))
+            walker = sorted(str(p) for p in Path(self._path).glob("*/*.wav"))
+            if filter_numbers:
+                walker = [f for f in walker if f.split('/')[2] in SC09]
+            self._walker = [
+                w
+                for w in walker
+                if HASH_DIVIDER in w and EXCEPT_FOLDER not in w and os.path.normpath(w) not in excludes
+            ]
+        else:
+            raise("Please specify the dataset subtype!")
+        
+
+    def get_metadata(self, n: int) -> Tuple[str, int, str, str, int]:
+        fileid = self._walker[n]
+        return _get_speechcommands_metadata(fileid, self._archive)
+
+
+    def __getitem__(self, n: int):
+        metadata = self.get_metadata(n)
+        path = metadata[0]
+        splits = path.split('/')
+
+        mel_path = os.path.join(self._mel_root, splits[1], splits[2].split('.')[0]+".npy")
+        mel = np.load(mel_path)
+
+        return torch.from_numpy(mel)
 
 
     def __len__(self) -> int:

@@ -45,6 +45,7 @@ def get_default_configs():
   # data
   config.data = data = ml_collections.ConfigDict()
   data.dataset = 'speech_commands'
+  data.tfrecords_path = 'sc09tf.tfrecords'
   # audio related things
   data.num_mels = 64
   data.nfft = 1024
