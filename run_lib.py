@@ -154,7 +154,7 @@ def train(config, workdir):
       except StopIteration:
         train_iter = iter(train_ds)
         batch = next(train_iter)[0].cuda()
-    elif config.data.dataset == 'speech_commands':
+    elif config.data.dataset == 'speech_commands' and config.data.category != 'tfmel':
       try:
         batch = next(train_iter).cuda()
         if len(batch) != config.training.batch_size:
@@ -164,7 +164,9 @@ def train(config, workdir):
         batch = next(train_iter).cuda()
     else:
       batch = torch.from_numpy(next(train_iter)['image']._numpy()).to(config.device).float()
-      batch = batch.permute(0, 3, 1, 2)
+      # change to channel first only for original tf datasets
+      if config.data.category != 'tfmel':
+        batch = batch.permute(0, 3, 1, 2)
     batch = scaler(batch)
     # Execute one training step
     loss = train_step_fn(state, batch)
@@ -188,7 +190,7 @@ def train(config, workdir):
           eval_iter = iter(eval_ds)
           eval_batch = next(eval_iter)[0].cuda()
       # pytorch dataloader case
-      elif config.data.dataset == 'speech_commands':
+      elif config.data.dataset == 'speech_commands' and not config.data.category == 'tfmel':
         try:
           eval_batch = next(eval_iter).cuda()
           if len(batch) != config.eval.batch_size:
@@ -198,7 +200,8 @@ def train(config, workdir):
           eval_batch = next(eval_iter).cuda()
       else:
         eval_batch = torch.from_numpy(next(eval_iter)['image']._numpy()).to(config.device).float()
-        eval_batch = eval_batch.permute(0, 3, 1, 2)
+        if not config.data.category == 'tfmel':
+          eval_batch = eval_batch.permute(0, 3, 1, 2)
       eval_batch = scaler(eval_batch)
       eval_loss = eval_step_fn(state, eval_batch)
       logging.info("step: %d, eval_loss: %.5e" % (step, eval_loss.item()))

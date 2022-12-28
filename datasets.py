@@ -18,7 +18,8 @@
 import jax
 import tensorflow as tf
 import tensorflow_datasets as tfds
-from datasets_torch import get_loader
+from datasets_torch import get_loader as get_torch_loader
+
 
 def get_data_scaler(config):
   """Data normalizer. Assume data are always in [0, 1]."""
@@ -92,8 +93,12 @@ def get_dataset(config, uniform_dequantization=False, evaluation=False):
 
   # Create dataset builders for each dataset.
   if config.data.dataset == "speech_commands":
-    train_loader = get_loader(dataset="speech", mode="training",   config=config)
-    valid_loader = get_loader(dataset="speech", mode="validation", config=config)
+    if config.data.category in ['audio', 'mel']:
+      train_loader = get_torch_loader(dataset="speech", mode="training",   config=config)
+      valid_loader = get_torch_loader(dataset="speech", mode="validation", config=config)
+    if config.data.category == 'tfmel':
+      dataset_builder = tf.data.TFRecordDataset(config.data.tfrecords_path)
+      train_split_name = eval_split_name = 'train'
     
   elif config.data.dataset == 'CIFAR10':
     dataset_builder = tfds.builder('cifar10')
@@ -166,6 +171,18 @@ def get_dataset(config, uniform_dequantization=False, evaluation=False):
       if uniform_dequantization:
         img = (tf.random.uniform(img.shape, dtype=tf.float32) + img * 255.) / 256.
       return dict(image=img, label=None)
+  # handle tfrecords decode of mel dataset
+  elif config.data.dataset == 'speech_commands' and config.data.category == 'tfmel':
+    def preprocess_fn(d):
+      # apply known data schema to decode the bytestrings
+      sample = tf.io.parse_single_example(
+        d,
+        features={
+        'mel': tf.io.FixedLenFeature([64*64], tf.float32)
+        })
+      # reshape the flattened list back to tensor
+      data = tf.reshape(sample['mel'], (1,64,64))
+      return dict(image=data, label=None)
   else:
     def preprocess_fn(d):
       """Basic preprocessing function scales data to [0, 1) and randomly flips."""
@@ -189,8 +206,7 @@ def get_dataset(config, uniform_dequantization=False, evaluation=False):
       low, high = resource.getrlimit(resource.RLIMIT_NOFILE)
       resource.setrlimit(resource.RLIMIT_NOFILE, (high, high))
       dataset_builder.download_and_prepare()
-      ds = dataset_builder.as_dataset(
-        split=split, shuffle_files=True, read_config=read_config)
+      ds = dataset_builder.as_dataset(split=split, shuffle_files=True, read_config=read_config)
     # else use the tf records dataset
     else:
       ds = dataset_builder.with_options(dataset_options)
@@ -202,7 +218,7 @@ def get_dataset(config, uniform_dequantization=False, evaluation=False):
     return ds.prefetch(prefetch_size)
 
   # handle tensorflow datasets
-  if not config.data.dataset in ["speech_commands"]:
+  if not config.data.dataset in ["speech_commands"] or config.data.category == 'tfmel':
     train_ds = create_dataset(dataset_builder, train_split_name)
     eval_ds = create_dataset(dataset_builder, eval_split_name)
   # handle pytorch datasets
