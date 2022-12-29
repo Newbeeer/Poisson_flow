@@ -78,8 +78,8 @@ def train(config, workdir):
   # Initialize model.
   net = mutils.create_model(config)
   ema = ExponentialMovingAverage(net.parameters(), decay=config.model.ema_rate)
-  optimizer = losses.get_optimizer(config, net.parameters())
-  state = dict(optimizer=optimizer, model=net, ema=ema, step=0)
+  optimizer, scheduler = losses.get_optimizer(config, net.parameters())
+  state = dict(optimizer=optimizer, model=net, ema=ema, scheduler=scheduler, step=0)
 
   # logging to weights and biases
   wandb.init(config=config)
@@ -224,7 +224,12 @@ def train(config, workdir):
         tf.io.gfile.makedirs(this_sample_dir)
         nrow = int(np.sqrt(sample.shape[0]))
         image_grid = make_grid(sample, nrow, padding=2)
-        sample = np.clip(sample.permute(0, 2, 3, 1).cpu().numpy() * 255, 0, 255).astype(np.uint8)
+        # make img in case of img dataset only
+        if not config.data.category in ['audio', 'mel', 'tfmel']:
+          sample = np.clip(sample.permute(0, 2, 3, 1).cpu().numpy() * 255, 0, 255).astype(np.uint8)
+        else:
+          sample = sample.permute(0, 2, 3, 1).cpu().numpy()
+        
         with tf.io.gfile.GFile(
             os.path.join(this_sample_dir, "sample.np"), "wb") as fout:
           np.save(fout, sample)
@@ -269,9 +274,9 @@ def evaluate(config,
 
   # Initialize model
   net = mutils.create_model(config)
-  optimizer = losses.get_optimizer(config, net.parameters())
+  optimizer, scheduler = losses.get_optimizer(config, net.parameters())
   ema = ExponentialMovingAverage(net.parameters(), decay=config.model.ema_rate)
-  state = dict(optimizer=optimizer, model=net, ema=ema, step=0)
+  state = dict(optimizer=optimizer, model=net, ema=ema, scheduler=scheduler, step=0)
 
   checkpoint_dir = os.path.join(workdir, "checkpoints")
 
@@ -345,10 +350,10 @@ def evaluate(config,
       torch.cuda.manual_seed_all(config.seed)
 
     if config.training.sde == 'poisson':
-      #ckpt_filename = os.path.join(checkpoint_dir, "checkpoint_{}.pth".format(ckpt * config.training.snapshot_freq))
-      #ckpt_path = os.path.join(checkpoint_dir, f'checkpoint_{ckpt * config.training.snapshot_freq}.pth')
-      ckpt_filename = os.path.join(checkpoint_dir, "checkpoint50000.pth")
-      ckpt_path = os.path.join(checkpoint_dir, 'checkpoint50000.pth')
+      ckpt_filename = os.path.join(checkpoint_dir, "checkpoint_{}.pth".format(ckpt * config.training.snapshot_freq))
+      ckpt_path = os.path.join(checkpoint_dir, f'checkpoint_{ckpt * config.training.snapshot_freq}.pth')
+      #ckpt_filename = os.path.join(checkpoint_dir, "checkpoint50000.pth")
+      #ckpt_path = os.path.join(checkpoint_dir, 'checkpoint50000.pth')
     else:
       ckpt_filename = os.path.join(checkpoint_dir, "checkpoint_{}.pth".format(ckpt * config.training.snapshot_freq))
       ckpt_path = os.path.join(checkpoint_dir, f'checkpoint_{ckpt * config.training.snapshot_freq}.pth')
@@ -489,7 +494,7 @@ def evaluate(config,
         samples_torch = samples_torch.view(-1, config.data.num_channels, config.data.image_size, config.data.image_size)
 
         # sample the output matrices differently for pictures vs mel spectograms
-        if config.data.category == "audio":
+        if config.data.category in ['audio', 'mel', 'tfmel']:
           samples = samples.permute(0, 2, 3, 1).cpu().numpy()
           logging.info("Saving images as raw mel specs.")
         else:

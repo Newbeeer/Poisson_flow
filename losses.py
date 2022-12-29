@@ -22,17 +22,28 @@ import numpy as np
 from models import utils as mutils
 from methods import VESDE, VPSDE
 from models import utils_poisson
+import logging
+import matplotlib.pyplot as plt 
 
 def get_optimizer(config, params):
   """Returns a flax optimizer object based on `config`."""
+  sched = config.optim.scheduler
+
   if config.optim.optimizer == 'Adam':
-    optimizer = optim.Adam(params, lr=config.optim.lr, betas=(config.optim.beta1, 0.999), eps=config.optim.eps,
-                           weight_decay=config.optim.weight_decay)
+    optimizer = optim.Adam(params, lr=config.optim.lr, betas=(config.optim.beta1, 0.999), eps=config.optim.eps,weight_decay=config.optim.weight_decay)
   else:
     raise NotImplementedError(
       f'Optimizer {config.optim.optimizer} not supported yet!')
-
-  return optimizer
+  if sched in ['CosineAnnealing', 'ReduceLROnPlateau', 'OneCycle']:
+    if sched == 'CosineAnnealing':
+      lrs = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=config.optim.T_max, eta_min=0)
+    elif sched == 'ReduceLROnPlateau':
+      lrs = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5)
+    elif sched == 'OneCycle':
+      lrs = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr = config.optim.max_lr, total_steps = config.training.n_iters)
+  else:
+    lrs = None
+  return optimizer, lrs
 
 
 def optimization_manager(config):
@@ -42,13 +53,11 @@ def optimization_manager(config):
                   warmup=config.optim.warmup,
                   grad_clip=config.optim.grad_clip):
     """Optimizes with warmup and gradient clipping (disabled if negative)."""
-    if warmup > 0:
+    if warmup > 0 and config.optim.scheduler != 'none':
       for g in optimizer.param_groups:
         g['lr'] = lr * np.minimum(step / warmup, 1.0)
     if grad_clip >= 0:
       torch.nn.utils.clip_grad_norm_(params, max_norm=grad_clip)
-    optimizer.step()
-
   return optimize_fn
 
 
@@ -93,6 +102,7 @@ def get_loss_fn(sde, train, reduce_mean=True, continuous=True, eps=1e-5, method_
         real_samples_vec = torch.cat((samples_full.reshape(len(samples_full), -1), torch.zeros((len(samples_full), 1)).to(samples_full.device)), dim=1)
         
         data_dim = sde.config.data.image_size * sde.config.data.image_size * sde.config.data.channels
+        # gt distance is calculated for each item of the batch
         gt_distance = torch.sum((perturbed_samples_vec.unsqueeze(1) - real_samples_vec) ** 2,dim=[-1]).sqrt()
 
         # For numerical stability, timing each row by its minimum value
@@ -119,6 +129,22 @@ def get_loss_fn(sde, train, reduce_mean=True, continuous=True, eps=1e-5, method_
       perturbed_samples_z = torch.clamp(perturbed_samples_vec[:, -1], 1e-10)
 
       net_x, net_z = net_fn(perturbed_samples_x, perturbed_samples_z)
+
+      '''# clone for additional losses
+      pred_img = net_x.clone().squeeze()[0]
+      gt_img = target[:,:-1].clone().reshape((target.shape[0], 64, 64))[0]
+      logging.info(gt_img.shape)
+      logging.info(pred_img.shape)
+      plt.figure()
+      plt.imshow(pred_img.detach().cpu().numpy())
+      plt.savefig("pred")
+      plt.close()
+
+      plt.figure()
+      plt.imshow(gt_img.detach().cpu().numpy())
+      plt.savefig("gt")
+      plt.close()
+      exit(0)'''
 
       net_x = net_x.view(net_x.shape[0], -1)
       # Predicted N+1-dimensional Poisson field
@@ -181,10 +207,12 @@ def get_step_fn(sde, train, optimize_fn=None, reduce_mean=False, method_name=Non
     model = state['model']
     if train:
       optimizer = state['optimizer']
+      scheduler = state['scheduler']
       optimizer.zero_grad()
       loss = loss_fn(model, batch)
       loss.backward()
       optimize_fn(optimizer, model.parameters(), step=state['step'])
+      if scheduler:scheduler.step()
       state['step'] += 1
       state['ema'].update(model.parameters())
     else:

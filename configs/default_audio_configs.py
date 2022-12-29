@@ -7,7 +7,7 @@ def get_default_configs():
   # training
   config.training = training = ml_collections.ConfigDict()
   config.training.batch_size = 256 #bs to calculate the gt field
-  training.n_iters = 2400001
+  training.n_iters = 200000 # 100k takes 17 hours on 4 gpus rtx 6000
   training.snapshot_freq = 5000
   training.log_freq = 50
   training.eval_freq = 5000
@@ -30,8 +30,8 @@ def get_default_configs():
 
   # evaluation
   config.eval = evaluate = ml_collections.ConfigDict()
-  evaluate.begin_ckpt = 0
-  evaluate.end_ckpt = 20
+  evaluate.begin_ckpt = 30
+  evaluate.end_ckpt = 31
   evaluate.batch_size = 32
   evaluate.enable_sampling = True
   evaluate.enable_interpolate = False
@@ -52,7 +52,7 @@ def get_default_configs():
   data.hop_length = 256
   data.sample_rate = 16_000 # diffwave uses 22050
   data.audio_length = 1 # length in seconds
-  data.image_size = data.audio_length * data.sample_rate // data.hop_length + 2
+  data.image_size = data.audio_length * data.sample_rate // data.hop_length + 2 # this is 64 which fits the num mels
   data.spec_len_samples = data.image_size
 
   data.uniform_dequantization = False
@@ -78,7 +78,9 @@ def get_default_configs():
   optim.eps = 1e-8
   optim.warmup = 5000
   optim.grad_clip = 1.
-
+  optim.scheduler = 'none'
+  optim.T_max = 2000 # the period in STEPS (check the total steps for good idea)
+  optim.max_lr = 3e-4
   config.seed = 49
   config.device = torch.device('cuda:0') if torch.cuda.is_available() else torch.device('cpu')
 
