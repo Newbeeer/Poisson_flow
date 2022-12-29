@@ -14,6 +14,7 @@ import torch
 import numpy as np
 import tensorflow as tf
 import librosa
+from tqdm import tqdm
 
 SC09 = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"]
 config = get_config()
@@ -107,7 +108,7 @@ def main():
     folders = [f for f in os.listdir(args.dir) if f in SC09]
 
     with tf.io.TFRecordWriter(args.target) as file_writer:
-        for folder in folders:
+        for folder in tqdm(folders):
             folder = os.path.join(args.dir, folder)
             if not os.path.isdir(folder): continue
             print(f"Processing {folder}")

@@ -15,17 +15,13 @@
 
 # pylint: skip-file
 """Training and evaluation for PFGM or score-based generative models. """
-
 import gc
 import io
 import os
 import time
 import copy
-
-import numpy as np
-import tensorflow as tf
-#import tensorflow_gan as tfgan
 import logging
+import numpy as np
 # Keep the import below for registering all model definitions
 from models import ncsnv2, ncsnpp, ncsnpp_audio
 import losses
@@ -38,15 +34,15 @@ import likelihood
 import methods
 from absl import flags
 import torch
-torch.cuda.empty_cache()
-from torch.utils import tensorboard
 from torchvision.utils import make_grid, save_image
 from utils import save_checkpoint, restore_checkpoint
-import datasets_utils.celeba
 import wandb
+import tensorflow as tf
 
 FLAGS = flags.FLAGS
 gpus = tf.config.list_physical_devices('GPU')
+logging.info("Hallo")
+
 if gpus:
   try:
     # Currently, memory growth needs to be the same across GPUs
@@ -71,10 +67,6 @@ def train(config, workdir):
   sample_dir = os.path.join(workdir, "samples")
   tf.io.gfile.makedirs(sample_dir)
 
-  tb_dir = os.path.join(workdir, "tensorboard")
-  tf.io.gfile.makedirs(tb_dir)
-  writer = tensorboard.SummaryWriter(tb_dir)
-
   # Initialize model.
   net = mutils.create_model(config)
   ema = ExponentialMovingAverage(net.parameters(), decay=config.model.ema_rate)
@@ -96,12 +88,7 @@ def train(config, workdir):
   initial_step = int(state['step'])
 
   # Build data iterators
-  if config.data.dataset == 'CELEBA':
-    # I cannot load CelebA from tfds loader. So I write a pytorch loader instead.
-    train_ds, eval_ds = datasets_utils.celeba.get_celeba(config)
-  else:
-    train_ds, eval_ds, _ = datasets.get_dataset(config, uniform_dequantization=config.data.uniform_dequantization)
-
+  train_ds, eval_ds, _ = datasets.get_dataset(config, uniform_dequantization=config.data.uniform_dequantization)
   train_iter = iter(train_ds)  # pytype: disable=wrong-arg-types
   eval_iter = iter(eval_ds)  # pytype: disable=wrong-arg-types
   # Create data normalizer and its inverse
@@ -109,17 +96,7 @@ def train(config, workdir):
   inverse_scaler = datasets.get_data_inverse_scaler(config)
   
   # Setup methods
-  if config.training.sde.lower() == 'vpsde':
-    sde = methods.VPSDE(config=config, beta_min=config.model.beta_min, beta_max=config.model.beta_max, N=config.model.num_scales)
-    sampling_eps = 1e-3
-  elif config.training.sde.lower() == 'subvpsde':
-    sde = methods.subVPSDE(config=config, beta_min=config.model.beta_min, beta_max=config.model.beta_max, N=config.model.num_scales)
-    sampling_eps = 1e-3
-  elif config.training.sde.lower() == 'vesde':
-    sde = methods.VESDE(config=config, sigma_min=config.model.sigma_min, sigma_max=config.model.sigma_max, N=config.model.num_scales)
-    sampling_eps = 1e-5
-  elif config.training.sde.lower() == 'poisson':
-    # PFGM
+  if config.training.sde.lower() == 'poisson':
     sde = methods.Poisson(config=config)
     sampling_eps = config.sampling.z_min
   else:
@@ -129,15 +106,12 @@ def train(config, workdir):
   optimize_fn = losses.optimization_manager(config)
   reduce_mean = config.training.reduce_mean
   method_name = config.training.sde.lower()
-  train_step_fn = losses.get_step_fn(sde, train=True, optimize_fn=optimize_fn,
-                                     reduce_mean=reduce_mean, method_name=method_name)
-  eval_step_fn = losses.get_step_fn(sde, train=False, optimize_fn=optimize_fn,
-                                    reduce_mean=reduce_mean, method_name=method_name)
+  train_step_fn = losses.get_step_fn(sde, train=True, optimize_fn=optimize_fn, reduce_mean=reduce_mean, method_name=method_name)
+  eval_step_fn = losses.get_step_fn(sde, train=False, optimize_fn=optimize_fn, reduce_mean=reduce_mean, method_name=method_name)
 
   # Building sampling functions
   if config.training.snapshot_sampling:
-    sampling_shape = (25, config.data.num_channels,
-                      config.data.image_size, config.data.image_size)
+    sampling_shape = (25, config.data.num_channels, config.data.image_size, config.data.image_size)
     sampling_fn = sampling.get_sampling_fn(config, sde, sampling_shape, inverse_scaler, sampling_eps)
 
   num_train_steps = config.training.n_iters
@@ -146,15 +120,7 @@ def train(config, workdir):
   logging.info("Starting training loop at step %d." % (initial_step,))
   for step in range(initial_step, num_train_steps + 1):
     # Convert data to JAX arrays and normalize them. Use ._numpy() to avoid copy.
-    if config.data.dataset == 'CELEBA':
-      try:
-        batch = next(train_iter)[0].cuda()
-        if len(batch) != config.training.batch_size:
-          continue
-      except StopIteration:
-        train_iter = iter(train_ds)
-        batch = next(train_iter)[0].cuda()
-    elif config.data.dataset == 'speech_commands' and config.data.category != 'tfmel':
+    if config.data.dataset == 'speech_commands' and config.data.category != 'tfmel':
       try:
         batch = next(train_iter).cuda()
         if len(batch) != config.training.batch_size:
@@ -164,7 +130,7 @@ def train(config, workdir):
         batch = next(train_iter).cuda()
     else:
       batch = torch.from_numpy(next(train_iter)['image']._numpy()).to(config.device).float()
-      # change to channel first only for original tf datasets
+      # change to channel first only for original tf datasets but not for mel datasets
       if config.data.category != 'tfmel':
         batch = batch.permute(0, 3, 1, 2)
     batch = scaler(batch)
@@ -172,8 +138,12 @@ def train(config, workdir):
     loss = train_step_fn(state, batch)
     if step % config.training.log_freq == 0:
       wandb.log({"train_loss": loss.item()}, step = step // config.training.log_freq)
-      logging.info("step: %d, training_loss: %.5e" % (step, loss.item()))
-      writer.add_scalar("training_loss", loss, step)
+      if scheduler is not None:
+        lr = scheduler.get_last_lr()[0]
+      else:
+        lr = optimizer.param_groups[0]['lr']
+      wandb.log({"lr": lr}, step = step // config.training.log_freq)
+      logging.info("step: %d, training_loss: %.5e, lr: %f" % (step, loss.item(), lr))
 
     # Save a temporary checkpoint to resume training after pre-emption periodically
     if step != 0 and step % config.training.snapshot_freq_for_preemption == 0:
@@ -206,7 +176,6 @@ def train(config, workdir):
       eval_loss = eval_step_fn(state, eval_batch)
       logging.info("step: %d, eval_loss: %.5e" % (step, eval_loss.item()))
       wandb.log({"val_loss": eval_loss.item()}, step = step // config.training.eval_freq)
-      writer.add_scalar("eval_loss", eval_loss.item(), step)
 
     # Save a checkpoint periodically and generate samples if needed
     if step != 0 and step % config.training.snapshot_freq == 0 or step == num_train_steps:
@@ -367,7 +336,7 @@ def evaluate(config,
     try:
       state = restore_checkpoint(ckpt_path, state, device=config.device)
     except:
-      print("Loading Failed!")
+      logging.info("Loading Failed!")
       time.sleep(60)
       try:
         state = restore_checkpoint(ckpt_path, state, device=config.device)

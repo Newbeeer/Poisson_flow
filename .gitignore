@@ -21,3 +21,6 @@ SC09*
 __pycache__
 *.tfrecords
 experiments/
+pfgm*
+*.out
+venv

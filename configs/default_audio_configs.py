@@ -45,7 +45,7 @@ def get_default_configs():
   # data
   config.data = data = ml_collections.ConfigDict()
   data.dataset = 'speech_commands'
-  data.tfrecords_path = 'sc09tf.tfrecords'
+  data.tfrecords_path = 'sc09.tfrecords'
   # audio related things
   data.num_mels = 64
   data.nfft = 1024
@@ -78,7 +78,7 @@ def get_default_configs():
   optim.eps = 1e-8
   optim.warmup = 5000
   optim.grad_clip = 1.
-  optim.scheduler = 'none'
+  optim.scheduler = 'OneCycle'
   optim.T_max = 2000 # the period in STEPS (check the total steps for good idea)
   optim.max_lr = 3e-4
   config.seed = 49
