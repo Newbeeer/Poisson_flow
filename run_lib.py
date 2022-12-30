@@ -38,6 +38,8 @@ from torchvision.utils import make_grid, save_image
 from utils import save_checkpoint, restore_checkpoint
 import wandb
 
+torch.cuda.empty_cache()
+torch.backends.cudnn.benchmark = True
 
 FLAGS = flags.FLAGS
 gpus = tf.config.list_physical_devices('GPU')

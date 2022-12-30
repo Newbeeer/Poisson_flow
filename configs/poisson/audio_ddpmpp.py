@@ -26,8 +26,8 @@ def get_config():
   training = config.training
   training.sde = 'poisson'
   training.continuous = True
-  training.batch_size = 1024
-  training.small_batch_size = 128
+  training.batch_size = 256 # 1024 for rtx 6000 and 64mels, small = bs/8
+  training.small_batch_size = 32
   training.gamma = 5
   training.restrict_M = True
   training.tau = 0.03
@@ -44,9 +44,9 @@ def get_config():
   # sampling
   sampling = config.sampling
   sampling.method = 'ode'
-  sampling.ode_solver = 'rk45'
+  #sampling.ode_solver = 'rk45'
   #sampling.ode_solver = 'forward_euler'
-  #sampling.ode_solver = 'improved_euler'
+  sampling.ode_solver = 'improved_euler'
   sampling.N = 100
   sampling.z_max = 150 #TODO find good value
   sampling.z_min = 1e-3

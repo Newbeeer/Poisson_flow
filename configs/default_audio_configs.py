@@ -45,7 +45,7 @@ def get_default_configs():
   # data
   config.data = data = ml_collections.ConfigDict()
   data.dataset = 'speech_commands'
-  data.tfrecords_path = 'sc09_128.tfrecords'
+  data.tfrecords_path = 'sc09_128.tfrecords' # set 64 or 128, also set the data.spec field right
   # audio related things
   data.spec = ml_collections.ConfigDict()
   data.spec = get_mels_128()
@@ -67,11 +67,11 @@ def get_default_configs():
   # optimization
   config.optim = optim = ml_collections.ConfigDict()
   optim.weight_decay = 0
-  optim.optimizer = 'Adam'
+  optim.optimizer = 'AdamW'
   optim.lr = 2e-4
   optim.beta1 = 0.9
   optim.eps = 1e-8
-  optim.warmup = 5000
+  optim.warmup = 1000
   optim.grad_clip = 1.
   optim.scheduler = 'none' # 'none', 'OneCylce' 
   optim.T_max = 2000 # the period in STEPS (check the total steps for good idea)
