@@ -26,6 +26,7 @@ def get_config():
   config.training.continuous = True
   config.training.batch_size = 16
   config.training.small_batch_size = 8
-
-
+  config.training.eval_freq = 100
+  config.training.snapshot_freq = 100
+  config.training.snapshot_freq_for_preemption = 200
   return config

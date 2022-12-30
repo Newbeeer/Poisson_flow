@@ -22,6 +22,7 @@ import time
 import copy
 import logging
 import numpy as np
+import tensorflow as tf
 # Keep the import below for registering all model definitions
 from models import ncsnv2, ncsnpp, ncsnpp_audio
 import losses
@@ -29,7 +30,6 @@ import sampling
 from models import utils as mutils
 from models.ema import ExponentialMovingAverage
 import datasets
-import evaluation
 import likelihood
 import methods
 from absl import flags
@@ -37,11 +37,10 @@ import torch
 from torchvision.utils import make_grid, save_image
 from utils import save_checkpoint, restore_checkpoint
 import wandb
-import tensorflow as tf
+
 
 FLAGS = flags.FLAGS
 gpus = tf.config.list_physical_devices('GPU')
-logging.info("Hallo")
 
 if gpus:
   try:
@@ -302,10 +301,6 @@ def evaluate(config,
                       config.data.image_size, config.data.image_size)
     sampling_fn = sampling.get_sampling_fn(config, sde, sampling_shape, inverse_scaler, sampling_eps)
 
-  # Use inceptionV3 for images with resolution higher than 256.
-  inceptionv3 = config.data.image_size >= 256
-  inception_model = evaluation.get_inception_model(inceptionv3=inceptionv3)
-
   begin_ckpt = config.eval.begin_ckpt
   logging.info("begin checkpoint: %d" % (begin_ckpt,))
 
@@ -319,14 +314,18 @@ def evaluate(config,
       torch.cuda.manual_seed_all(config.seed)
 
     if config.training.sde == 'poisson':
-      ckpt_filename = os.path.join(checkpoint_dir, "checkpoint_{}.pth".format(ckpt * config.training.snapshot_freq))
-      ckpt_path = os.path.join(checkpoint_dir, f'checkpoint_{ckpt * config.training.snapshot_freq}.pth')
+      if config.sampling.ckpt_number > 0:
+        ckpt_filename = os.path.join(checkpoint_dir, "checkpoint_{}.pth".format(config.sampling.ckpt_number))
+        ckpt_path = os.path.join(checkpoint_dir, f'checkpoint_{config.sampling.ckpt_number}.pth')
+      else:
+        ckpt_filename = os.path.join(checkpoint_dir, "checkpoint_{}.pth".format(ckpt * config.training.snapshot_freq))
+        ckpt_path = os.path.join(checkpoint_dir, f'checkpoint_{ckpt * config.training.snapshot_freq}.pth')
       #ckpt_filename = os.path.join(checkpoint_dir, "checkpoint50000.pth")
       #ckpt_path = os.path.join(checkpoint_dir, 'checkpoint50000.pth')
     else:
       ckpt_filename = os.path.join(checkpoint_dir, "checkpoint_{}.pth".format(ckpt * config.training.snapshot_freq))
       ckpt_path = os.path.join(checkpoint_dir, f'checkpoint_{ckpt * config.training.snapshot_freq}.pth')
-
+    
     if not tf.io.gfile.exists(ckpt_filename):
       print(f"{ckpt_filename} does not exist")
       continue
@@ -420,33 +419,6 @@ def evaluate(config,
       image_grid = make_grid(imgs, nrow=inter_num)
       save_image(image_grid, os.path.join(eval_dir, f'interpolation_{ckpt}.png'))
 
-    if config.eval.enable_rescale:
-
-      from scipy.spatial import geometric_slerp
-      repeat = 6
-      inter_num = 10
-
-      sampling_shape = (inter_num,
-                        config.data.num_channels,
-                        config.data.image_size, config.data.image_size)
-      sampling_fn = sampling.get_sampling_fn(config, sde, sampling_shape, inverse_scaler, sampling_eps)
-      imgs = torch.empty((repeat * inter_num, config.data.num_channels, config.data.image_size, config.data.image_size))
-
-      for i in range(repeat):
-        N = np.prod(sampling_shape[1:])
-        gaussian = torch.randn(1, N).cuda()
-        unit_vec = gaussian / torch.norm(gaussian, p=2, dim=1, keepdim=True)
-
-        t_vals = torch.linspace(1000, 6000, inter_num).cuda()
-        t_vals = t_vals.view((-1, 1))
-        result = unit_vec * t_vals
-
-        samples, n = sampling_fn(net, x=result)
-        imgs[i * inter_num: (i + 1) * inter_num] = torch.clamp(samples, 0.0, 1.0).to('cpu')
-
-      image_grid = make_grid(imgs, nrow=inter_num)
-      save_image(image_grid, os.path.join(eval_dir, f'rescale_{ckpt}.png'))
-
     # Generate samples and compute IS/FID/KID when enabled
     if config.eval.enable_sampling:
       num_sampling_rounds = config.eval.num_samples // config.eval.batch_size + 1
@@ -481,57 +453,3 @@ def evaluate(config,
           # Saving a few generated images for debugging / visualization
           image_grid = make_grid(samples_torch, nrow=int(np.sqrt(len(samples_torch))))
           save_image(image_grid, os.path.join(eval_dir, f'ode_images_{ckpt}.png'))
-
-        # Force garbage collection before calling TensorFlow code for Inception network
-        gc.collect()
-        latents = evaluation.run_inception_distributed(samples, inception_model,
-                                                       inceptionv3=inceptionv3)
-        # Force garbage collection again before returning to JAX code
-        gc.collect()
-        # Save latent represents of the Inception network to disk or Google Cloud Storage
-        with tf.io.gfile.GFile(
-            os.path.join(this_sample_dir, f"statistics_{r}.npz"), "wb") as fout:
-          io_buffer = io.BytesIO()
-          np.savez_compressed(
-            io_buffer, pool_3=latents["pool_3"], logits=latents["logits"])
-          fout.write(io_buffer.getvalue())
-
-      # Compute inception scores, FIDs
-      # Load all statistics that have been previously computed and saved for each host
-      all_logits = []
-      all_pools = []
-      stats = tf.io.gfile.glob(os.path.join(this_sample_dir, "statistics_*.npz"))
-      for stat_file in stats:
-        with tf.io.gfile.GFile(stat_file, "rb") as fin:
-          stat = np.load(fin)
-          if not inceptionv3:
-            all_logits.append(stat["logits"])
-          all_pools.append(stat["pool_3"])
-
-      if not inceptionv3:
-        all_logits = np.concatenate(all_logits, axis=0)[:config.eval.num_samples]
-      all_pools = np.concatenate(all_pools, axis=0)[:config.eval.num_samples]
-
-      # Load pre-computed dataset statistics.
-      data_stats = evaluation.load_dataset_stats(config)
-      data_pools = data_stats["pool_3"]
-
-      # Compute FID/IS on all samples together.
-      if not inceptionv3:
-        #inception_score = tfgan.eval.classifier_score_from_logits(all_logits)
-        inception_score = -1
-      else:
-        inception_score = -1
-
-      #fid = tfgan.eval.frechet_classifier_distance_from_activations(data_pools, all_pools)
-      fid = 0
-
-      logging.info(
-        "ckpt-%d --- inception_score: %.6e, FID: %.6e" % (
-          ckpt, inception_score, fid))
-
-      with tf.io.gfile.GFile(os.path.join(eval_dir, f"report_{ckpt}.npz"),
-                             "wb") as f:
-        io_buffer = io.BytesIO()
-        np.savez_compressed(io_buffer, IS=inception_score, fid=fid)
-        f.write(io_buffer.getvalue())

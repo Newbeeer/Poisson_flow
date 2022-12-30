@@ -53,7 +53,7 @@ def optimization_manager(config):
                   warmup=config.optim.warmup,
                   grad_clip=config.optim.grad_clip):
     """Optimizes with warmup and gradient clipping (disabled if negative)."""
-    if warmup > 0 and config.optim.scheduler != 'none':
+    if warmup > 0 and config.optim.scheduler == 'none':
       for g in optimizer.param_groups:
         g['lr'] = lr * np.minimum(step / warmup, 1.0)
     if grad_clip >= 0:
@@ -212,7 +212,8 @@ def get_step_fn(sde, train, optimize_fn=None, reduce_mean=False, method_name=Non
       loss = loss_fn(model, batch)
       loss.backward()
       optimize_fn(optimizer, model.parameters(), step=state['step'])
-      if scheduler:scheduler.step()
+      if scheduler is not None:
+        scheduler.step()
       state['step'] += 1
       state['ema'].update(model.parameters())
     else:

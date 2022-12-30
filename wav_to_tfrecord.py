@@ -67,7 +67,7 @@ def convert_folder(folder, args, file_writer):
     files = os.listdir(folder)
     for f in files:
         f_path = os.path.join(folder, f)
-        waveform, sr = librosa.load(f_path, sr=config.data.sample_rate)
+        waveform, sr = librosa.load(f_path, sr=config.data.sample_rate, res_type=)
         if use_torch:
             mel = meltransform(waveform) # 1 MEL_BINS LENGTH = 1x64x64
             mel = ptodb(mel) # amp to db
@@ -106,6 +106,7 @@ def main():
     args = parser.parse_args()
 
     folders = [f for f in os.listdir(args.dir) if f in SC09]
+    print(f"Generating {config.data.num_mels}x{config.data.image_size} specs.")
 
     with tf.io.TFRecordWriter(args.target) as file_writer:
         for folder in tqdm(folders):

@@ -26,7 +26,7 @@ def get_config():
   training = config.training
   training.sde = 'poisson'
   training.continuous = True
-  training.batch_size = 1024
+  training.batch_size = 2048
   training.small_batch_size = 128
   training.gamma = 5
   training.restrict_M = True
@@ -44,14 +44,15 @@ def get_config():
   # sampling
   sampling = config.sampling
   sampling.method = 'ode'
-  #sampling.ode_solver = 'rk45'
+  sampling.ode_solver = 'rk45'
   #sampling.ode_solver = 'forward_euler'
-  sampling.ode_solver = 'improved_euler'
+  #sampling.ode_solver = 'improved_euler'
   sampling.N = 100
-  sampling.z_max = 150 #TODO find good value
+  sampling.z_max = 100 #TODO find good value
   sampling.z_min = 1e-3
   sampling.upper_norm = 5000
   sampling.vs = False
+  sampling.ckpt_number = 155000
 
   # model TODO adapt a 1d attention unet not a 
   model = config.model
@@ -61,9 +62,9 @@ def get_config():
   model.normalization = 'GroupNorm'
   model.nonlinearity = 'swish'
   model.nf = 128
-  model.ch_mult = (1, 1, 2, 2, 4, 4)
-  model.num_res_blocks = 2
-  model.attn_resolutions = (16,)
+  model.ch_mult = (1, 2, 2, 2) # initial (1, 1, 2, 2, 4, 4)
+  model.num_res_blocks = 4 # initial 2
+  model.attn_resolutions = (16, 8, 4) # initial (16,)
   model.resamp_with_conv = True
   model.conditional = True
   model.fir = False

@@ -56,13 +56,12 @@ def main(argv):
     logger = logging.getLogger()
     logger.addHandler(handler)
     logger.setLevel('INFO')
-    logging.info("LOL")
     # Run the training pipeline
-    #run_lib.train(FLAGS.config, FLAGS.workdir)
+    run_lib.train(FLAGS.config, FLAGS.workdir)
   elif FLAGS.mode == "eval":
     pass
     # Run the evaluation pipeline
-    #run_lib.evaluate(FLAGS.config, FLAGS.workdir, FLAGS.eval_folder)
+    run_lib.evaluate(FLAGS.config, FLAGS.workdir, FLAGS.eval_folder)
   else:
     raise ValueError(f"Mode {FLAGS.mode} not recognized.")
 
