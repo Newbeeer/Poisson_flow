@@ -73,7 +73,7 @@ def train(config, workdir):
   state = dict(optimizer=optimizer, model=net, ema=ema, scheduler=scheduler, step=0)
 
   # logging to weights and biases
-  wandb.init(config=config)
+  wandb.init(config=config, settings=wandb.Settings(start_method='thread'))
   wandb.watch(net, log_freq=1000)
 
   # Create checkpoints directory

@@ -178,10 +178,10 @@ def get_dataset(config, uniform_dequantization=False, evaluation=False):
       sample = tf.io.parse_single_example(
         d,
         features={
-        'mel': tf.io.FixedLenFeature([64*64], tf.float32)
+        'mel': tf.io.FixedLenFeature([config.data.spec.num_mels*config.data.image_size], tf.float32)
         })
       # reshape the flattened list back to tensor
-      data = tf.reshape(sample['mel'], (1,64,64))
+      data = tf.reshape(sample['mel'], (1,config.data.spec.num_mels,config.data.image_size))
       return dict(image=data, label=None)
   else:
     def preprocess_fn(d):

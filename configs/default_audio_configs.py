@@ -1,6 +1,6 @@
 import ml_collections
 import torch
-
+from configs.mel_configs import get_mels_64, get_mels_128
 
 def get_default_configs():
   config = ml_collections.ConfigDict()
@@ -8,7 +8,7 @@ def get_default_configs():
   config.training = training = ml_collections.ConfigDict()
   config.training.batch_size = 256 #bs to calculate the gt field
   training.n_iters = 200000 # 100k takes 17 hours on 4 gpus rtx 6000
-  training.snapshot_freq = 5000
+  training.snapshot_freq = 25000
   training.log_freq = 50
   training.eval_freq = 5000
   ## store additional checkpoints for preemption in cloud computing environments
@@ -45,16 +45,11 @@ def get_default_configs():
   # data
   config.data = data = ml_collections.ConfigDict()
   data.dataset = 'speech_commands'
-  data.tfrecords_path = 'sc09.tfrecords'
+  data.tfrecords_path = 'sc09_128.tfrecords'
   # audio related things
-  data.num_mels = 64
-  data.nfft = 1024
-  data.hop_length = 256
-  data.sample_rate = 16_000 # diffwave uses 22050
-  data.audio_length = 1 # length in seconds
-  data.image_size = data.audio_length * data.sample_rate // data.hop_length + 2 # this is 64 which fits the num mels
-  data.spec_len_samples = data.image_size
-
+  data.spec = ml_collections.ConfigDict()
+  data.spec = get_mels_128()
+  data.image_size = data.spec.image_size
   data.uniform_dequantization = False
   data.centered = False
   data.num_channels = 1
@@ -76,7 +71,7 @@ def get_default_configs():
   optim.lr = 2e-4
   optim.beta1 = 0.9
   optim.eps = 1e-8
-  optim.warmup = 10000
+  optim.warmup = 5000
   optim.grad_clip = 1.
   optim.scheduler = 'none' # 'none', 'OneCylce' 
   optim.T_max = 2000 # the period in STEPS (check the total steps for good idea)
