@@ -17,7 +17,7 @@ echo "SLURM_JOB_ID:    ${SLURM_JOB_ID}"
 
 # CUDA_VISIBLE_DEVICES=0,1 python3 main.py --config ./configs/poisson/cifar10_ddpmpp.py --mode train --workdir ../Poissound_flow/test
 
-CUDA_VISIBLE_DEVICES=0,1 python3 eval_script.py --config ./configs/poisson/cifar10_ddpmpp.py --mode eval --workdir ../Poisson_flow/test --config.eval.enable_sampling --config.sampling.N 50
+CUDA_VISIBLE_DEVICES=0,1 python3 eval_script_old.py --config ./configs/poisson/cifar10_ddpmpp.py --mode eval --workdir ../Poisson_flow/test --config.eval.enable_sampling --config.sampling.N 50
 
 # CUDA_VISIBLE_DEVICES=0,1 python3 main.py --config ./configs/poisson/cifar10_ddpmpp.py --mode eval \
 # --workdir ../Poisson_flow/test --config.eval.enable_sampling --config.sampling.N 20
