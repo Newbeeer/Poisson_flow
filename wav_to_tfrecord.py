@@ -8,11 +8,9 @@ import os
 import argparse
 from torchaudio.transforms import MelSpectrogram, AmplitudeToDB
 import librosa
-from configs.mel_configs import get_mels_128, get_mels_64
 from torchaudio import load as torch_load
 import torch 
 import numpy as np
-import tensorflow as tf
 import librosa
 from tqdm import tqdm
 
