@@ -1,10 +1,8 @@
 # aduio diffusion blocks from harmonai
-
 import math
 import torch
 from torch import nn
 from torch.nn import functional as F
-from flash_attn.flash_attention import FlashAttention
 
 
 class ResidualBlock(nn.Module):
@@ -97,10 +95,6 @@ class SelfAttentionFlash(nn.Module):
 
         # Final linear layer
         self.to_out = nn.Sequential(nn.Linear(d_attn, d_model))
-
-        self.flash = FlashAttention()
-        # Set the scale for scaled dot-product attention.
-        self.flash.softmax_scale = self.scale
 
     def forward(self, x: torch.Tensor):
         """
