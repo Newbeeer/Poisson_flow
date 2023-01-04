@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import os
 from tqdm import tqdm
 import sys
+
 sys.path.append('..')
 
 from configs.mel_configs import get_mels_64, get_mels_128
@@ -22,12 +23,13 @@ hop_length = mel_cfg.hop_length
 torch_inverse = False
 plotting = True
 
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--dir", required=True)
     parser.add_argument("--ckpt", required=True)
     args = parser.parse_args()
-    
+
     files = os.listdir(os.path.join(args.dir, args.ckpt))
     for file in files:
         file_path = os.path.join(args.dir, args.ckpt, file)
@@ -37,7 +39,7 @@ def main():
         except:
             file = np.load(file_path)
             data = file
-        
+
         os.makedirs(os.path.join(args.dir, 'audio', args.ckpt), exist_ok=True)
         print(f"Data in range [{data.min()},{data.max()}]")
         for i, im in tqdm(enumerate(data), total=data.shape[0]):
@@ -50,8 +52,9 @@ def main():
                     plt.plot(data)
                 plt.show()
             audio = data
-                
+
             sf.write(f"{args.dir}/audio/{args.ckpt}/sample_{i}.ogg", audio, sample_rate)
+
 
 if __name__ == "__main__":
     main()

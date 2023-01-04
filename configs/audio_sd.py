@@ -18,70 +18,71 @@
 
 from configs.default_audio_configs import get_default_configs, get_mels_128, get_mels_64
 
+
 def get_config():
-  config = get_default_configs()
+    config = get_default_configs()
 
-  # training
-  training = config.training
-  training.sde = 'poisson'
-  training.continuous = True
-  training.batch_size = 32 # 1024 for rtx 6000 and 64mels, small = bs/8
-  training.small_batch_size = 2
-  training.gamma = 5
-  training.restrict_M = True
-  training.tau = 0.03
-  training.snapshot_freq = 10000
-  training.model = 'stablediff'
-  training.reduce_mean = True
-  training.accum_iter = 16 # gradient accumulations
+    # training
+    training = config.training
+    training.sde = 'poisson'
+    training.continuous = True
+    training.batch_size = 32  # 1024 for rtx 6000 and 64mels, small = bs/8
+    training.small_batch_size = 2
+    training.gamma = 5
+    training.restrict_M = True
+    training.tau = 0.03
+    training.snapshot_freq = 10000
+    training.model = 'stablediff'
+    training.reduce_mean = True
+    training.accum_iter = 16  # gradient accumulations
 
-  # data
-  data = config.data
-  data.channels = 1
-  data.category = 'tfmel' # audio, mel, tfmel
-  data.centered = False
-  data.dataset = 'speech_commands'
-  data.tfrecords_path = 'sc09_128.tfrecords' # set 64 or 128, also set the data.spec field right
-  # audio related things
-  data.spec = get_mels_128()
-  data.image_size = data.spec.image_size
-  data.image_height = data.spec.image_size
-  data.image_width = data.spec.image_size
-  data.num_channels = 1
+    # data
+    data = config.data
+    data.channels = 1
+    data.category = 'tfmel'  # audio, mel, tfmel
+    data.centered = False
+    data.dataset = 'speech_commands'
+    data.tfrecords_path = 'sc09_128.tfrecords'  # set 64 or 128, also set the data.spec field right
+    # audio related things
+    data.spec = get_mels_128()
+    data.image_size = data.spec.image_size
+    data.image_height = data.spec.image_size
+    data.image_width = data.spec.image_size
+    data.num_channels = 1
 
-  # sampling
-  sampling = config.sampling
-  sampling.method = 'ode'
-  #sampling.ode_solver = 'rk45'
-  #sampling.ode_solver = 'forward_euler'
-  sampling.ode_solver = 'improved_euler'
-  sampling.N = 100
-  sampling.z_max = 150 #TODO find good value
-  sampling.z_min = 1e-3
-  sampling.upper_norm = 5000
-  sampling.vs = False
-  sampling.ckpt_number = 155000 # number of ckpt to load for sampling
+    # sampling
+    sampling = config.sampling
+    sampling.method = 'ode'
+    # sampling.ode_solver = 'rk45'
+    # sampling.ode_solver = 'forward_euler'
+    sampling.ode_solver = 'improved_euler'
+    sampling.N = 100
+    sampling.z_max = 150  # TODO find good value
+    sampling.z_min = 1e-3
+    sampling.upper_norm = 5000
+    sampling.vs = False
+    sampling.ckpt_number = 155000  # number of ckpt to load for sampling
 
-  # model TODO adapt a 1d attention unet not a 
-  model = config.model
-  model.name = 'stablediff'
-  model.scale_by_sigma = False
-  model.ema_rate = 0.9999
-  model.nf = 128
-  model.conv_size = 3
-  model.sigma_end = 0.01
+    # model TODO adapt a 1d attention unet not a
+    model = config.model
+    model.name = 'stablediff'
+    model.scale_by_sigma = False
+    model.ema_rate = 0.9999
+    model.nf = 128
+    model.conv_size = 3
+    model.sigma_end = 0.01
 
-  # stable diffusion settings
-  model.channels = 128 # channels of the features = nf value
-  model.d_cond = 128 # like nf, size of conditional embeddings => we have none, it would be the CLIP embed size
-  model.n_res_blocks = 2
-  model.attention_levels = [0,]
-  model.channel_multipliers = [1, 2, 2, 2]
-  model.n_heads = 1
-  model.transformer_depth = 1
+    # stable diffusion settings
+    model.channels = 128  # channels of the features = nf value
+    model.d_cond = 128  # like nf, size of conditional embeddings => we have none, it would be the CLIP embed size
+    model.n_res_blocks = 2
+    model.attention_levels = [0, ]
+    model.channel_multipliers = [1, 2, 2, 2]
+    model.n_heads = 1
+    model.transformer_depth = 1
 
-  # optim
-  optim = config.optim
-  optim.lr = 2e-5
+    # optim
+    optim = config.optim
+    optim.lr = 2e-5
 
-  return config
+    return config
