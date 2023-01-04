@@ -65,8 +65,7 @@ class AttnBlockpp(nn.Module):
 
   def __init__(self, channels, skip_rescale=False, init_scale=0.):
     super().__init__()
-    self.GroupNorm_0 = nn.GroupNorm(num_groups=min(channels // 4, 32), num_channels=channels,
-                                  eps=1e-6)
+    self.GroupNorm_0 = nn.GroupNorm(num_groups=min(channels // 4, 32), num_channels=channels, eps=1e-6)
     self.NIN_0 = NIN(channels, channels)
     self.NIN_1 = NIN(channels, channels)
     self.NIN_2 = NIN(channels, channels)
@@ -167,8 +166,7 @@ class Downsample(nn.Module):
 class ResnetBlockDDPMpp(nn.Module):
   """ResBlock adapted from DDPM."""
 
-  def __init__(self, act, in_ch, out_ch=None, zemb_dim=None, conv_shortcut=False,
-               dropout=0.1, skip_rescale=False, init_scale=0.):
+  def __init__(self, act, in_ch, out_ch=None, zemb_dim=None, conv_shortcut=False, dropout=0.1, skip_rescale=False, init_scale=0.):
     super().__init__()
     out_ch = out_ch if out_ch else in_ch
     self.GroupNorm_0 = nn.GroupNorm(num_groups=min(in_ch // 4, 32), num_channels=in_ch, eps=1e-6)

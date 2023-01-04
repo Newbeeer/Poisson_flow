@@ -25,7 +25,7 @@ def forward_pz(sde, config, samples_batch, m):
         restrict_m = int(sde.M * 0.7)
         m[idx] = torch.rand((num,), device=samples_batch.device) * restrict_m
 
-    data_dim = config.data.channels * config.data.image_size * config.data.image_size
+    data_dim = config.data.channels * config.data.image_height * config.data.image_width
     multiplier = (1+tau) ** m
 
     noise = torch.randn_like(samples_batch).reshape(len(samples_batch), -1) * config.model.sigma_end

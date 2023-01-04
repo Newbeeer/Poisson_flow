@@ -26,20 +26,24 @@ def get_config():
   training = config.training
   training.sde = 'poisson'
   training.continuous = True
-  training.batch_size = 256 # 1024 for rtx 6000 and 64mels, small = bs/8
-  training.small_batch_size = 32
+  training.batch_size = 2 # 1024 for rtx 6000 and 64mels, small = bs/8
+  training.small_batch_size = 2
   training.gamma = 5
   training.restrict_M = True
   training.tau = 0.03
-  training.snapshot_freq = 25000
-  training.model = 'ddpmpp'
+  training.snapshot_freq = 10000
+  training.model = 'attunet1d'
   training.reduce_mean = True
+  training.amp = True
+  training.accum_iter = 16 # gradient accumulations
 
   # data
   data = config.data
   data.channels = 1
-  data.category = 'tfmel' # audio, mel, tfmel
-  data.centered = False
+  data.category = 'audio' # audio, mel, tfmel
+  data.image_height = 1
+  data.image_width = 16000
+  data.centered = True
 
   # sampling
   sampling = config.sampling
@@ -52,35 +56,18 @@ def get_config():
   sampling.z_min = 1e-3
   sampling.upper_norm = 5000
   sampling.vs = False
-  sampling.ckpt_number = 155000
+  sampling.ckpt_number = 75000 # number of ckpt to load for sampling
 
-  # model TODO adapt a 1d attention unet not a 
+  # model
   model = config.model
-  model.name = 'ncsnpp_audio'
+  model.name = 'attunet1d' # ncsnpp_audio OR attunet1d
   model.scale_by_sigma = False
-  model.ema_rate = 0.9999
-  model.normalization = 'GroupNorm'
-  model.nonlinearity = 'swish'
-  model.nf = 128
-  model.ch_mult = (1, 1, 2, 2, 4, 4) # initial (1, 1, 2, 2, 4, 4)
-  model.num_res_blocks = 4 # initial 2
-  model.attn_resolutions = (16,) # initial (16,)
-  model.resamp_with_conv = True
-  model.conditional = True
-  model.fir = False
-  model.fir_kernel = [1, 3, 3, 1]
-  model.skip_rescale = True
-  model.resblock_type = 'biggan'
-  model.progressive_combine = 'sum'
-  model.attention_type = 'ddpm'
-  model.init_scale = 0.
-  model.fourier_scale = 16
-  model.embedding_type = 'positional'
-  model.conv_size = 3
   model.sigma_end = 0.01
-
+  model.ema_rate = 0.9999
+  model.nf = 16 
   # optim
   optim = config.optim
   optim.lr = 2e-5
+  
 
   return config

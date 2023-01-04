@@ -650,8 +650,7 @@ def get_rk45_sampler(sde, shape, inverse_scaler,
         return to_flattened_numpy(drift)
 
       # Black-box ODE solver for the probability flow ODE
-      solution = integrate.solve_ivp(ode_func, (sde.T, eps), to_flattened_numpy(x),
-                                     rtol=rtol, atol=atol, method=method)
+      solution = integrate.solve_ivp(ode_func, (sde.T, eps), to_flattened_numpy(x), rtol=rtol, atol=atol, method=method)
       nfe = solution.nfev
       x = torch.tensor(solution.y[:, -1]).reshape(shape).to(device).type(torch.float32)
 
@@ -693,13 +692,13 @@ def get_rk45_sampler_pfgm(sde, shape, inverse_scaler, rtol=1e-4, atol=1e-4,
         x = sde.prior_sampling(shape).to(device)
 
       z = torch.ones((len(x), 1, 1, 1)).to(x.device)
-      z = z.repeat((1, 1, sde.config.data.image_size, sde.config.data.image_size)) * sde.config.sampling.z_max
+      z = z.repeat((1, 1, sde.config.data.image_height, sde.config.data.image_width)) * sde.config.sampling.z_max
       x = x.view(shape)
       # Augment the samples with extra dimension z
       # We concatenate the extra dimension z as an addition channel to accomondate this solver
       x = torch.cat((x, z), dim=1)
       x = x.float()
-      new_shape = (len(x), sde.config.data.channels + 1, sde.config.data.image_size, sde.config.data.image_size)
+      new_shape = (len(x), sde.config.data.channels + 1, sde.config.data.image_height, sde.config.data.image_width)
 
       def ode_func(t, x):
 
@@ -717,7 +716,7 @@ def get_rk45_sampler_pfgm(sde, shape, inverse_scaler, rtol=1e-4, atol=1e-4,
         # Please see Appendix B.2.3 in PFGM paper (https://arxiv.org/abs/2209.11178) for details
         z_exp = sde.config.sampling.z_exp
         if z < z_exp and sde.config.training.gamma > 0:
-          data_dim = sde.config.data.image_size * sde.config.data.image_size * sde.config.data.channels
+          data_dim = sde.config.data.image_height * sde.config.data.image_width * sde.config.data.channels
           sqrt_dim = np.sqrt(data_dim)
           norm_1 = x_drift.norm(p=2, dim=1) / sqrt_dim
           x_norm = sde.config.training.gamma * norm_1 / (1 - norm_1)
@@ -732,9 +731,7 @@ def get_rk45_sampler_pfgm(sde, shape, inverse_scaler, rtol=1e-4, atol=1e-4,
         # Get dx/dz
         dx_dz = dx_dt * dt_dz.view(-1, *([1] * len(x.size()[1:])))
         # drift = z * (dx/dz, dz/dz) = z * (dx/dz, 1)
-        drift = torch.cat([z * dx_dz,
-                           torch.ones((len(dx_dz), 1, sde.config.data.image_size,
-                                       sde.config.data.image_size)).to(dx_dz.device) * z], dim=1)
+        drift = torch.cat([z * dx_dz, torch.ones((len(dx_dz), 1, sde.config.data.image_height, sde.config.data.image_width)).to(dx_dz.device) * z], dim=1)
         return to_flattened_numpy(drift)
 
       # Black-box ODE solver for the probability flow ODE.

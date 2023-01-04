@@ -157,23 +157,7 @@ class SPEECHCOMMANDS(Dataset):
         folder_in_archive = os.path.join(folder_in_archive, basename)
 
         self._path = os.path.join(root, folder_in_archive)
-
-        # augmentations
-        self.duration_mel = config.data.image_size
-        self.meltransform = MelSpectrogram(
-            sample_rate=config.data.sample_rate,
-            n_fft=config.data.nfft,
-            n_mels=config.data.num_mels,
-            win_length=config.data.hop_length * 4,
-            hop_length=config.data.hop_length,
-            f_min=20.0,
-            f_max = config.data.sample_rate / 2.0,
-            power = 1.0, # coherent source
-            normalized=True
-            )
-        self.ptodb = AmplitudeToDB(stype='magnitude', top_db=80)
-        
-
+     
         if download:
             if not os.path.isdir(self._path):
                 if not os.path.isfile(archive):
@@ -253,20 +237,19 @@ class SPEECHCOMMANDS(Dataset):
                 Utterance number
         """
         metadata = self.get_metadata(n)
-        waveform = _load_waveform(self._archive, metadata[0], metadata[1])
+        sr = metadata[1]
+        waveform = _load_waveform(self._archive, metadata[0], sr)
+        
+        # TODO padding or cutting, flip phase randomly, normalize from -1 to 1
+        waveform = torch.mean(waveform,dim=0, keepdim=True)
+        len_wav = waveform.shape[-1]
+        if len_wav < sr:
+            waveform = torch.cat((waveform, torch.zeros(sr - len_wav).unsqueeze(0)), dim=-1)
+            
+        # normalize from -1 to 1
+        waveform /= waveform.max()
 
-        # augment the data
-        with torch.no_grad():
-            mel = self.meltransform(waveform) # 1 MEL_BINS LENGTH = 1x64x64
-            mel = self.ptodb(mel) # amp to db
-            mel = mel - mel.min()
-            mel = mel / mel.max()
-            # pad with zeros
-            pad_len = self.duration_mel - mel.shape[2]
-            if pad_len > 0:
-                mel = torch.cat((mel, torch.zeros((mel.shape[0], mel.shape[1], pad_len))), axis=-1)
-
-        return mel
+        return waveform
 
 
     def __len__(self) -> int:

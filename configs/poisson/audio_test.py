@@ -17,15 +17,15 @@
 """Config file for reproducing the results of DDPM on bedrooms."""
 
 from configs.default_audio_configs import get_default_configs
-from configs.poisson.audio_ddpmpp import get_config as get_original_config
+from configs.poisson.audio_ddpmpp_128_deep import get_config as get_original_config
 
 # overwrite params with easy to handle (small bs etc)
 def get_config():
   config = get_original_config()
 
   config.training.continuous = True
-  config.training.batch_size = 16
-  config.training.small_batch_size = 8
+  config.training.batch_size = 2
+  config.training.small_batch_size = 2
   config.training.eval_freq = 100
   config.training.snapshot_freq = 100
   config.training.snapshot_freq_for_preemption = 200

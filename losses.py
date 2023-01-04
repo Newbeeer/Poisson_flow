@@ -51,9 +51,11 @@ def get_optimizer(config, params):
 def optimization_manager(config):
   """Returns an optimize_fn based on `config`."""
 
-  def optimize_fn(optimizer, params, step, lr=config.optim.lr,
-                  warmup=config.optim.warmup,
-                  grad_clip=config.optim.grad_clip):
+  def optimize_fn(
+    optimizer, params, step,
+    lr=config.optim.lr,
+    warmup=config.optim.warmup,
+    grad_clip=config.optim.grad_clip):
     """Optimizes with warmup and gradient clipping (disabled if negative)."""
     if warmup > 0 and config.optim.scheduler == 'none':
       for g in optimizer.param_groups:
@@ -61,6 +63,7 @@ def optimization_manager(config):
     if grad_clip >= 0:
       torch.nn.utils.clip_grad_norm_(params, max_norm=grad_clip)
     optimizer.step()
+    optimizer.zero_grad()
   return optimize_fn
 
 
@@ -104,7 +107,7 @@ def get_loss_fn(sde, train, reduce_mean=True, continuous=True, eps=1e-5, method_
         # calculate the vector field on the full batch, to get a less biased estimate
         real_samples_vec = torch.cat((samples_full.reshape(len(samples_full), -1), torch.zeros((len(samples_full), 1)).to(samples_full.device)), dim=1)
         
-        data_dim = sde.config.data.image_size * sde.config.data.image_size * sde.config.data.channels
+        data_dim = sde.config.data.image_height * sde.config.data.image_width * sde.config.data.channels
         # gt distance is calculated for each item of the batch
         gt_distance = torch.sum((perturbed_samples_vec.unsqueeze(1) - real_samples_vec) ** 2,dim=[-1]).sqrt()
 
@@ -132,27 +135,12 @@ def get_loss_fn(sde, train, reduce_mean=True, continuous=True, eps=1e-5, method_
       perturbed_samples_z = torch.clamp(perturbed_samples_vec[:, -1], 1e-10)
 
       net_x, net_z = net_fn(perturbed_samples_x, perturbed_samples_z)
-
-      '''# clone for additional losses
-      pred_img = net_x.clone().squeeze()[0]
-      gt_img = target[:,:-1].clone().reshape((target.shape[0], 64, 64))[0]
-      logging.info(gt_img.shape)
-      logging.info(pred_img.shape)
-      plt.figure()
-      plt.imshow(pred_img.detach().cpu().numpy())
-      plt.savefig("pred")
-      plt.close()
-
-      plt.figure()
-      plt.imshow(gt_img.detach().cpu().numpy())
-      plt.savefig("gt")
-      plt.close()
-      exit(0)'''
-
       net_x = net_x.view(net_x.shape[0], -1)
       # Predicted N+1-dimensional Poisson field
       net = torch.cat([net_x, net_z[:, None]], dim=1)
       # calculate the loss => squared L2 distance TODO add mel specific loss?
+      if net.device != target.device:
+        target = target.to(net.device)
       loss = ((net - target) ** 2)
       loss = reduce_op(loss.reshape(loss.shape[0], -1), dim=-1)
       loss = torch.mean(loss)
@@ -190,8 +178,7 @@ def get_step_fn(sde, train, optimize_fn=None, reduce_mean=False, method_name=Non
     A one-step function for training or evaluation.
   """
 
-  loss_fn = get_loss_fn(sde, train, reduce_mean=reduce_mean,
-                            continuous=True, method_name=method_name)
+  loss_fn = get_loss_fn(sde, train, reduce_mean=reduce_mean, continuous=True, method_name=method_name)
 
   def step_fn(state, batch):
     """Running one step of training or evaluation.
@@ -211,12 +198,21 @@ def get_step_fn(sde, train, optimize_fn=None, reduce_mean=False, method_name=Non
     if train:
       optimizer = state['optimizer']
       scheduler = state['scheduler']
-      optimizer.zero_grad()
       loss = loss_fn(model, batch)
+      if sde.config.training.accum_iter > 0:
+        loss /= sde.config.training.accum_iter
       loss.backward()
-      optimize_fn(optimizer, model.parameters(), step=state['step'])
+      
+      # TODO add schaler optimizer update
+      if sde.config.training.accum_iter > 0:
+        if (state['step']+1) % sde.config.training.accum_iter == 0:
+          optimize_fn(optimizer, model.parameters(), step=state['step'])
+      else:
+        optimize_fn(optimizer, model.parameters(), step=state['step'])
+
       if scheduler is not None:
         scheduler.step()
+      
       state['step'] += 1
       state['ema'].update(model.parameters())
     else:

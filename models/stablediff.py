@@ -7,8 +7,8 @@ import torch
 import torch as th
 import torch.nn as nn
 import torch.nn.functional as F
-
-from labml_nn.diffusion.stable_diffusion.model.unet_attention import SpatialTransformer
+from . import utils, layers
+from .layerssd import SpatialTransformer
 
 
 @utils.register_model(name='stablediff')
@@ -17,35 +17,31 @@ class UNetModel(nn.Module):
     ## U-Net model
     """
 
-    def __init__(
-            self, *,
-            in_channels: int,
-            out_channels: int,
-            channels: int,
-            n_res_blocks: int,
-            attention_levels: List[int],
-            channel_multipliers: List[int],
-            n_heads: int,
-            tf_layers: int = 1,
-            d_cond: int = 768):
-        """
-        :param in_channels: is the number of channels in the input feature map
-        :param out_channels: is the number of channels in the output feature map
-        :param channels: is the base channel count for the model
-        :param n_res_blocks: number of residual blocks at each level
-        :param attention_levels: are the levels at which attention should be performed
-        :param channel_multipliers: are the multiplicative factors for number of channels for each level
-        :param n_heads: the number of attention heads in the transformers
-        """
+    def __init__(self, config):
         super().__init__()
+        self.config = config
+        # set paramters from config
+        self.d_cond = config.model.nf
+        channels = config.model.nf
         self.channels = channels
+        
+        #self.channels = channels = config.model.channels
+        #self.d_cond = config.model.channels
+        in_channels = config.data.num_channels
+        out_channels = in_channels + 1
+        n_res_blocks = config.model.n_res_blocks
+        attention_levels = config.model.attention_levels
+        channel_multipliers = config.model.channel_multipliers
+        n_heads = config.model.n_heads
+        tf_layers = config.model.transformer_depth
 
         # Number of levels
         levels = len(channel_multipliers)
         # Size time embeddings
-        d_time_emb = channels * 4
+        d_time_emb = config.model.nf * 4
+
         self.time_embed = nn.Sequential(
-            nn.Linear(channels, d_time_emb),
+            nn.Linear(config.model.nf, d_time_emb),
             nn.SiLU(),
             nn.Linear(d_time_emb, d_time_emb),
         )
@@ -58,8 +54,7 @@ class UNetModel(nn.Module):
         # for example, convolution only accepts the feature map and
         # residual blocks accept the feature map and time embedding.
         # `TimestepEmbedSequential` calls them accordingly.
-        self.input_blocks.append(TimestepEmbedSequential(
-            nn.Conv2d(in_channels, channels, 3, padding=1)))
+        self.input_blocks.append(TimestepEmbedSequential(nn.Conv2d(in_channels, channels, 3, padding=1)))
         # Number of channels at each block in the input half of U-Net
         input_block_channels = [channels]
         # Number of channels at each level
@@ -74,7 +69,8 @@ class UNetModel(nn.Module):
                 channels = channels_list[i]
                 # Add transformer
                 if i in attention_levels:
-                    layers.append(SpatialTransformer(channels, n_heads, tf_layers, d_cond))
+                    print("ST chennels, d_cond, n_heads: ", channels, self.d_cond, n_heads)
+                    layers.append(SpatialTransformer(channels, n_heads, tf_layers))
                 # Add them to the input half of the U-Net and keep track of the number of channels of
                 # its output
                 self.input_blocks.append(TimestepEmbedSequential(*layers))
@@ -87,7 +83,7 @@ class UNetModel(nn.Module):
         # The middle of the U-Net
         self.middle_block = TimestepEmbedSequential(
             ResBlock(channels, d_time_emb),
-            SpatialTransformer(channels, n_heads, tf_layers, d_cond),
+            SpatialTransformer(channels, n_heads, tf_layers),
             ResBlock(channels, d_time_emb),
         )
 
@@ -104,7 +100,7 @@ class UNetModel(nn.Module):
                 channels = channels_list[i]
                 # Add transformer
                 if i in attention_levels:
-                    layers.append(SpatialTransformer(channels, n_heads, tf_layers, d_cond))
+                    layers.append(SpatialTransformer(channels, n_heads, tf_layers))
                 # Up-sample at every level after last residual block
                 # except the last one.
                 # Note that we are iterating in reverse; i.e. `i == 0` is the last.
@@ -136,18 +132,23 @@ class UNetModel(nn.Module):
         # $\cos\Bigg(\frac{t}{10000^{\frac{2i}{c}}}\Bigg)$ and $\sin\Bigg(\frac{t}{10000^{\frac{2i}{c}}}\Bigg)$
         return torch.cat([torch.cos(args), torch.sin(args)], dim=-1)
 
-    def forward(self, x: torch.Tensor, time_steps: torch.Tensor, cond: torch.Tensor):
+    def forward(self, x, time_steps):
         """
         :param x: is the input feature map of shape `[batch_size, channels, width, height]`
         :param time_steps: are the time steps of shape `[batch_size]`
         :param cond: conditioning of shape `[batch_size, n_cond, d_cond]`
         """
+
+        # x is the disturbed image of right size and cond is the "timestep"
         # To store the input half outputs for skip connections
         x_input_block = []
 
-        # Get time step embeddings
-        t_emb = self.time_step_embedding(time_steps)
+        # get conditional embedding, this is always the same => cond is none for us
+        t_emb = layers.get_positional_embedding(time_steps, self.d_cond)
+        # embedding of the timesteps from BS to self.channels and then to self.channels*4 with linear leayers => same as first 2 layers in ncsnpp
+        #t_emb = self.time_step_embedding(time_steps)
         t_emb = self.time_embed(t_emb)
+        cond = None 
 
         # Input half of the U-Net
         for module in self.input_blocks:
@@ -160,8 +161,10 @@ class UNetModel(nn.Module):
             x = th.cat([x, x_input_block.pop()], dim=1)
             x = module(x, t_emb, cond)
 
-        # Final normalization and $3 \times 3$ convolution
-        return self.out(x)
+        x = self.out(x)
+
+        z_pred = F.adaptive_avg_pool2d(x[:, -1], (1, 1))
+        return x[:, :-1], z_pred.reshape(len(z_pred))
 
 
 class TimestepEmbedSequential(nn.Sequential):
@@ -176,7 +179,7 @@ class TimestepEmbedSequential(nn.Sequential):
             if isinstance(layer, ResBlock):
                 x = layer(x, t_emb)
             elif isinstance(layer, SpatialTransformer):
-                x = layer(x, cond)
+                x = layer(x)
             else:
                 x = layer(x)
         return x
@@ -268,17 +271,13 @@ class ResBlock(nn.Module):
         else:
             self.skip_connection = nn.Conv2d(channels, out_channels, 1)
 
-    def forward(self, x: torch.Tensor, t_emb: torch.Tensor):
-        """
-        :param x: is the input feature map with shape `[batch_size, channels, height, width]`
-        :param t_emb: is the time step embeddings of shape `[batch_size, d_t_emb]`
-        """
+    def forward(self, x: torch.Tensor, z_emb: torch.Tensor):
         # Initial convolution
         h = self.in_layers(x)
-        # Time step embeddings
-        t_emb = self.emb_layers(t_emb).type(h.dtype)
+        # Time step embeddings => from d_t_emb to out_channels
+        z_emb = self.emb_layers(z_emb).type(h.dtype)
         # Add time step embeddings
-        h = h + t_emb[:, :, None, None]
+        h = h + z_emb[:, :, None, None]
         # Final convolution
         h = self.out_layers(h)
         # Add skip connection

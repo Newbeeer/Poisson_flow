@@ -68,7 +68,7 @@ def create_model(config):
   return model
 
 
-def get_model_fn(model, train=False):
+def get_model_fn(model, train=False, sde=None):
   """Create a function to give the output of the PFGM / score-based model.
 
   Args:
@@ -112,7 +112,7 @@ def get_predict_fn(sde, model, train=False, continuous=True):
   Returns:
     A vector function.
   """
-  model_fn = get_model_fn(model, train=train)
+  model_fn = get_model_fn(model, train=train, sde=sde)
 
   if isinstance(sde, methods.VPSDE) or isinstance(sde, methods.subVPSDE):
     def predict_fn(x, t):

@@ -105,7 +105,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', '--dir')
     parser.add_argument('-t', '--target')
-    parser.add_argument('--torch', action='store_true')
+    parser.add_argument('--torch', action='store_true', default = False)
     args = parser.parse_args()
 
     folders = [f for f in os.listdir(args.dir) if f in SC09]

@@ -27,20 +27,21 @@ from torch.nn import functional as F
 
 from .layersad import SkipBlock, FourierFeatures, SelfAttention1d, ResConvBlock
 from .up_or_down_sampling import Downsample1d, Upsample1d
+from .layerssd import SpatialTransformer
 
 @utils.register_model(name='attunet1d')
 class DiffusionAttnUnet1D(nn.Module):
     def __init__(
         self, 
-        global_args, 
-        io_channels = 2, 
-        depth=14, 
-        n_attn_layers = 6,
-        c_mults = [128, 128, 256, 256] + [512] * 10
+        config, 
+        in_channels  = 1,
+        out_channels = 2,  
+        depth=6, 
+        n_attn_layers = 1,
+        c_mults = [128, 128, 256, 256] + [512] * 2
     ):
         super().__init__()
-
-        self.timestep_embed = FourierFeatures(1, 16)
+        self.nf = config.model.nf
 
         attn_layer = depth - n_attn_layers - 1
 
@@ -56,37 +57,29 @@ class DiffusionAttnUnet1D(nn.Module):
                 block = SkipBlock(
                     Downsample1d("cubic"),
                     conv_block(c_prev, c, c),
-                    SelfAttention1d(
-                        c, c // 32) if add_attn else nn.Identity(),
+                    SpatialTransformer(channels=c, n_heads=c // 32) if add_attn else nn.Identity(),
                     conv_block(c, c, c),
-                    SelfAttention1d(
-                        c, c // 32) if add_attn else nn.Identity(),
+                    SpatialTransformer(channels=c, n_heads=c // 32) if add_attn else nn.Identity(),
                     conv_block(c, c, c),
-                    SelfAttention1d(
-                        c, c // 32) if add_attn else nn.Identity(),
+                    SpatialTransformer(channels=c, n_heads=c // 32) if add_attn else nn.Identity(),
                     block,
                     conv_block(c * 2 if i != depth else c, c, c),
-                    SelfAttention1d(
-                        c, c // 32) if add_attn else nn.Identity(),
+                    SpatialTransformer(channels=c, n_heads=c // 32) if add_attn else nn.Identity(),
                     conv_block(c, c, c),
-                    SelfAttention1d(
-                        c, c // 32) if add_attn else nn.Identity(),
+                    SpatialTransformer(channels=c, n_heads=c // 32) if add_attn else nn.Identity(),
                     conv_block(c, c, c_prev),
-                    SelfAttention1d(c_prev, c_prev //
-                                    32) if add_attn else nn.Identity(),
+                    SpatialTransformer(channels=c_prev, n_heads=c_prev //32) if add_attn else nn.Identity(),
                     Upsample1d(kernel="cubic")
-                    # nn.Upsample(scale_factor=2, mode='linear',
-                    #             align_corners=False),
                 )
             else:
                 block = nn.Sequential(
-                    conv_block(io_channels + 16 + global_args.latent_dim, c, c),
+                    conv_block(in_channels + self.nf, c, c),
                     conv_block(c, c, c),
                     conv_block(c, c, c),
                     block,
                     conv_block(c * 2, c, c),
                     conv_block(c, c, c),
-                    conv_block(c, c, io_channels, is_last=True),
+                    conv_block(c, c, out_channels, is_last=True),
                 )
         self.net = block
 
@@ -94,12 +87,23 @@ class DiffusionAttnUnet1D(nn.Module):
             for param in self.net.parameters():
                 param *= 0.5
 
-    def forward(self, input, t):
-        timestep_embed = expand_to_planes(self.timestep_embed(t[:, None]), input.shape)
-        
-        inputs = [input, timestep_embed]
+    def forward(self, x, t):
+      #timestep_embed = expand_to_planes(self.timestep_embed(t[:, None]), input.shape)
+      timestep_embed = layers.get_positional_embedding(t, self.nf)
+      timestep_embed = expand_to_planes(timestep_embed, x.shape)
+      
+      # delete the height channel in case of sampling
+      if x.ndim == 4:
+        x = x.squeeze(-2)
 
-        return self.net(torch.cat(inputs, dim=1))
+      inputs = torch.cat([x, timestep_embed], dim=1)
+      pred = self.net(inputs)
+
+      # TODO add z value
+      x_pred = pred[:,0]  # the first channel (mono) is the prediction
+      z_pred = pred[:,-1] # the second channel is the augmented dimension
+      z_pred = F.adaptive_avg_pool1d(z_pred, 1).squeeze()
+      return x_pred, z_pred
 
 
 def append_dims(x, target_dims):
@@ -109,13 +113,9 @@ def append_dims(x, target_dims):
         raise ValueError(f'input has {x.ndim} dims but target_dims is {target_dims}, which is less')
     return x[(...,) + (None,) * dims_to_append]
 
-
-def append_dims(x, target_dims):
-    """Appends dimensions to the end of a tensor until it has target_dims dimensions."""
-    dims_to_append = target_dims - x.ndim
-    if dims_to_append < 0:
-        raise ValueError(f'input has {x.ndim} dims but target_dims is {target_dims}, which is less')
-    return x[(...,) + (None,) * dims_to_append]
+# expands the embedding along the time axis
+def expand_to_planes(input, shape):
+    return input[..., None].repeat([1, 1, shape[-1]])
 
 
 ###########################################################################################
@@ -150,20 +150,15 @@ class NCSNpp(nn.Module):
     dropout = config.model.dropout
     resamp_with_conv = config.model.resamp_with_conv
     self.num_resolutions = num_resolutions = len(ch_mult)
-    self.all_resolutions = all_resolutions = [config.data.image_size // (2 ** i) for i in range(num_resolutions)]
+    self.all_resolutions = all_resolutions = [config.data.image_height // (2 ** i) for i in range(num_resolutions)]
 
     self.conditional = conditional = config.model.conditional  # noise-conditional
     fir = config.model.fir
     fir_kernel = config.model.fir_kernel
     self.skip_rescale = skip_rescale = config.model.skip_rescale
     self.resblock_type = resblock_type = config.model.resblock_type.lower()
-    #self.progressive = progressive = config.model.progressive.lower()
-    #self.progressive_input = progressive_input = config.model.progressive_input.lower()
     self.embedding_type = embedding_type = config.model.embedding_type.lower()
     init_scale = config.model.init_scale
-    #assert progressive in ['none', 'output_skip', 'residual']
-    #assert progressive_input in ['none', 'input_skip', 'residual']
-    assert embedding_type in ['fourier', 'positional']
     combine_method = config.model.progressive_combine.lower()
     combiner = functools.partial(Combine, method=combine_method)
 
@@ -270,15 +265,11 @@ class NCSNpp(nn.Module):
     self.all_modules = nn.ModuleList(modules)
 
   def forward(self, x, cond):
-    # z (PFGM)/noise_level embedding; only for continuous training
+    # x is the disturbed poisson field vector, cond is the disturbed z value
     modules = self.all_modules
     m_idx = 0
 
-    if self.embedding_type == 'positional':
-      # Sinusoidal positional embeddings.
-      zemb = layers.get_positional_embedding(cond, self.nf)
-    else:
-      raise ValueError(f'embedding type {self.embedding_type} unknown.')
+    zemb = layers.get_positional_embedding(cond, self.nf)
 
     if self.conditional:
       zemb = modules[m_idx](zemb)
@@ -350,9 +341,6 @@ class NCSNpp(nn.Module):
 
     assert m_idx == len(modules)
 
-    if self.config.training.sde == 'poisson':
-      # Predict the direction on the extra z dimension
-      scalar = F.adaptive_avg_pool2d(h[:, -1], (1, 1))
-      return h[:, :-1], scalar.reshape(len(scalar))
-    else:
-      return h
+    # Predict the direction on the extra z dimension
+    scalar = F.adaptive_avg_pool2d(h[:, -1], (1, 1))
+    return h[:, :-1], scalar.reshape(len(scalar))

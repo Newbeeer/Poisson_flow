@@ -107,49 +107,7 @@ def get_dataset(config, uniform_dequantization=False, evaluation=False):
 
     def resize_op(img):
       img = tf.image.convert_image_dtype(img, tf.float32)
-      return tf.image.resize(img, [config.data.image_size, config.data.image_size], antialias=True)
-
-  elif config.data.dataset == 'SVHN':
-    dataset_builder = tfds.builder('svhn_cropped')
-    train_split_name = 'train'
-    eval_split_name = 'test'
-
-    def resize_op(img):
-      img = tf.image.convert_image_dtype(img, tf.float32)
-      return tf.image.resize(img, [config.data.image_size, config.data.image_size], antialias=True)
-
-  elif config.data.dataset == 'CELEBA':
-    dataset_builder = tfds.builder('celeb_a')
-    train_split_name = 'train'
-    eval_split_name = 'validation'
-
-    def resize_op(img):
-      img = tf.image.convert_image_dtype(img, tf.float32)
-      img = central_crop(img, 140)
-      img = resize_small(img, config.data.image_size)
-      return img
-
-  elif config.data.dataset == 'LSUN':
-    dataset_builder = tfds.builder(f'lsun/{config.data.category}')
-    train_split_name = 'train'
-    eval_split_name = 'validation'
-
-    if config.data.image_size == 128:
-      def resize_op(img):
-        img = tf.image.convert_image_dtype(img, tf.float32)
-        img = resize_small(img, config.data.image_size)
-        img = central_crop(img, config.data.image_size)
-        return img
-
-    else:
-      def resize_op(img):
-        img = crop_resize(img, config.data.image_size)
-        img = tf.image.convert_image_dtype(img, tf.float32)
-        return img
-
-  elif config.data.dataset in ['FFHQ', 'CelebAHQ']:
-    dataset_builder = tf.data.TFRecordDataset(config.data.tfrecords_path)
-    train_split_name = eval_split_name = 'train'
+      return tf.image.resize(img, [config.data.image_height, config.data.image_width], antialias=True)
 
   else:
     raise NotImplementedError(
@@ -177,11 +135,9 @@ def get_dataset(config, uniform_dequantization=False, evaluation=False):
       # apply known data schema to decode the bytestrings
       sample = tf.io.parse_single_example(
         d,
-        features={
-        'mel': tf.io.FixedLenFeature([config.data.spec.num_mels*config.data.image_size], tf.float32)
-        })
+        features={'mel': tf.io.FixedLenFeature([config.data.image_height * config.data.image_width], tf.float32)})
       # reshape the flattened list back to tensor
-      data = tf.reshape(sample['mel'], (1,config.data.spec.num_mels,config.data.image_size))
+      data = tf.reshape(sample['mel'], (1, config.data.image_height, config.data.image_width))
       return dict(image=data, label=None)
   else:
     def preprocess_fn(d):

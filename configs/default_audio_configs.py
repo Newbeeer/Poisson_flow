@@ -7,18 +7,20 @@ def get_default_configs():
   # training
   config.training = training = ml_collections.ConfigDict()
   config.training.batch_size = 256 #bs to calculate the gt field
-  training.n_iters = 200000 # 100k takes 17 hours on 4 gpus rtx 6000
-  training.snapshot_freq = 25000
+  training.n_iters = 500000 # 100k takes 17 hours on 4 gpus rtx 6000
+  training.snapshot_freq = 10000
   training.log_freq = 50
   training.eval_freq = 5000
   ## store additional checkpoints for preemption in cloud computing environments
-  training.snapshot_freq_for_preemption = 5000
+  training.snapshot_freq_for_preemption = 500
   ## produce samples at each snapshot.
   training.snapshot_sampling = True
   training.continuous = True
   training.reduce_mean = False
   training.M = 280
-
+  training.amp = False
+  training.accum_iter = 0
+  
   # sampling
   config.sampling = sampling = ml_collections.ConfigDict()
   sampling.n_steps_each = 1
@@ -45,11 +47,7 @@ def get_default_configs():
   # data
   config.data = data = ml_collections.ConfigDict()
   data.dataset = 'speech_commands'
-  data.tfrecords_path = 'sc09_128.tfrecords' # set 64 or 128, also set the data.spec field right
   # audio related things
-  data.spec = ml_collections.ConfigDict()
-  data.spec = get_mels_128()
-  data.image_size = data.spec.image_size
   data.uniform_dequantization = False
   data.centered = False
   data.num_channels = 1

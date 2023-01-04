@@ -146,7 +146,7 @@ def get_likelihood_fn_pfgm(sde, hutchinson_type='Rademacher',
     A function that a batch of data points and returns the log-likelihoods in bits/dim,
       the latent code, and the number of function evaluations cost by computation.
   """
-  data_dim = sde.config.data.image_size * sde.config.data.image_size * sde.config.data.channels
+  data_dim = sde.config.data.image_height * sde.config.data.image_width * sde.config.data.channels
   constant = np.sqrt(data_dim)
   def drift_fn(model, x, z):
 
@@ -194,7 +194,7 @@ def get_likelihood_fn_pfgm(sde, hutchinson_type='Rademacher',
       nfe: An integer. The number of function evaluations used for running the black-box ODE solver.
     """
 
-    shape = (len(data), sde.config.data.channels, sde.config.data.image_size, sde.config.data.image_size)
+    shape = (len(data), sde.config.data.channels, sde.config.data.image_height, sde.config.data.image_width)
 
     with torch.no_grad():
       if hutchinson_type == 'Gaussian':

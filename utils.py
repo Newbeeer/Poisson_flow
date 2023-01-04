@@ -17,6 +17,7 @@ def restore_checkpoint(ckpt_dir, state, device):
       state['scheduler'].load_state_dict(loaded_state['scheduler'])
     except:
       state['scheduler'] = None
+
     state['model'].load_state_dict(loaded_state['model'], strict=False)
     state['ema'].load_state_dict(loaded_state['ema'])
     state['step'] = loaded_state['step']
