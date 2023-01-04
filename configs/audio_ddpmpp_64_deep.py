@@ -30,6 +30,7 @@ def get_config():
   training.small_batch_size = training.batch_size // 8
   training.gamma = 5
   training.restrict_M = True
+  training.M = 291
   training.tau = 0.03
   training.snapshot_freq = 10000
   training.model = 'ddpmpp'
@@ -38,7 +39,6 @@ def get_config():
   
   # data
   data = config.data
-  data.tfrecords_path = 'sc09_64.tfrecords' # set 64 or 128, also set the data.spec field right
   data.spec = ml_collections.ConfigDict()
   data.spec = get_mels_64()
   data.image_height = data.spec.image_size

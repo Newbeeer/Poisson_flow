@@ -28,6 +28,7 @@ def get_config():
   training.batch_size = 128
   training.small_batch_size = training.batch_size // 8
   training.gamma = 5
+  training.M = 320
   training.restrict_M = True
   training.tau = 0.03
   training.snapshot_freq = 10000
@@ -37,7 +38,6 @@ def get_config():
 
   # data
   data = config.data
-  data.tfrecords_path = 'sc09_128.tfrecords' # set 64 or 128, also set the data.spec field right
   data.spec = ml_collections.ConfigDict()
   data.spec = get_mels_128()
   data.image_height = data.spec.image_size
