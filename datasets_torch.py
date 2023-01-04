@@ -256,10 +256,7 @@ class SPEECHCOMMANDS_MEL(Dataset):
 
     def __init__(
         self,
-        root: Union[str, Path],
-        url: str = URL,
         folder_in_archive: str = FOLDER_IN_ARCHIVE,
-        download: bool = False,
         subset: Optional[str] = None,
         config = None,
         filter_numbers=True,
@@ -268,14 +265,6 @@ class SPEECHCOMMANDS_MEL(Dataset):
         if subset is not None and subset not in ["training", "validation", "testing"]:
             raise ValueError("When `subset` is not None, it must be one of ['training', 'validation', 'testing'].")
 
-        if url in [
-            "speech_commands_v0.01",
-            "speech_commands_v0.02",
-        ]:
-            base_url = "http://download.tensorflow.org/data/"
-            ext_archive = ".tar.gz"
-
-            url = os.path.join(base_url, url + ext_archive)
 
         # Get string representation of 'root' in case Path object is passed
         root = os.fspath(root)
@@ -311,6 +300,7 @@ class SPEECHCOMMANDS_MEL(Dataset):
             ]
         else:
             raise("Please specify the dataset subtype!")
+        print("INITALIZED MEL DATASET")
         
 
     def get_metadata(self, n: int) -> Tuple[str, int, str, str, int]:
@@ -326,7 +316,7 @@ class SPEECHCOMMANDS_MEL(Dataset):
         mel_path = os.path.join(self._mel_root, splits[1], splits[2].split('.')[0]+".npy")
         mel = np.load(mel_path)
 
-        return torch.from_numpy(mel)
+        return torch.FloatTensor(mel).unsqueeze(0)
 
 
     def __len__(self) -> int:

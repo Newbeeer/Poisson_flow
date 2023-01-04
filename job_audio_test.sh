@@ -5,4 +5,4 @@
 #SBATCH --gres=gpumem:10g
 #SBATCH --time=00:10:00
 wandb offline
-python3 main.py --config 128_deep --mode train --workdir test_dir --test
+python3 main.py --conf 128_deep --mode train --workdir test_dir --test

@@ -145,8 +145,6 @@ def get_loss_fn(sde, train, reduce_mean=True, continuous=True, eps=1e-5, method_
             # Predicted N+1-dimensional Poisson field
             net = torch.cat([net_x, net_z[:, None]], dim=1)
             # calculate the loss => squared L2 distance TODO add mel specific loss?
-            if net.device != target.device:
-                target = target.to(net.device)
             loss = ((net - target) ** 2)
             loss = reduce_op(loss.reshape(loss.shape[0], -1), dim=-1)
             loss = torch.mean(loss)

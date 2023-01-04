@@ -263,6 +263,7 @@ class NCSNpp(nn.Module):
         self.all_modules = nn.ModuleList(modules)
 
     def forward(self, x, cond):
+        print("x shape: ", x.shape)
         # x is the disturbed poisson field vector, cond is the disturbed z value
         modules = self.all_modules
         m_idx = 0
