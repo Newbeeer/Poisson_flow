@@ -38,6 +38,7 @@ def main():
     parser.add_argument("--workdir", required=True)
     parser.add_argument("--mode", choices=["train", "eval"], required=True)
     parser.add_argument("--eval_folder", default="eval")
+    parser.add_argument("--test", action="store_true")
     args = parser.parse_args()
 
     args.config = get_config(args)
