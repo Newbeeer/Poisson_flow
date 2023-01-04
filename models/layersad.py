@@ -6,6 +6,7 @@ from torch import nn
 from torch.nn import functional as F
 from flash_attn.flash_attention import FlashAttention
 
+
 class ResidualBlock(nn.Module):
     def __init__(self, main, skip=None):
         super().__init__()
@@ -14,6 +15,7 @@ class ResidualBlock(nn.Module):
 
     def forward(self, input):
         return self.main(input) + self.skip(input)
+
 
 # Noise level (and other) conditioning
 class ResConvBlock(ResidualBlock):
@@ -27,6 +29,7 @@ class ResConvBlock(ResidualBlock):
             nn.GroupNorm(1, c_out) if not is_last else nn.Identity(),
             nn.GELU() if not is_last else nn.Identity(),
         ], skip)
+
 
 class SelfAttention1d(nn.Module):
     def __init__(self, c_in, n_head=1, dropout_rate=0.):
@@ -48,6 +51,7 @@ class SelfAttention1d(nn.Module):
         y = (att @ v).transpose(2, 3).contiguous().view([n, c, s])
         return input + self.dropout(self.out_proj(y))
 
+
 class SkipBlock(nn.Module):
     def __init__(self, *main):
         super().__init__()
@@ -55,6 +59,7 @@ class SkipBlock(nn.Module):
 
     def forward(self, input):
         return torch.cat([self.main(input), input], dim=1)
+
 
 class FourierFeatures(nn.Module):
     def __init__(self, in_features, out_features, std=1.):
