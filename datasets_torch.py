@@ -13,7 +13,6 @@ import torch
 import logging
 
 FOLDER_IN_ARCHIVE = "SpeechCommands"
-MELROOT = "SC09MEL"
 URL = "speech_commands_v0.02"
 HASH_DIVIDER = "_nohash_"
 EXCEPT_FOLDER = "_background_noise_"
@@ -63,9 +62,6 @@ def _load_waveform(
         raise ValueError(f"sample rate should be {exp_sample_rate}, but got {sample_rate}")
     return waveform
 
-
-def _map_label(label):
-    return targets.index(label)
 
 # added filtering for SC09 equivalence
 def _load_list(root, *filenames, number_filter=False):
@@ -267,7 +263,6 @@ class SPEECHCOMMANDS_MEL(Dataset):
         subset: Optional[str] = None,
         config = None,
         filter_numbers=True,
-        mel_root = MELROOT
     ) -> None:
 
         if subset is not None and subset not in ["training", "validation", "testing"]:
@@ -285,10 +280,9 @@ class SPEECHCOMMANDS_MEL(Dataset):
         # Get string representation of 'root' in case Path object is passed
         root = os.fspath(root)
         self._archive = os.path.join(root, folder_in_archive)
-        self._mel_root = mel_root
+        self._mel_root = config.data.mel_root
 
         basename = os.path.basename(url)
-        archive = os.path.join(root, basename)
 
         basename = basename.rsplit(".", 2)[0]
         folder_in_archive = os.path.join(folder_in_archive, basename)

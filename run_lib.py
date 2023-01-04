@@ -28,13 +28,10 @@ import sampling
 from models import utils as mutils
 from models.ema import ExponentialMovingAverage
 import datasets
-import likelihood
 import methods
-from absl import flags
 import torch
 from torchvision.utils import make_grid, save_image
 from utils import save_checkpoint, restore_checkpoint
-import tensorflow as tf
 import wandb
 
 def train(config, workdir):
@@ -48,7 +45,7 @@ def train(config, workdir):
 
   # Create directories for experimental logs
   sample_dir = os.path.join(workdir, "samples")
-  tf.io.gfile.makedirs(sample_dir)
+  os.makedirs(sample_dir, exist_ok=True)
   
   # Initialize model.
   net = mutils.create_model(config)
@@ -64,8 +61,8 @@ def train(config, workdir):
   checkpoint_dir = os.path.join(workdir, "checkpoints")
   # Intermediate checkpoints to resume training after pre-emption in cloud environments
   checkpoint_meta_dir = os.path.join(workdir, "checkpoints-meta", "checkpoint.pth")
-  tf.io.gfile.makedirs(checkpoint_dir)
-  tf.io.gfile.makedirs(os.path.dirname(checkpoint_meta_dir))
+  os.makedirs(checkpoint_dir, exist_ok=True)
+  os.makedirs(os.path.dirname(checkpoint_meta_dir), exist_ok=True)
   # Resume training when intermediate checkpoints are detected
   state = restore_checkpoint(checkpoint_meta_dir, state, config.device)
   initial_step = int(state['step'])
@@ -177,18 +174,13 @@ def train(config, workdir):
         sample, n = sampling_fn(net)
         ema.restore(net.parameters())
         this_sample_dir = os.path.join(sample_dir, "iter_{}".format(step))
-        tf.io.gfile.makedirs(this_sample_dir)
+        os.makedirs(this_sample_dir, exist_ok=True)
         nrow = int(np.sqrt(sample.shape[0]))
         image_grid = make_grid(sample, nrow, padding=2)
         sample = sample.permute(0, 2, 3, 1).cpu().numpy()
         
-        with tf.io.gfile.GFile(
-            os.path.join(this_sample_dir, "sample.np"), "wb") as fout:
-          np.save(fout, sample)
-
-        with tf.io.gfile.GFile(
-            os.path.join(this_sample_dir, "sample.png"), "wb") as fout:
-          save_image(image_grid, fout)
+        np.save(os.path.join(this_sample_dir, "sample.np"), sample)
+        save_image(image_grid, os.path.join(this_sample_dir, "sample.png"))
 
 
 def evaluate(config,
@@ -204,11 +196,8 @@ def evaluate(config,
   """
   # Create directory to eval_folder
 
-  # set random seed
-  tf.random.set_seed(config.seed)
-
   eval_dir = os.path.join(workdir, eval_folder)
-  tf.io.gfile.makedirs(eval_dir)
+  os.makedirs(eval_dir, exist_ok=True)
 
   # Build data pipeline
 
@@ -261,10 +250,10 @@ def evaluate(config,
     else:
       raise ValueError("Please provide a ckpt_number!")
   
-  if not tf.io.gfile.exists(ckpt_filename):
+  if not os.path.exists(ckpt_filename):
     print(f"{ckpt_filename} does not exist! Loading from meta-checkpoint")
     ckpt_filename = os.path.join(checkpoint_dir, os.pardir, 'checkpoints-meta','checkpoint.pth')
-    if not tf.io.gfile.exists(ckpt_filename):
+    if not os.path.exists(ckpt_filename):
       print("No checkpoints-meta")
       return
 
@@ -299,17 +288,14 @@ def evaluate(config,
 
     # Save loss values to disk or Google Cloud Storage
     all_losses = np.asarray(all_losses)
-    with tf.io.gfile.GFile(os.path.join(eval_dir, f"ckpt_{ckpt}_loss.npz"), "wb") as fout:
-      io_buffer = io.BytesIO()
-      np.savez_compressed(io_buffer, all_losses=all_losses, mean_loss=all_losses.mean())
-      fout.write(io_buffer.getvalue())
+    np.savez_compressed(os.path.join(eval_dir, f"ckpt_{ckpt}_loss.npz"), all_losses=all_losses, mean_loss=all_losses.mean())
       
   # Generate samples and compute IS/FID/KID when enabled
   if config.eval.enable_sampling:
     num_sampling_rounds = config.eval.num_samples // config.eval.batch_size + 1
     # Directory to save samples. Different for each host to avoid writing conflicts
     this_sample_dir = os.path.join(eval_dir, f"ckpt_{ckpt}")
-    tf.io.gfile.makedirs(this_sample_dir)
+    os.makedirs(this_sample_dir, exist_ok=True)
     logging.info(f"Sampling for {num_sampling_rounds} rounds...")
     for r in range(num_sampling_rounds):
       logging.info("sampling -- ckpt: %d, round: %d" % (ckpt, r))
@@ -326,10 +312,7 @@ def evaluate(config,
       samples = samples.reshape((-1, config.data.image_height, config.data.image_width, config.data.num_channels))
 
       # Write samples to disk or Google Cloud Storage
-      with tf.io.gfile.GFile(os.path.join(this_sample_dir, f"samples_{r}.npz"), "wb") as fout:
-        io_buffer = io.BytesIO()
-        np.savez_compressed(io_buffer, samples=samples)
-        fout.write(io_buffer.getvalue())
+      np.savez_compressed(os.path.join(this_sample_dir, f"samples_{r}.npz"), samples=samples)
 
       if config.eval.save_images:
         # Saving a few generated images for debugging / visualization

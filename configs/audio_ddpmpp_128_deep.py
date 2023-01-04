@@ -14,61 +14,69 @@
 # limitations under the License.
 
 # Lint as: python3
-"""Training NCSN++ on CelebA with SMLD."""
-
-from configs.default_celeba_configs import get_default_configs
-
+"""Config file for reproducing the results of DDPM on bedrooms."""
+import ml_collections
+from configs.default_audio_configs import get_default_configs, get_mels_128
 
 def get_config():
   config = get_default_configs()
+
   # training
   training = config.training
   training.sde = 'poisson'
   training.continuous = True
-  training.batch_size = 512
-  training.small_batch_size = 128
+  training.batch_size = 128
+  training.small_batch_size = training.batch_size // 8
   training.gamma = 5
   training.restrict_M = True
   training.tau = 0.03
-  training.snapshot_freq = 50000
+  training.snapshot_freq = 10000
   training.model = 'ddpmpp'
+  training.reduce_mean = True
+  training.amp = False
 
   # data
   data = config.data
-  data.channels = 3
-  data.centered = True
+  data.tfrecords_path = 'sc09_128.tfrecords' # set 64 or 128, also set the data.spec field right
+  data.spec = ml_collections.ConfigDict()
+  data.spec = get_mels_128()
+  data.image_height = data.spec.image_size
+  data.image_width = data.spec.image_size
+  data.mel_root = 'mel_datasets/sc09_128'
+  data.channels = 1
+  data.category = 'mel' # audio, mel
+  data.centered = False
 
   # sampling
   sampling = config.sampling
   sampling.method = 'ode'
-  sampling.ode_solver = 'rk45'
+  #sampling.ode_solver = 'rk45'
   #sampling.ode_solver = 'forward_euler'
-  #sampling.ode_solver = 'improved_euler'
+  sampling.ode_solver = 'improved_euler'
   sampling.N = 100
-  sampling.z_max = 60
+  sampling.z_max = 80 #TODO find good value
   sampling.z_min = 1e-3
-  sampling.upper_norm = 6000
+  sampling.upper_norm = 12000
   sampling.vs = False
+  sampling.ckpt_number = 180000 # number of ckpt to load for sampling
 
-  # model
+  # model TODO adapt a 1d attention unet not a 
   model = config.model
-  model.name = 'ncsnpp'
+  model.name = 'ncsnpp_audio'
   model.scale_by_sigma = False
   model.ema_rate = 0.9999
   model.normalization = 'GroupNorm'
   model.nonlinearity = 'swish'
   model.nf = 128
-  model.ch_mult = (1, 2, 2, 2)
-  model.num_res_blocks = 4
-  model.attn_resolutions = (16,)
+  model.ch_mult = (1, 2, 2, 4) # initial (1, 1, 2, 2, 4, 4)
+  model.num_res_blocks = 8 # initial 2
+  model.attn_resolutions = (16,) # initial (16,)
   model.resamp_with_conv = True
   model.conditional = True
   model.fir = False
   model.fir_kernel = [1, 3, 3, 1]
   model.skip_rescale = True
   model.resblock_type = 'biggan'
-  model.progressive = 'none'
-  model.progressive_input = 'none'
   model.progressive_combine = 'sum'
   model.attention_type = 'ddpm'
   model.init_scale = 0.
@@ -76,5 +84,9 @@ def get_config():
   model.embedding_type = 'positional'
   model.conv_size = 3
   model.sigma_end = 0.01
+
+  # optim
+  optim = config.optim
+  optim.lr = 2e-5
 
   return config

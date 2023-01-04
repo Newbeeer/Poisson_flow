@@ -26,31 +26,26 @@ collections.Callable = collections.abc.Callable
 
 import logging
 import run_lib
-print("Hello")
-from absl import app
-from absl import flags
-print("Hello")
-from ml_collections.config_flags import config_flags
-print("Hello")
 import os
+import argparse
+from configs.get_configs import get_config
 
-FLAGS = flags.FLAGS
+def main():
+  parser = argparse.ArgumentParser()
+  parser.add_argument("--conf", required=True)
+  parser.add_argument("--workdir", required=True)
+  parser.add_argument("--mode", choices=["train", "eval"], required=True)
+  parser.add_argument("--eval_folder", default="eval")
+  args = parser.parse_args()
 
-config_flags.DEFINE_config_file("config", None, "Training configuration.", lock_config=True)
-flags.DEFINE_string("workdir", None, "Work directory.")
-flags.DEFINE_enum("mode", None, ["train", "eval"], "Running mode: train or eval")
-flags.DEFINE_string("eval_folder", "eval","The folder name for storing evaluation results")
-flags.mark_flags_as_required(["workdir", "config", "mode"])
-
-
-def main(argv):
-  print("Hello")
-  if FLAGS.mode == "train":
+  args.config = get_config(args)
+  
+  if args.mode == "train":
     # Create the working directory
-    os.makedirs(FLAGS.workdir, exists_ok=True)
+    os.makedirs(args.workdir, exist_ok=True)
     # Set logger so that it outputs to both console and file
     # Make logging work for both disk and Google Cloud Storage
-    gfile_stream = open(os.path.join(FLAGS.workdir, 'stdout.txt'), 'w')
+    gfile_stream = open(os.path.join(args.workdir, 'stdout.txt'), 'w')
     handler = logging.StreamHandler(gfile_stream)
     formatter = logging.Formatter('%(levelname)s - %(filename)s - %(asctime)s - %(message)s')
     handler.setFormatter(formatter)
@@ -58,14 +53,14 @@ def main(argv):
     logger.addHandler(handler)
     logger.setLevel('INFO')
     # Run the training pipeline
-    run_lib.train(FLAGS.config, FLAGS.workdir)
-  elif FLAGS.mode == "eval":
+    run_lib.train(args.config, args.workdir)
+  elif args.mode == "eval":
     pass
     # Run the evaluation pipeline
-    run_lib.evaluate(FLAGS.config, FLAGS.workdir, FLAGS.eval_folder)
+    run_lib.evaluate(args.config, args.workdir, args.eval_folder)
   else:
-    raise ValueError(f"Mode {FLAGS.mode} not recognized.")
+    raise ValueError(f"Mode {args.mode} not recognized.")
 
 
 if __name__ == "__main__":
-  app.run(main)
+  main()
