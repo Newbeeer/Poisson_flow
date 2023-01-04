@@ -15,16 +15,14 @@
 
 # pylint: skip-file
 """Training and evaluation for PFGM or score-based generative models. """
-import gc
 import io
 import os
 import time
 import copy
 import logging
 import numpy as np
-import tensorflow as tf
 # Keep the import below for registering all model definitions
-from models import ncsnv2, ncsnpp, ncsnpp_audio, stablediff
+from models import ncsnpp_audio
 import losses
 import sampling
 from models import utils as mutils
@@ -36,6 +34,7 @@ from absl import flags
 import torch
 from torchvision.utils import make_grid, save_image
 from utils import save_checkpoint, restore_checkpoint
+import tensorflow as tf
 import wandb
 
 torch.cuda.empty_cache()
@@ -89,7 +88,7 @@ def train(config, workdir):
   initial_step = int(state['step'])
 
   # Build data iterators
-  train_ds, eval_ds, _ = datasets.get_dataset(config, uniform_dequantization=config.data.uniform_dequantization)
+  train_ds, eval_ds, _ = datasets.get_dataset(config)
   train_iter = iter(train_ds)  # pytype: disable=wrong-arg-types
   eval_iter = iter(eval_ds)  # pytype: disable=wrong-arg-types
   # Create data normalizer and its inverse
@@ -194,11 +193,7 @@ def train(config, workdir):
         tf.io.gfile.makedirs(this_sample_dir)
         nrow = int(np.sqrt(sample.shape[0]))
         image_grid = make_grid(sample, nrow, padding=2)
-        # make img in case of img dataset only
-        if not config.data.category in ['audio', 'mel', 'tfmel']:
-          sample = np.clip(sample.permute(0, 2, 3, 1).cpu().numpy() * 255, 0, 255).astype(np.uint8)
-        else:
-          sample = sample.permute(0, 2, 3, 1).cpu().numpy()
+        sample = sample.permute(0, 2, 3, 1).cpu().numpy()
         
         with tf.io.gfile.GFile(
             os.path.join(this_sample_dir, "sample.np"), "wb") as fout:
@@ -231,7 +226,7 @@ def evaluate(config,
   # Build data pipeline
 
   if not config.eval.save_images:
-    train_ds, eval_ds, _ = datasets.get_dataset(config,uniform_dequantization=config.data.uniform_dequantization,evaluation=True)
+    train_ds, eval_ds, _ = datasets.get_dataset(config, evaluation=True)
 
   # Create data normalizer and its inverse
   scaler = datasets.get_data_scaler(config)
@@ -259,25 +254,6 @@ def evaluate(config,
     reduce_mean = config.training.reduce_mean
     eval_step = losses.get_step_fn(sde, train=False, optimize_fn=optimize_fn,reduce_mean=reduce_mean,method_name=config.training.sde.lower())
 
-
-  # Build the likelihood computation function when likelihood is enabled
-  if config.eval.enable_bpd:
-    # Create data loaders for likelihood evaluation. Only evaluate on uniformly dequantized data
-    train_ds_bpd, eval_ds_bpd, _ = datasets.get_dataset(config,uniform_dequantization=True, evaluation=True)
-    if config.eval.bpd_dataset.lower() == 'train':
-      ds_bpd = train_ds_bpd
-      bpd_num_repeats = 1
-    elif config.eval.bpd_dataset.lower() == 'test':
-      # Go over the dataset 5 times when computing likelihood on the test dataset
-      ds_bpd = eval_ds_bpd
-      bpd_num_repeats = 5
-    else:
-      raise ValueError(f"No bpd dataset {config.eval.bpd_dataset} recognized.")
-    if config.training.sde.lower() == 'poisson':
-      likelihood_fn = likelihood.get_likelihood_fn_pfgm(sde)
-    else:
-      likelihood_fn = likelihood.get_likelihood_fn(sde, inverse_scaler)
-
   # Build the sampling function when sampling is enabled
   if config.eval.enable_sampling:
     sampling_shape = (config.eval.batch_size,
@@ -286,7 +262,6 @@ def evaluate(config,
     sampling_fn = sampling.get_sampling_fn(config, sde, sampling_shape, inverse_scaler, sampling_eps)
 
   # Wait if the target checkpoint doesn't exist yet
-  waiting_message_printed = False
   torch.manual_seed(config.seed)
   np.random.seed(config.seed)
   if torch.cuda.is_available():
@@ -300,7 +275,7 @@ def evaluate(config,
       raise ValueError("Please provide a ckpt_number!")
   
   if not tf.io.gfile.exists(ckpt_filename):
-    print(f"{ckpt_filename} does not exist! Loading from met-checkpoint")
+    print(f"{ckpt_filename} does not exist! Loading from meta-checkpoint")
     ckpt_filename = os.path.join(checkpoint_dir, os.pardir, 'checkpoints-meta','checkpoint.pth')
     if not tf.io.gfile.exists(ckpt_filename):
       print("No checkpoints-meta")
@@ -358,11 +333,8 @@ def evaluate(config,
       samples_torch = samples_torch.view(-1, config.data.num_channels, config.data.image_height, config.data.image_width)
 
       # sample the output matrices differently for pictures vs mel spectograms
-      if config.data.category in ['audio', 'mel', 'tfmel']:
-        samples = samples.permute(0, 2, 3, 1).cpu().numpy()
-        logging.info("Saving images as raw mel specs.")
-      else:
-        samples = np.clip(samples.permute(0, 2, 3, 1).cpu().numpy() * 255., 0, 255).astype(np.uint8)
+      samples = samples.permute(0, 2, 3, 1).cpu().numpy()
+      logging.info("Saving images as raw mel specs.")
       
       samples = samples.reshape((-1, config.data.image_height, config.data.image_width, config.data.num_channels))
 

@@ -15,7 +15,6 @@
 
 # pylint: skip-file
 """Return training and evaluation/test datasets from config files."""
-import jax
 import tensorflow as tf
 import tensorflow_datasets as tfds
 from datasets_torch import get_loader as get_torch_loader
@@ -69,12 +68,11 @@ def central_crop(image, size):
   return tf.image.crop_to_bounding_box(image, top, left, size, size)
 
 
-def get_dataset(config, uniform_dequantization=False, evaluation=False):
+def get_dataset(config, evaluation=False):
   """Create data loaders for training and evaluation.
 
   Args:
     config: A ml_collection.ConfigDict parsed from config files.
-    uniform_dequantization: If `True`, add uniform dequantization to images.
     evaluation: If `True`, fix number of epochs to 1.
 
   Returns:
@@ -82,9 +80,6 @@ def get_dataset(config, uniform_dequantization=False, evaluation=False):
   """
   # Compute batch size for this worker.
   batch_size = config.training.batch_size if not evaluation else config.eval.batch_size
-  if batch_size % jax.device_count() != 0:
-    raise ValueError(f'Batch sizes ({batch_size} must be divided by'
-                     f'the number of devices ({jax.device_count()})')
 
   # Reduce this when image resolution is too large and data pointer is stored
   shuffle_buffer_size = 10000
@@ -99,38 +94,13 @@ def get_dataset(config, uniform_dequantization=False, evaluation=False):
     if config.data.category == 'tfmel':
       dataset_builder = tf.data.TFRecordDataset(config.data.tfrecords_path)
       train_split_name = eval_split_name = 'train'
-    
-  elif config.data.dataset == 'CIFAR10':
-    dataset_builder = tfds.builder('cifar10')
-    train_split_name = 'train'
-    eval_split_name = 'test'
-
-    def resize_op(img):
-      img = tf.image.convert_image_dtype(img, tf.float32)
-      return tf.image.resize(img, [config.data.image_height, config.data.image_width], antialias=True)
-
   else:
     raise NotImplementedError(
       f'Dataset {config.data.dataset} not yet supported.')
 
   # Customize preprocess functions for each dataset.
-  if config.data.dataset in ['FFHQ', 'CelebAHQ']:
-    def preprocess_fn(d):
-      # apply known data schema to decode the bytestrings
-      sample = tf.io.parse_single_example(d, features={
-        'shape': tf.io.FixedLenFeature([3], tf.int64),
-        'data': tf.io.FixedLenFeature([], tf.string)})
-      data = tf.io.decode_raw(sample['data'], tf.uint8)
-      data = tf.reshape(data, sample['shape'])
-      data = tf.transpose(data, (1, 2, 0))
-      img = tf.image.convert_image_dtype(data, tf.float32)
-      if config.data.random_flip and not evaluation:
-        img = tf.image.random_flip_left_right(img)
-      if uniform_dequantization:
-        img = (tf.random.uniform(img.shape, dtype=tf.float32) + img * 255.) / 256.
-      return dict(image=img, label=None)
   # handle tfrecords decode of mel dataset
-  elif config.data.dataset == 'speech_commands' and config.data.category == 'tfmel':
+  if config.data.dataset == 'speech_commands' and config.data.category == 'tfmel':
     def preprocess_fn(d):
       # apply known data schema to decode the bytestrings
       sample = tf.io.parse_single_example(
@@ -139,16 +109,6 @@ def get_dataset(config, uniform_dequantization=False, evaluation=False):
       # reshape the flattened list back to tensor
       data = tf.reshape(sample['mel'], (1, config.data.image_height, config.data.image_width))
       return dict(image=data, label=None)
-  else:
-    def preprocess_fn(d):
-      """Basic preprocessing function scales data to [0, 1) and randomly flips."""
-      img = resize_op(d['image'])
-      if config.data.random_flip and not evaluation:
-        img = tf.image.random_flip_left_right(img)
-      if uniform_dequantization:
-        img = (tf.random.uniform(img.shape, dtype=tf.float32) + img * 255.) / 256.
-
-      return dict(image=img, label=d.get('label', None))
 
   def create_dataset(dataset_builder, split):
     dataset_options = tf.data.Options()
