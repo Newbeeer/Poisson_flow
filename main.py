@@ -44,6 +44,7 @@ def main():
     args.config = get_config(args)
 
     if args.mode == "train":
+        print("START TRAINING")
         # Create the working directory
         os.makedirs(args.workdir, exist_ok=True)
         # Set logger so that it outputs to both console and file
@@ -58,6 +59,7 @@ def main():
         # Run the training pipeline
         run_lib.train(args.config, args.workdir)
     elif args.mode == "eval":
+        print("START EVALUATION")
         pass
         # Run the evaluation pipeline
         run_lib.evaluate(args.config, args.workdir, args.eval_folder)
