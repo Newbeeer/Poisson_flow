@@ -15,14 +15,13 @@
 
 # pylint: skip-file
 """Training and evaluation for PFGM or score-based generative models. """
-import io
 import os
 import time
 import copy
 import logging
 import numpy as np
 # Keep the import below for registering all model definitions
-from models import ncsnpp_audio
+from models import ncsnpp_audio, stablediff
 import losses
 import sampling
 from models import utils as mutils

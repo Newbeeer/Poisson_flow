@@ -70,7 +70,6 @@ class UNetModel(nn.Module):
                 channels = channels_list[i]
                 # Add transformer
                 if i in attention_levels:
-                    print("ST chennels, d_cond, n_heads: ", channels, self.d_cond, n_heads)
                     layers.append(SpatialTransformer(channels, n_heads, tf_layers))
                 # Add them to the input half of the U-Net and keep track of the number of channels of
                 # its output

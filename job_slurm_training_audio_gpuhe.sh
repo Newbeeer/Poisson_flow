@@ -6,4 +6,4 @@
 #SBATCH --gres=gpumem:20g
 #SBATCH --time=100:00:00
 wandb online
-python3 main.py --conf 128_deep --mode train --workdir pfgm_sc09_128_deep
+python3 main.py --conf sd --mode train --workdir pfgm_sd

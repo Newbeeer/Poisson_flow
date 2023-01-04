@@ -12,7 +12,7 @@ import sys
 
 sys.path.append('..')
 
-from configs.mel_configs import get_mels_64, get_mels_128
+from configs.default_audio_configs import get_mels_64, get_mels_128
 
 mel_cfg = get_mels_128()
 
@@ -31,7 +31,10 @@ def main():
     args = parser.parse_args()
 
     files = os.listdir(os.path.join(args.dir, args.ckpt))
+
     for file in files:
+        if file.split('.')[-1] not in ['np','npz']:
+            continue
         file_path = os.path.join(args.dir, args.ckpt, file)
         try:
             zfile = np.load(file_path)
