@@ -19,7 +19,6 @@ from . import utils, layers, layerspp, normalization
 import torch.nn as nn
 import functools
 import torch
-import numpy as np
 import torch.nn.functional as F
 import torch
 from torch import nn

@@ -1,5 +1,4 @@
 import torch
-import numpy as np
 
 
 def forward_pz(sde, config, samples_batch, m):
