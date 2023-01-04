@@ -18,12 +18,6 @@ HASH_DIVIDER = "_nohash_"
 EXCEPT_FOLDER = "_background_noise_"
 SC09 = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"]
 
-_CHECKSUMS = {
-    "http://download.tensorflow.org/data/speech_commands_v0.01.tar.gz": "743935421bb51cccdb6bdd152e04c5c70274e935c82119ad7faeec31780d811d",  # noqa: E501
-    "http://download.tensorflow.org/data/speech_commands_v0.02.tar.gz": "af14739ee7dc311471de98f5f9d2c9191b18aedfe957f4a6ff791c709868ff58",  # noqa: E501
-}
-
-
 def get_loader(dataset="speech", mode="training", config=None):
     assert mode in ["training", "validation", "testing"], "Wrong type given!"
     if mode in ["testing", "validation"]:
@@ -32,9 +26,9 @@ def get_loader(dataset="speech", mode="training", config=None):
         shuffling=True
     if dataset=="speech":
         if config.data.category == 'mel':
-            data = SPEECHCOMMANDS_MEL(root='.', download=True, subset=mode, config=config)
+            data = SPEECHCOMMANDS_MEL(subset=mode, config=config)
         elif config.data.category == 'audio':
-            data = SPEECHCOMMANDS(root='.', download=True, subset=mode, config=config)
+            data = SPEECHCOMMANDS(root='.', download=False, subset=mode, config=config)
         else:
             exit("Wrong data category for speech dataset!")
     
@@ -45,7 +39,7 @@ def get_loader(dataset="speech", mode="training", config=None):
         shuffle=shuffling,
         drop_last=True,
         num_workers=8,
-        prefetch_factor=4,
+        prefetch_factor=2,
         pin_memory=True
     )
 
@@ -267,16 +261,11 @@ class SPEECHCOMMANDS_MEL(Dataset):
 
 
         # Get string representation of 'root' in case Path object is passed
-        root = os.fspath(root)
+        root = os.fspath('.')
         self._archive = os.path.join(root, folder_in_archive)
         self._mel_root = config.data.mel_root
 
-        basename = os.path.basename(url)
-
-        basename = basename.rsplit(".", 2)[0]
-        folder_in_archive = os.path.join(folder_in_archive, basename)
-
-        self._path = os.path.join(root, folder_in_archive)
+        self._path = 'SpeechCommands/speech_commands_v0.02'
         
         if not os.path.exists(self._path):
             raise RuntimeError(
@@ -300,7 +289,7 @@ class SPEECHCOMMANDS_MEL(Dataset):
             ]
         else:
             raise("Please specify the dataset subtype!")
-        print("INITALIZED MEL DATASET")
+        print(f"Initilaized MEL {subset} dataset.")
         
 
     def get_metadata(self, n: int) -> Tuple[str, int, str, str, int]:

@@ -25,7 +25,7 @@ def get_config():
   training = config.training
   training.sde = 'poisson'
   training.continuous = True
-  training.batch_size = 128
+  training.batch_size = 256
   training.small_batch_size = training.batch_size // 8
   training.gamma = 5
   training.M = 320
@@ -34,7 +34,6 @@ def get_config():
   training.snapshot_freq = 10000
   training.model = 'ddpmpp'
   training.reduce_mean = True
-  training.amp = False
 
   # data
   data = config.data
@@ -54,9 +53,9 @@ def get_config():
   #sampling.ode_solver = 'forward_euler'
   sampling.ode_solver = 'improved_euler'
   sampling.N = 100
-  sampling.z_max = 80 #TODO find good value
+  sampling.z_max = 102 #TODO find good value
   sampling.z_min = 1e-3
-  sampling.upper_norm = 12000
+  sampling.upper_norm = 16000
   sampling.vs = False
   sampling.ckpt_number = 180000 # number of ckpt to load for sampling
 

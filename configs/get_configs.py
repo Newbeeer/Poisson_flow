@@ -19,4 +19,6 @@ def get_config(args):
         config.training.snapshot_freq = 100
         config.training.snapshot_freq_for_preemption = 200
     
+    print("Read Config: ", config, sep='\n')
+    
     return config

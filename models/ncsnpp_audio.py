@@ -140,6 +140,7 @@ class NCSNpp(nn.Module):
 
     def __init__(self, config):
         super().__init__()
+        print("BUILDING MODEL...")
         self.config = config
         self.act = act = get_act(config)
         self.register_buffer('sigmas', torch.tensor(utils.get_sigmas(config)))
@@ -261,9 +262,9 @@ class NCSNpp(nn.Module):
         modules.append(conv3x3(in_ch, config.data.num_channels + 1, init_scale=init_scale))
 
         self.all_modules = nn.ModuleList(modules)
+        print("MODEL BUILT!")
 
     def forward(self, x, cond):
-        print("x shape: ", x.shape)
         # x is the disturbed poisson field vector, cond is the disturbed z value
         modules = self.all_modules
         m_idx = 0
