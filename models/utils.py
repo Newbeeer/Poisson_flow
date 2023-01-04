@@ -61,6 +61,8 @@ def get_sigmas(config):
 
 def create_model(config):
     """Create the model."""
+    if torch.cuda.device_count() > 1:
+        print("Creating model on", torch.cuda.device_count(), "GPUs!")
     model_name = config.model.name
     model = get_model(model_name)(config)
     model = model.to(config.device)

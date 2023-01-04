@@ -138,27 +138,13 @@ def train(config, workdir):
 
         # Report the loss on an evaluation dataset periodically
         if step % config.training.eval_freq == 0:
-            if config.data.dataset == 'CELEBA':
-                try:
-                    eval_batch = next(eval_iter)[0].cuda()
-                    if len(eval_batch) != config.eval.batch_size:
-                        continue
-                except StopIteration:
-                    eval_iter = iter(eval_ds)
-                    eval_batch = next(eval_iter)[0].cuda()
-            # pytorch dataloader case
-            elif config.data.dataset == 'speech_commands' and not config.data.category == 'tfmel':
-                try:
-                    eval_batch = next(eval_iter).cuda()
-                    if len(batch) != config.eval.batch_size:
-                        continue
-                except StopIteration:
-                    eval_iter = iter(eval_ds)
-                    eval_batch = next(eval_iter).cuda()
+            if config.data.dataset == 'speech_commands' and not config.data.category == 'tfmel':
+                eval_batch = next(eval_iter).cuda()
             else:
                 eval_batch = torch.from_numpy(next(eval_iter)['image']._numpy()).to(config.device).float()
                 if not config.data.category == 'tfmel':
                     eval_batch = eval_batch.permute(0, 3, 1, 2)
+            
             eval_batch = scaler(eval_batch)
             eval_loss = eval_step_fn(state, eval_batch)
             logging.info("step: %d, eval_loss: %.5e" % (step, eval_loss.item()))

@@ -74,7 +74,7 @@ def get_default_configs():
   optim.T_max = 2000 # the period in STEPS (check the total steps for good idea)
   optim.max_lr = 3e-4
   config.seed = 49
-  config.device = torch.device('cuda:0') if torch.cuda.is_available() else torch.device('cpu')
+  config.device = "cuda" if torch.cuda.is_available() else torch.device('cpu')
 
   return config
 
