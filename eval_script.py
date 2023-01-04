@@ -55,7 +55,7 @@ def calculate_stats_gt(model, stats_dir, gt_dataset):
     train_set, _ = get_dataset(gt_dataset)
     activations = []
     cnt=0
-    
+
     for batch in train_set:
         print("processing batch {}/151, {}%".format(cnt, np.round(cnt/151*100, decimals=2)))
         # plt.imshow(batch['image'][0,0,:,:])
@@ -193,10 +193,10 @@ def get_stats(sample_file, gt_stats_dir, gt_dataset=None):
     return stats
     
 def main():
-    results_dir = "./eval/results"
-    data_dir = "./eval/samples"
-    gt_stats_dir="./eval/gt_stats_128"
-    gt_file="/cluster/scratch/krasnopk/data/poisson/datasets/sc09_128.tfrecords"
+    results_dir = "./eval/results" # where to save evaluation scores
+    data_dir = "./eval/samples" # directory with sample npz files
+    gt_stats_dir="./eval/gt_stats_64" # directory with gt mean and covariance
+    gt_file=None # path to tfrecords file
 
     print("Evaluating samples in {}".format(data_dir))
 
