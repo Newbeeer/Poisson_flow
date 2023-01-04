@@ -2,12 +2,13 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
+
 class SpatialTransformer(nn.Module):
     """
     ## Spatial Transformer
     """
 
-    def __init__(self, channels: int=1, n_heads: int=1, n_layers: int=1):
+    def __init__(self, channels: int = 1, n_heads: int = 1, n_layers: int = 1):
         """
         :param channels: is the number of channels in the feature map
         :param n_heads: is the number of attention heads
@@ -20,7 +21,8 @@ class SpatialTransformer(nn.Module):
         self.proj_in = nn.Conv2d(channels, channels, kernel_size=1, stride=1, padding=0)
 
         # Transformer layers
-        self.transformer_blocks = nn.ModuleList([BasicTransformerBlock(channels, n_heads, channels // n_heads) for _ in range(n_layers)])
+        self.transformer_blocks = nn.ModuleList(
+            [BasicTransformerBlock(channels, n_heads, channels // n_heads) for _ in range(n_layers)])
 
         # Final $1 \times 1$ convolution
         self.proj_out = nn.Conv2d(channels, channels, kernel_size=1, stride=1, padding=0)
@@ -52,7 +54,7 @@ class SpatialTransformer(nn.Module):
         # Final $1 \times 1$ convolution
         x = self.proj_out(x)
         # Add residual
-        return x.view(b,c,w) + x_in.view(b,c,w)
+        return x.view(b, c, w) + x_in.view(b, c, w)
 
 
 class BasicTransformerBlock(nn.Module):
@@ -84,7 +86,7 @@ class BasicTransformerBlock(nn.Module):
         # Self attention
         x = self.attn1(self.norm1(x)) + x
         # Cross-attention with conditioning
-        #x = self.attn2(self.norm2(x)) + x
+        # x = self.attn2(self.norm2(x)) + x
         # Feed-forward network
         x = self.ff(self.norm3(x)) + x
         #
@@ -115,13 +117,13 @@ class CrossAttention(nn.Module):
 
         # Attention scaling factor
         self.scale = d_head ** -0.5
-        
+
         # Query, key and value mappings
         d_attn = d_head * n_heads
 
         self.to_q = nn.Linear(d_model, d_attn, bias=False)
-        self.to_k = nn.Linear(d_model,  d_attn, bias=False)
-        self.to_v = nn.Linear(d_model,  d_attn, bias=False)
+        self.to_k = nn.Linear(d_model, d_attn, bias=False)
+        self.to_v = nn.Linear(d_model, d_attn, bias=False)
 
         # Final linear layer
         self.to_out = nn.Sequential(nn.Linear(d_attn, d_model))

@@ -1,4 +1,5 @@
-# https://github.com/labmlai/annotated_deep_learning_paper_implementations/blob/master/labml_nn/diffusion/stable_diffusion/model/unet.py
+# https://github.com/labmlai/annotated_deep_learning_paper_implementations/blob/master/labml_nn/diffusion
+# /stable_diffusion/model/unet.py
 import math
 from typing import List
 
@@ -24,9 +25,9 @@ class UNetModel(nn.Module):
         self.d_cond = config.model.nf
         channels = config.model.nf
         self.channels = channels
-        
-        #self.channels = channels = config.model.channels
-        #self.d_cond = config.model.channels
+
+        # self.channels = channels = config.model.channels
+        # self.d_cond = config.model.channels
         in_channels = config.data.num_channels
         out_channels = in_channels + 1
         n_res_blocks = config.model.n_res_blocks
@@ -126,7 +127,7 @@ class UNetModel(nn.Module):
         half = self.channels // 2
         # $\frac{1}{10000^{\frac{2i}{c}}}$
         frequencies = torch.exp(-math.log(max_period) * torch.arange(start=0, end=half, dtype=torch.float32) / half
-        ).to(device=time_steps.device)
+                                ).to(device=time_steps.device)
         # $\frac{t}{10000^{\frac{2i}{c}}}$
         args = time_steps[:, None].float() * frequencies[None]
         # $\cos\Bigg(\frac{t}{10000^{\frac{2i}{c}}}\Bigg)$ and $\sin\Bigg(\frac{t}{10000^{\frac{2i}{c}}}\Bigg)$
@@ -145,10 +146,11 @@ class UNetModel(nn.Module):
 
         # get conditional embedding, this is always the same => cond is none for us
         t_emb = layers.get_positional_embedding(time_steps, self.d_cond)
-        # embedding of the timesteps from BS to self.channels and then to self.channels*4 with linear leayers => same as first 2 layers in ncsnpp
-        #t_emb = self.time_step_embedding(time_steps)
+        # embedding of the timesteps from BS to self.channels and then to self.channels*4 with linear leayers => same
+        # as first 2 layers in ncsnpp
+        # t_emb = self.time_step_embedding(time_steps)
         t_emb = self.time_embed(t_emb)
-        cond = None 
+        cond = None
 
         # Input half of the U-Net
         for module in self.input_blocks:

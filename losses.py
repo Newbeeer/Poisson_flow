@@ -23,206 +23,211 @@ from models import utils as mutils
 from methods import VESDE, VPSDE
 from models import utils_poisson
 import logging
-import matplotlib.pyplot as plt 
+import matplotlib.pyplot as plt
+
 
 def get_optimizer(config, params):
-  """Returns a flax optimizer object based on `config`."""
-  sched = config.optim.scheduler
+    """Returns a flax optimizer object based on `config`."""
+    sched = config.optim.scheduler
 
-  if config.optim.optimizer == 'Adam':
-    optimizer = optim.Adam(params, lr=config.optim.lr, betas=(config.optim.beta1, 0.999), eps=config.optim.eps,weight_decay=config.optim.weight_decay)
-  elif config.optim.optimizer == 'AdamW':
-    optimizer = optim.AdamW(params, lr=config.optim.lr, betas=(config.optim.beta1, 0.999), eps=config.optim.eps,weight_decay=config.optim.weight_decay)
-  else:
-    raise NotImplementedError(
-      f'Optimizer {config.optim.optimizer} not supported yet!')
-  if sched in ['CosineAnnealing', 'ReduceLROnPlateau', 'OneCycle']:
-    if sched == 'CosineAnnealing':
-      lrs = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=config.optim.T_max, eta_min=0)
-    elif sched == 'ReduceLROnPlateau':
-      lrs = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5)
-    elif sched == 'OneCycle':
-      lrs = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr = config.optim.max_lr, total_steps = config.training.n_iters)
-  else:
-    lrs = None
-  return optimizer, lrs
+    if config.optim.optimizer == 'Adam':
+        optimizer = optim.Adam(params, lr=config.optim.lr, betas=(config.optim.beta1, 0.999), eps=config.optim.eps,
+                               weight_decay=config.optim.weight_decay)
+    elif config.optim.optimizer == 'AdamW':
+        optimizer = optim.AdamW(params, lr=config.optim.lr, betas=(config.optim.beta1, 0.999), eps=config.optim.eps,
+                                weight_decay=config.optim.weight_decay)
+    else:
+        raise NotImplementedError(
+            f'Optimizer {config.optim.optimizer} not supported yet!')
+    if sched in ['CosineAnnealing', 'ReduceLROnPlateau', 'OneCycle']:
+        if sched == 'CosineAnnealing':
+            lrs = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=config.optim.T_max, eta_min=0)
+        elif sched == 'ReduceLROnPlateau':
+            lrs = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5)
+        elif sched == 'OneCycle':
+            lrs = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=config.optim.max_lr,
+                                                      total_steps=config.training.n_iters)
+    else:
+        lrs = None
+    return optimizer, lrs
 
 
 def optimization_manager(config):
-  """Returns an optimize_fn based on `config`."""
+    """Returns an optimize_fn based on `config`."""
 
-  def optimize_fn(
-    optimizer, params, step,
-    lr=config.optim.lr,
-    warmup=config.optim.warmup,
-    grad_clip=config.optim.grad_clip):
-    """Optimizes with warmup and gradient clipping (disabled if negative)."""
-    if warmup > 0 and config.optim.scheduler == 'none':
-      for g in optimizer.param_groups:
-        g['lr'] = lr * np.minimum(step / warmup, 1.0)
-    if grad_clip >= 0:
-      torch.nn.utils.clip_grad_norm_(params, max_norm=grad_clip)
-    optimizer.step()
-    optimizer.zero_grad()
-  return optimize_fn
+    def optimize_fn(
+            optimizer, params, step,
+            lr=config.optim.lr,
+            warmup=config.optim.warmup,
+            grad_clip=config.optim.grad_clip):
+        """Optimizes with warmup and gradient clipping (disabled if negative)."""
+        if warmup > 0 and config.optim.scheduler == 'none':
+            for g in optimizer.param_groups:
+                g['lr'] = lr * np.minimum(step / warmup, 1.0)
+        if grad_clip >= 0:
+            torch.nn.utils.clip_grad_norm_(params, max_norm=grad_clip)
+        optimizer.step()
+        optimizer.zero_grad()
+
+    return optimize_fn
 
 
 def get_loss_fn(sde, train, reduce_mean=True, continuous=True, eps=1e-5, method_name=None):
-  """Create a loss function for training with arbirary SDEs.
-
-  Args:
-    sde: An `methods.SDE` object that represents the forward SDE.
-    train: `True` for training loss and `False` for evaluation loss.
-    reduce_mean: If `True`, average the loss across data dimensions. Otherwise sum the loss across data dimensions.
-    continuous: `Truec` indicates that the model is defined to take continuous time steps. Otherwise it requires
-      ad-hoc interpolation to take continuous time steps.
-    eps: A `float` number. The smallest time step to sample from.
-
-  Returns:
-    A loss function.
-  """
-  reduce_op = torch.mean if reduce_mean else lambda *args, **kwargs: 0.5 * torch.sum(*args, **kwargs)
-
-  def loss_fn(model, batch):
-    """Compute the loss function.
+    """Create a loss function for training with arbirary SDEs.
 
     Args:
-      model: A PFGM or score model.
-      batch: A mini-batch of training data.
+      sde: An `methods.SDE` object that represents the forward SDE.
+      train: `True` for training loss and `False` for evaluation loss.
+      reduce_mean: If `True`, average the loss across data dimensions. Otherwise sum the loss across data dimensions.
+      continuous: `Truec` indicates that the model is defined to take continuous time steps. Otherwise it requires
+        ad-hoc interpolation to take continuous time steps.
+      eps: A `float` number. The smallest time step to sample from.
 
     Returns:
-      loss: A scalar that represents the average loss value across the mini-batch.
+      A loss function.
     """
-    if method_name == 'poisson':
+    reduce_op = torch.mean if reduce_mean else lambda *args, **kwargs: 0.5 * torch.sum(*args, **kwargs)
 
-      samples_full = batch
-      # Get the mini-batch with size `training.small_batch_size`
-      samples_batch = batch[: sde.config.training.small_batch_size]
+    def loss_fn(model, batch):
+        """Compute the loss function.
 
-      m = torch.rand((samples_batch.shape[0],), device=samples_batch.device) * sde.M
-      # Perturb the (augmented) mini-batch data
-      perturbed_samples_vec = utils_poisson.forward_pz(sde, sde.config, samples_batch, m)
+        Args:
+          model: A PFGM or score model.
+          batch: A mini-batch of training data.
 
-      with torch.no_grad():
-        # calculate the vector field on the full batch, to get a less biased estimate
-        real_samples_vec = torch.cat((samples_full.reshape(len(samples_full), -1), torch.zeros((len(samples_full), 1)).to(samples_full.device)), dim=1)
-        
-        data_dim = sde.config.data.image_height * sde.config.data.image_width * sde.config.data.channels
-        # gt distance is calculated for each item of the batch
-        gt_distance = torch.sum((perturbed_samples_vec.unsqueeze(1) - real_samples_vec) ** 2,dim=[-1]).sqrt()
+        Returns:
+          loss: A scalar that represents the average loss value across the mini-batch.
+        """
+        if method_name == 'poisson':
 
-        # For numerical stability, timing each row by its minimum value
-        distance = torch.min(gt_distance, dim=1, keepdim=True)[0] / (gt_distance + 1e-7)
-        distance = distance ** (data_dim + 1)
-        distance = distance[:, :, None]
-        # Normalize the coefficients (effectively multiply by c(\tilde{x}) in the paper)
-        coeff = distance / (torch.sum(distance, dim=1, keepdim=True) + 1e-7)
-        diff = - (perturbed_samples_vec.unsqueeze(1) - real_samples_vec)
+            samples_full = batch
+            # Get the mini-batch with size `training.small_batch_size`
+            samples_batch = batch[: sde.config.training.small_batch_size]
 
-        # Calculate empirical Poisson field (N+1 dimension in the augmented space)
-        gt_direction = torch.sum(coeff * diff, dim=1)
-        gt_direction = gt_direction.view(gt_direction.size(0), -1)
+            m = torch.rand((samples_batch.shape[0],), device=samples_batch.device) * sde.M
+            # Perturb the (augmented) mini-batch data
+            perturbed_samples_vec = utils_poisson.forward_pz(sde, sde.config, samples_batch, m)
 
-      gt_norm = gt_direction.norm(p=2, dim=1)
-      # Normalizing the N+1-dimensional Poisson field
-      gt_direction /= (gt_norm.view(-1, 1) + sde.config.training.gamma)
-      gt_direction *= np.sqrt(data_dim)
+            with torch.no_grad():
+                # calculate the vector field on the full batch, to get a less biased estimate
+                real_samples_vec = torch.cat((samples_full.reshape(len(samples_full), -1),
+                                              torch.zeros((len(samples_full), 1)).to(samples_full.device)), dim=1)
 
-      target = gt_direction
-      net_fn = mutils.get_predict_fn(sde, model, train=train, continuous=continuous)
+                data_dim = sde.config.data.image_height * sde.config.data.image_width * sde.config.data.channels
+                # gt distance is calculated for each item of the batch
+                gt_distance = torch.sum((perturbed_samples_vec.unsqueeze(1) - real_samples_vec) ** 2, dim=[-1]).sqrt()
 
-      perturbed_samples_x = perturbed_samples_vec[:, :-1].view_as(samples_batch)
-      perturbed_samples_z = torch.clamp(perturbed_samples_vec[:, -1], 1e-10)
+                # For numerical stability, timing each row by its minimum value
+                distance = torch.min(gt_distance, dim=1, keepdim=True)[0] / (gt_distance + 1e-7)
+                distance = distance ** (data_dim + 1)
+                distance = distance[:, :, None]
+                # Normalize the coefficients (effectively multiply by c(\tilde{x}) in the paper)
+                coeff = distance / (torch.sum(distance, dim=1, keepdim=True) + 1e-7)
+                diff = - (perturbed_samples_vec.unsqueeze(1) - real_samples_vec)
 
-      net_x, net_z = net_fn(perturbed_samples_x, perturbed_samples_z)
-      net_x = net_x.view(net_x.shape[0], -1)
-      # Predicted N+1-dimensional Poisson field
-      net = torch.cat([net_x, net_z[:, None]], dim=1)
-      # calculate the loss => squared L2 distance TODO add mel specific loss?
-      if net.device != target.device:
-        target = target.to(net.device)
-      loss = ((net - target) ** 2)
-      loss = reduce_op(loss.reshape(loss.shape[0], -1), dim=-1)
-      loss = torch.mean(loss)
+                # Calculate empirical Poisson field (N+1 dimension in the augmented space)
+                gt_direction = torch.sum(coeff * diff, dim=1)
+                gt_direction = gt_direction.view(gt_direction.size(0), -1)
 
-      return loss
+            gt_norm = gt_direction.norm(p=2, dim=1)
+            # Normalizing the N+1-dimensional Poisson field
+            gt_direction /= (gt_norm.view(-1, 1) + sde.config.training.gamma)
+            gt_direction *= np.sqrt(data_dim)
 
-    else:
-      net_fn = mutils.get_predict_fn(sde, model, train=train, continuous=continuous)
+            target = gt_direction
+            net_fn = mutils.get_predict_fn(sde, model, train=train, continuous=continuous)
 
-      t = torch.rand(batch.shape[0], device=batch.device) * (sde.T - eps) + eps
-      z = torch.randn_like(batch)
-      mean, std = sde.marginal_prob(batch, t)
-      perturbed_data = mean + std[:, None, None, None] * z
-      score = net_fn(perturbed_data, t)
-      losses = torch.square(score * std[:, None, None, None] + z)
+            perturbed_samples_x = perturbed_samples_vec[:, :-1].view_as(samples_batch)
+            perturbed_samples_z = torch.clamp(perturbed_samples_vec[:, -1], 1e-10)
 
-      losses = reduce_op(losses.reshape(losses.shape[0], -1), dim=-1)
-      loss = torch.mean(losses)
-      return loss
+            net_x, net_z = net_fn(perturbed_samples_x, perturbed_samples_z)
+            net_x = net_x.view(net_x.shape[0], -1)
+            # Predicted N+1-dimensional Poisson field
+            net = torch.cat([net_x, net_z[:, None]], dim=1)
+            # calculate the loss => squared L2 distance TODO add mel specific loss?
+            if net.device != target.device:
+                target = target.to(net.device)
+            loss = ((net - target) ** 2)
+            loss = reduce_op(loss.reshape(loss.shape[0], -1), dim=-1)
+            loss = torch.mean(loss)
 
-  return loss_fn
+            return loss
 
+        else:
+            net_fn = mutils.get_predict_fn(sde, model, train=train, continuous=continuous)
+
+            t = torch.rand(batch.shape[0], device=batch.device) * (sde.T - eps) + eps
+            z = torch.randn_like(batch)
+            mean, std = sde.marginal_prob(batch, t)
+            perturbed_data = mean + std[:, None, None, None] * z
+            score = net_fn(perturbed_data, t)
+            losses = torch.square(score * std[:, None, None, None] + z)
+
+            losses = reduce_op(losses.reshape(losses.shape[0], -1), dim=-1)
+            loss = torch.mean(losses)
+            return loss
+
+    return loss_fn
 
 
 def get_step_fn(sde, train, optimize_fn=None, reduce_mean=False, method_name=None):
-  """Create a one-step training/evaluation function.
-
-  Args:
-    sde: An `methods.SDE` object that represents the forward SDE.
-    optimize_fn: An optimization function.
-    reduce_mean: If `True`, average the loss across data dimensions. Otherwise sum the loss across data dimensions.
-    continuous: `True` indicates that the model is defined to take continuous time steps.
-
-  Returns:
-    A one-step function for training or evaluation.
-  """
-
-  loss_fn = get_loss_fn(sde, train, reduce_mean=reduce_mean, continuous=True, method_name=method_name)
-
-  def step_fn(state, batch):
-    """Running one step of training or evaluation.
-
-    This function will undergo `jax.lax.scan` so that multiple steps can be pmapped and jit-compiled together
-    for faster execution.
+    """Create a one-step training/evaluation function.
 
     Args:
-      state: A dictionary of training information, containing the PFGM or score model, optimizer,
-       EMA status, and number of optimization steps.
-      batch: A mini-batch of training/evaluation data.
+      sde: An `methods.SDE` object that represents the forward SDE.
+      optimize_fn: An optimization function.
+      reduce_mean: If `True`, average the loss across data dimensions. Otherwise sum the loss across data dimensions.
+      continuous: `True` indicates that the model is defined to take continuous time steps.
 
     Returns:
-      loss: The average loss value of this state.
+      A one-step function for training or evaluation.
     """
-    model = state['model']
-    if train:
-      optimizer = state['optimizer']
-      scheduler = state['scheduler']
-      loss = loss_fn(model, batch)
-      if sde.config.training.accum_iter > 0:
-        loss /= sde.config.training.accum_iter
-      loss.backward()
-      
-      # TODO add schaler optimizer update
-      if sde.config.training.accum_iter > 0:
-        if (state['step']+1) % sde.config.training.accum_iter == 0:
-          optimize_fn(optimizer, model.parameters(), step=state['step'])
-      else:
-        optimize_fn(optimizer, model.parameters(), step=state['step'])
 
-      if scheduler is not None:
-        scheduler.step()
-      
-      state['step'] += 1
-      state['ema'].update(model.parameters())
-    else:
-      with torch.no_grad():
-        ema = state['ema']
-        ema.store(model.parameters())
-        ema.copy_to(model.parameters())
-        loss = loss_fn(model, batch)
-        ema.restore(model.parameters())
+    loss_fn = get_loss_fn(sde, train, reduce_mean=reduce_mean, continuous=True, method_name=method_name)
 
-    return loss
+    def step_fn(state, batch):
+        """Running one step of training or evaluation.
 
-  return step_fn
+        This function will undergo `jax.lax.scan` so that multiple steps can be pmapped and jit-compiled together
+        for faster execution.
+
+        Args:
+          state: A dictionary of training information, containing the PFGM or score model, optimizer,
+           EMA status, and number of optimization steps.
+          batch: A mini-batch of training/evaluation data.
+
+        Returns:
+          loss: The average loss value of this state.
+        """
+        model = state['model']
+        if train:
+            optimizer = state['optimizer']
+            scheduler = state['scheduler']
+            loss = loss_fn(model, batch)
+            if sde.config.training.accum_iter > 0:
+                loss /= sde.config.training.accum_iter
+            loss.backward()
+
+            # TODO add schaler optimizer update
+            if sde.config.training.accum_iter > 0:
+                if (state['step'] + 1) % sde.config.training.accum_iter == 0:
+                    optimize_fn(optimizer, model.parameters(), step=state['step'])
+            else:
+                optimize_fn(optimizer, model.parameters(), step=state['step'])
+
+            if scheduler is not None:
+                scheduler.step()
+
+            state['step'] += 1
+            state['ema'].update(model.parameters())
+        else:
+            with torch.no_grad():
+                ema = state['ema']
+                ema.store(model.parameters())
+                ema.copy_to(model.parameters())
+                loss = loss_fn(model, batch)
+                ema.restore(model.parameters())
+
+        return loss
+
+    return step_fn

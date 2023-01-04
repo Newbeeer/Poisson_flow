@@ -43,7 +43,7 @@ class SelfAttention1d(nn.Module):
         qkv = self.qkv_proj(self.norm(input))
         qkv = qkv.view([n, self.n_head * 3, c // self.n_head, s]).transpose(2, 3)
         q, k, v = qkv.chunk(3, dim=1)
-        scale = k.shape[3]**-0.25
+        scale = k.shape[3] ** -0.25
         att = ((q * scale) @ (k.transpose(2, 3) * scale)).softmax(3)
         y = (att @ v).transpose(2, 3).contiguous().view([n, c, s])
         return input + self.dropout(self.out_proj(y))
@@ -106,7 +106,6 @@ class SelfAttentionFlash(nn.Module):
         k = self.to_k(x)
         v = self.to_v(x)
         return self.flash_attention(q, k, v)
-
 
     def flash_attention(self, q: torch.Tensor, k: torch.Tensor, v: torch.Tensor):
         """
