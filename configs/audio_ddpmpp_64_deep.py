@@ -31,7 +31,7 @@ def get_config():
     training.small_batch_size = training.batch_size // 8
     training.gamma = 5
     training.restrict_M = True
-    training.M = 291
+    training.M = 268
     training.tau = 0.03
     training.snapshot_freq = 10000
     training.model = 'ddpmpp'
@@ -57,9 +57,9 @@ def get_config():
     # sampling.ode_solver = 'forward_euler'
     # sampling.ode_solver = 'improved_euler'
     sampling.N = 100
-    sampling.z_max = 100  # TODO find good value
+    sampling.z_max = 22
     sampling.z_min = 1e-3
-    sampling.upper_norm = 5000
+    sampling.upper_norm = 1800
     sampling.vs = False
     sampling.ckpt_number = 150000  # number of ckpt to load for sampling
 

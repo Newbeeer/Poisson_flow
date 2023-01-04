@@ -29,7 +29,7 @@ def get_config():
     training.batch_size = 64  # 1024 for rtx 6000 and 64mels, small = bs/8
     training.small_batch_size = 32
     training.gamma = 5
-    training.M = 291
+    training.M = 268
     training.restrict_M = True
     training.tau = 0.03
     training.snapshot_freq = 10000
@@ -51,13 +51,13 @@ def get_config():
     # sampling
     sampling = config.sampling
     sampling.method = 'ode'
-    # sampling.ode_solver = 'rk45'
-    # sampling.ode_solver = 'forward_euler'
-    sampling.ode_solver = 'improved_euler'
+    sampling.ode_solver = 'rk45'
+    #sampling.ode_solver = 'forward_euler'
+    #sampling.ode_solver = 'improved_euler'
     sampling.N = 100
-    sampling.z_max = 150  # TODO find good value
+    sampling.z_max = 22
     sampling.z_min = 1e-3
-    sampling.upper_norm = 5000
+    sampling.upper_norm = 1800
     sampling.vs = False
     sampling.ckpt_number = 155000  # number of ckpt to load for sampling
 

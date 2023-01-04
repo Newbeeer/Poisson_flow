@@ -2,15 +2,12 @@ import os
 from pathlib import Path
 from typing import Optional, Tuple, Union
 import numpy as np
-from torch import Tensor
 from torch.hub import download_url_to_file
 from torch.utils.data import Dataset
 from torchaudio.datasets.utils import extract_archive
 from torchaudio import load as torch_load
-from torchaudio.transforms import MelSpectrogram, AmplitudeToDB
 from torch.utils.data import DataLoader
 import torch 
-import logging
 
 FOLDER_IN_ARCHIVE = "SpeechCommands"
 URL = "speech_commands_v0.02"

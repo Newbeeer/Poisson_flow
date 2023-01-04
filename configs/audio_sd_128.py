@@ -26,15 +26,16 @@ def get_config():
     training = config.training
     training.sde = 'poisson'
     training.continuous = True
-    training.batch_size = 2  # 1024 for rtx 6000 and 64mels, small = bs/8
-    training.small_batch_size = 1
+    training.batch_size = 64  # 1024 for rtx 6000 and 64mels, small = bs/8
+    training.small_batch_size = 32
     training.gamma = 5
     training.restrict_M = True
+    training.M = 293
     training.tau = 0.03
     training.snapshot_freq = 10000
     training.model = 'stablediff'
     training.reduce_mean = True
-    training.accum_iter = 16  # gradient accumulations
+    training.accum_iter = 8  # gradient accumulations
 
     # data
     data = config.data
@@ -50,13 +51,13 @@ def get_config():
     # sampling
     sampling = config.sampling
     sampling.method = 'ode'
-    # sampling.ode_solver = 'rk45'
+    sampling.ode_solver = 'rk45'
     # sampling.ode_solver = 'forward_euler'
-    sampling.ode_solver = 'improved_euler'
+    # sampling.ode_solver = 'improved_euler'
     sampling.N = 100
-    sampling.z_max = 150  # TODO find good value
+    sampling.z_max = 46  # TODO find good value
     sampling.z_min = 1e-3
-    sampling.upper_norm = 5000
+    sampling.upper_norm = 7400
     sampling.vs = False
     sampling.ckpt_number = 155000  # number of ckpt to load for sampling
 
