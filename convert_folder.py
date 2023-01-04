@@ -5,10 +5,9 @@ import numpy as np
 import warnings
 warnings.filterwarnings("ignore")
 from configs.default_audio_configs import get_mels_128, get_mels_64
-SC09 = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"]
 
 
-config = get_mels_64()
+config = get_mels_128()
 FMIN = 20.0
 
 def librosa_melspec(y):
@@ -32,7 +31,7 @@ def librosa_melspec(y):
 
 def convert_folder(folder, target):
     number = folder.split('/')[-1]
-    os.makedirs(os.path.join(target, number))
+    os.makedirs(os.path.join(target, number), exist_ok=True)
     files = os.listdir(folder)
     for f in files:
         f_path = os.path.join(folder, f)
