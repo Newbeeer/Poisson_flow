@@ -1,6 +1,7 @@
 from .audio_ddpmpp_128_deep import get_config as ddpmpp_128_deep
 from .audio_ddpmpp_64_deep import get_config as ddpmpp_64_deep
-from .audio_sd import get_config as sd
+from .audio_sd_128 import get_config as sd_128
+from .audio_sd_64 import get_config as sd_64
 
 
 def get_config(args):
@@ -8,8 +9,10 @@ def get_config(args):
         config = ddpmpp_128_deep()
     elif args.conf == "64_deep":
         config = ddpmpp_64_deep()
-    elif args.conf == "sd":
-        config = sd()
+    elif args.conf == "sd_128":
+        config = sd_128()
+    elif args.conf == "sd_64":
+        config = sd_64()
 
     # set sizes for test mode
     if args.test:

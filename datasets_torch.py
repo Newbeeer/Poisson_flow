@@ -39,7 +39,6 @@ def get_loader(dataset="speech", mode="training", config=None):
         shuffle=shuffling,
         drop_last=True,
         num_workers=8,
-        prefetch_factor=2,
         pin_memory=True
     )
 

@@ -17,7 +17,7 @@
 """Config file for reproducing the results of DDPM on bedrooms."""
 
 from configs.default_audio_configs import get_default_configs, get_mels_128, get_mels_64
-
+import ml_collections
 
 def get_config():
     config = get_default_configs()
@@ -26,8 +26,8 @@ def get_config():
     training = config.training
     training.sde = 'poisson'
     training.continuous = True
-    training.batch_size = 32  # 1024 for rtx 6000 and 64mels, small = bs/8
-    training.small_batch_size = 2
+    training.batch_size = 2  # 1024 for rtx 6000 and 64mels, small = bs/8
+    training.small_batch_size = 1
     training.gamma = 5
     training.restrict_M = True
     training.tau = 0.03
@@ -38,17 +38,14 @@ def get_config():
 
     # data
     data = config.data
-    data.channels = 1
-    data.category = 'tfmel'  # audio, mel, tfmel
-    data.centered = False
-    data.dataset = 'speech_commands'
-    data.tfrecords_path = 'sc09_128.tfrecords'  # set 64 or 128, also set the data.spec field right
-    # audio related things
+    data.spec = ml_collections.ConfigDict()
     data.spec = get_mels_128()
-    data.image_size = data.spec.image_size
     data.image_height = data.spec.image_size
     data.image_width = data.spec.image_size
-    data.num_channels = 1
+    data.mel_root = 'mel_datasets/sc09_128'
+    data.channels = 1
+    data.category = 'mel'  # audio, mel
+    data.centered = False
 
     # sampling
     sampling = config.sampling
@@ -76,8 +73,8 @@ def get_config():
     model.channels = 128  # channels of the features = nf value
     model.d_cond = 128  # like nf, size of conditional embeddings => we have none, it would be the CLIP embed size
     model.n_res_blocks = 2
-    model.attention_levels = [0, ]
-    model.channel_multipliers = [1, 2, 2, 2]
+    model.attention_levels = [2] # 64 -> 32 -> 16 -> 8
+    model.channel_multipliers = [1, 2, 2, 2] # 128, 256, 256, 256
     model.n_heads = 1
     model.transformer_depth = 1
 

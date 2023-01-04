@@ -15,9 +15,9 @@
 
 # Lint as: python3
 """Config file for reproducing the results of DDPM on bedrooms."""
-import ml_collections
-from configs.default_audio_configs import get_default_configs, get_mels_128
 
+from configs.default_audio_configs import get_default_configs, get_mels_128, get_mels_64
+import ml_collections
 
 def get_config():
     config = get_default_configs()
@@ -26,23 +26,24 @@ def get_config():
     training = config.training
     training.sde = 'poisson'
     training.continuous = True
-    training.batch_size = 256
-    training.small_batch_size = training.batch_size // 8
+    training.batch_size = 64  # 1024 for rtx 6000 and 64mels, small = bs/8
+    training.small_batch_size = 32
     training.gamma = 5
-    training.M = 320
+    training.M = 291
     training.restrict_M = True
     training.tau = 0.03
     training.snapshot_freq = 10000
-    training.model = 'ddpmpp'
+    training.model = 'stablediff'
     training.reduce_mean = True
+    training.accum_iter = 8  # gradient accumulations
 
     # data
     data = config.data
     data.spec = ml_collections.ConfigDict()
-    data.spec = get_mels_128()
+    data.spec = get_mels_64()
     data.image_height = data.spec.image_size
     data.image_width = data.spec.image_size
-    data.mel_root = 'mel_datasets/sc09_128'
+    data.mel_root = 'mel_datasets/sc09_64'
     data.channels = 1
     data.category = 'mel'  # audio, mel
     data.centered = False
@@ -54,33 +55,29 @@ def get_config():
     # sampling.ode_solver = 'forward_euler'
     sampling.ode_solver = 'improved_euler'
     sampling.N = 100
-    sampling.z_max = 102  # TODO find good value
+    sampling.z_max = 150  # TODO find good value
     sampling.z_min = 1e-3
-    sampling.upper_norm = 16000
+    sampling.upper_norm = 5000
     sampling.vs = False
-    sampling.ckpt_number = 180000  # number of ckpt to load for sampling
+    sampling.ckpt_number = 155000  # number of ckpt to load for sampling
 
     # model TODO adapt a 1d attention unet not a
     model = config.model
-    model.name = 'ncsnpp_audio'
+    model.name = 'stablediff'
     model.scale_by_sigma = False
     model.ema_rate = 0.9999
-    model.normalization = 'GroupNorm'
-    model.nonlinearity = 'swish'
     model.nf = 128
-    model.ch_mult = (1, 2, 2, 4)  # initial (1, 1, 2, 2, 4, 4)
-    model.num_res_blocks = 8  # initial 2
-    model.attn_resolutions = (16,)  # initial (16,)
-    model.resamp_with_conv = True
-    model.skip_rescale = True
-    model.resblock_type = 'biggan'
-    model.progressive_combine = 'sum'
-    model.attention_type = 'ddpm'
-    model.init_scale = 0.
-    model.fourier_scale = 16
-    model.embedding_type = 'positional'
     model.conv_size = 3
     model.sigma_end = 0.01
+
+    # stable diffusion settings
+    model.channels = 128  # channels of the features = nf value
+    model.d_cond = 128  # like nf, size of conditional embeddings => we have none, it would be the CLIP embed size
+    model.n_res_blocks = 4
+    model.attention_levels = [2,]
+    model.channel_multipliers = [1, 2, 2, 2]
+    model.n_heads = 1
+    model.transformer_depth = 1
 
     # optim
     optim = config.optim

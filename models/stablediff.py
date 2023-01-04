@@ -142,7 +142,6 @@ class UNetModel(nn.Module):
         # x is the disturbed image of right size and cond is the "timestep"
         # To store the input half outputs for skip connections
         x_input_block = []
-
         # get conditional embedding, this is always the same => cond is none for us
         t_emb = layers.get_positional_embedding(time_steps, self.d_cond)
         # embedding of the timesteps from BS to self.channels and then to self.channels*4 with linear leayers => same

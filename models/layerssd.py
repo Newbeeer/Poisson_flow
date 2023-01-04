@@ -33,8 +33,6 @@ class SpatialTransformer(nn.Module):
         """
         # Get shape `[batch_size, channels, height, width]`
         # adding additional height channel if needed
-        if x.dim() == 3:
-            x = x.unsqueeze(-2)
         b, c, h, w = x.shape
         # For residual connection
         x_in = x
@@ -54,7 +52,7 @@ class SpatialTransformer(nn.Module):
         # Final $1 \times 1$ convolution
         x = self.proj_out(x)
         # Add residual
-        return x.view(b, c, w) + x_in.view(b, c, w)
+        return x + x_in
 
 
 class BasicTransformerBlock(nn.Module):
@@ -86,7 +84,7 @@ class BasicTransformerBlock(nn.Module):
         # Self attention
         x = self.attn1(self.norm1(x)) + x
         # Cross-attention with conditioning
-        # x = self.attn2(self.norm2(x)) + x
+        x = self.attn2(self.norm2(x)) + x
         # Feed-forward network
         x = self.ff(self.norm3(x)) + x
         #
