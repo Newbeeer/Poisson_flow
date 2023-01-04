@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -n 16
+#SBATCH -n 8
 #SBACTH --mem-per-cpu=2048
 #SBATCH --gpus=1
 #SBATCH --gres=gpumem:10g

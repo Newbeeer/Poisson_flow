@@ -37,23 +37,6 @@ from utils import save_checkpoint, restore_checkpoint
 import tensorflow as tf
 import wandb
 
-torch.cuda.empty_cache()
-torch.backends.cudnn.benchmark = True
-
-FLAGS = flags.FLAGS
-gpus = tf.config.list_physical_devices('GPU')
-
-if gpus:
-  try:
-    # Currently, memory growth needs to be the same across GPUs
-    for gpu in gpus:
-      tf.config.experimental.set_memory_growth(gpu, True)
-    logical_gpus = tf.config.list_logical_devices('GPU')
-    print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
-  except RuntimeError as e:
-    # Memory growth must be set before GPUs have been initialized
-    print(e)
-
 def train(config, workdir):
   """Runs the training pipeline.
 
@@ -115,6 +98,10 @@ def train(config, workdir):
     sampling_fn = sampling.get_sampling_fn(config, sde, sampling_shape, inverse_scaler, sampling_eps)
 
   num_train_steps = config.training.n_iters
+
+  # setup cuda benchmarking
+  torch.cuda.empty_cache()
+  torch.backends.cudnn.benchmark = True
 
   # In case there are multiple hosts (e.g., TPU pods), only log to host 0
   logging.info("Starting training loop at step %d." % (initial_step,))
