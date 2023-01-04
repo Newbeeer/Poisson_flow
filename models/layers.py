@@ -1,21 +1,4 @@
-# coding=utf-8
-# Copyright 2020 The Google Research Authors.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-# pylint: skip-file
-"""Common layers for defining PFGM / score networks.
-"""
+"""Common layers for defining PFGM networks"""
 import math
 import string
 import torch.nn as nn
@@ -38,20 +21,7 @@ def get_act(config):
     else:
         raise NotImplementedError('activation function does not exist!')
 
-
-def ncsn_conv1x1(in_planes, out_planes, stride=1, bias=True, dilation=1, init_scale=1., padding=0):
-    """1x1 convolution. Same as NCSNv1/v2."""
-    conv = nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=stride, bias=bias, dilation=dilation, padding=padding)
-    init_scale = 1e-10 if init_scale == 0 else init_scale
-    conv.weight.data *= init_scale
-    conv.bias.data *= init_scale
-    return conv
-
-
-def variance_scaling(scale, mode, distribution,
-                     in_axis=1, out_axis=0,
-                     dtype=torch.float32,
-                     device='cpu'):
+def variance_scaling(scale, mode, distribution, in_axis=1, out_axis=0, dtype=torch.float32, device='cpu'):
     """Ported from JAX. """
 
     def _compute_fans(shape, in_axis=1, out_axis=0):
@@ -86,13 +56,6 @@ def default_init(scale=1.):
     """The same initialization used in DDPM."""
     scale = 1e-10 if scale == 0 else scale
     return variance_scaling(scale, 'fan_avg', 'uniform')
-
-
-class Dense(nn.Module):
-    """Linear layer with `default_init`."""
-
-    def __init__(self):
-        super().__init__()
 
 
 def ddpm_conv1x1(in_planes, out_planes, stride=1, bias=True, init_scale=1., padding=0):
