@@ -26,12 +26,13 @@ collections.Callable = collections.abc.Callable
 
 import logging
 import run_lib
+print("Hello")
 from absl import app
 from absl import flags
+print("Hello")
 from ml_collections.config_flags import config_flags
-
+print("Hello")
 import os
-from tensorflow.io.gfile import makedirs as tfmakedirs
 
 FLAGS = flags.FLAGS
 
@@ -46,7 +47,7 @@ def main(argv):
   print("Hello")
   if FLAGS.mode == "train":
     # Create the working directory
-    tfmakedirs(FLAGS.workdir)
+    os.makedirs(FLAGS.workdir, exists_ok=True)
     # Set logger so that it outputs to both console and file
     # Make logging work for both disk and Google Cloud Storage
     gfile_stream = open(os.path.join(FLAGS.workdir, 'stdout.txt'), 'w')
