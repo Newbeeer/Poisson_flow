@@ -153,10 +153,6 @@ class NCSNpp(nn.Module):
         resamp_with_conv = config.model.resamp_with_conv
         self.num_resolutions = num_resolutions = len(ch_mult)
         self.all_resolutions = all_resolutions = [config.data.image_height // (2 ** i) for i in range(num_resolutions)]
-
-        self.conditional = conditional = config.model.conditional  # noise-conditional
-        fir = config.model.fir
-        fir_kernel = config.model.fir_kernel
         self.skip_rescale = skip_rescale = config.model.skip_rescale
         self.resblock_type = resblock_type = config.model.resblock_type.lower()
         self.embedding_type = embedding_type = config.model.embedding_type.lower()
@@ -170,19 +166,18 @@ class NCSNpp(nn.Module):
         embed_dim = nf
 
         # conditioning on the noise levels
-        if conditional:
-            modules.append(nn.Linear(embed_dim, nf * 4))
-            modules[-1].weight.data = default_initializer()(modules[-1].weight.shape)
-            nn.init.zeros_(modules[-1].bias)
-            modules.append(nn.Linear(nf * 4, nf * 4))
-            modules[-1].weight.data = default_initializer()(modules[-1].weight.shape)
-            nn.init.zeros_(modules[-1].bias)
+        modules.append(nn.Linear(embed_dim, nf * 4))
+        modules[-1].weight.data = default_initializer()(modules[-1].weight.shape)
+        nn.init.zeros_(modules[-1].bias)
+        modules.append(nn.Linear(nf * 4, nf * 4))
+        modules[-1].weight.data = default_initializer()(modules[-1].weight.shape)
+        nn.init.zeros_(modules[-1].bias)
 
         AttnBlock = functools.partial(layerspp.AttnBlockpp, init_scale=init_scale, skip_rescale=skip_rescale)
 
-        Upsample = functools.partial(layerspp.Upsample, with_conv=resamp_with_conv, fir=fir, fir_kernel=fir_kernel)
+        Upsample = functools.partial(layerspp.Upsample, with_conv=resamp_with_conv)
 
-        Downsample = functools.partial(layerspp.Downsample, with_conv=resamp_with_conv, fir=fir, fir_kernel=fir_kernel)
+        Downsample = functools.partial(layerspp.Downsample, with_conv=resamp_with_conv)
 
         if resblock_type == 'ddpm':
             ResnetBlock = functools.partial(ResnetBlockDDPM,
@@ -196,8 +191,6 @@ class NCSNpp(nn.Module):
             ResnetBlock = functools.partial(ResnetBlockBigGAN,
                                             act=act,
                                             dropout=dropout,
-                                            fir=fir,
-                                            fir_kernel=fir_kernel,
                                             init_scale=init_scale,
                                             skip_rescale=skip_rescale,
                                             zemb_dim=nf * 4)
@@ -241,8 +234,7 @@ class NCSNpp(nn.Module):
         for i_level in reversed(range(num_resolutions)):
             for i_block in range(num_res_blocks + 1):
                 out_ch = nf * ch_mult[i_level]
-                modules.append(ResnetBlock(in_ch=in_ch + hs_c.pop(),
-                                           out_ch=out_ch))
+                modules.append(ResnetBlock(in_ch=in_ch + hs_c.pop(), out_ch=out_ch))
                 in_ch = out_ch
 
             if all_resolutions[i_level] in attn_resolutions:
@@ -270,14 +262,10 @@ class NCSNpp(nn.Module):
         m_idx = 0
 
         zemb = layers.get_positional_embedding(cond, self.nf)
-
-        if self.conditional:
-            zemb = modules[m_idx](zemb)
-            m_idx += 1
-            zemb = modules[m_idx](self.act(zemb))
-            m_idx += 1
-        else:
-            zemb = None
+        zemb = modules[m_idx](zemb)
+        m_idx += 1
+        zemb = modules[m_idx](self.act(zemb))
+        m_idx += 1
 
         if not self.config.data.centered:
             # If input data is in [0, 1]

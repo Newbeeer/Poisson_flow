@@ -201,16 +201,28 @@ def get_step_fn(sde, train, optimize_fn=None, reduce_mean=False, method_name=Non
         if train:
             optimizer = state['optimizer']
             scheduler = state['scheduler']
-            loss = loss_fn(model, batch)
+                              
+            # handle gradient accumulations
             if sde.config.training.accum_iter > 0:
-                loss /= sde.config.training.accum_iter
-            loss.backward()
-
-            # TODO add schaler optimizer update
-            if sde.config.training.accum_iter > 0:
+                # if we accumulated enough, do the optimizer step
                 if (state['step'] + 1) % sde.config.training.accum_iter == 0:
+                    # sync when in ddp automatically
+                    loss = loss_fn(model, batch) / sde.config.training.accum_iter
+                    loss.backward()
                     optimize_fn(optimizer, model.parameters(), step=state['step'])
+                else:
+                    # no syncing for gradient accumulations in DDP
+                    if sde.DDP:
+                        with model.no_sync():
+                            loss = loss_fn(model, batch) / sde.config.training.accum_iter
+                            loss.backward()
+                    else:
+                        loss = loss_fn(model, batch) / sde.config.training.accum_iter
+                        loss.backward()
+            # normal training without gradient accumulation and syncing in every case
             else:
+                loss = loss_fn(model, batch)
+                loss.backward()
                 optimize_fn(optimizer, model.parameters(), step=state['step'])
 
             if scheduler is not None:

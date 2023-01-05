@@ -36,7 +36,7 @@ def get_data_inverse_scaler(config):
     return lambda x: x
 
 
-def get_dataset(config, evaluation=False):
+def get_dataset(args, evaluation=False):
   """Create data loaders for training and evaluation.
 
   Args:
@@ -46,11 +46,13 @@ def get_dataset(config, evaluation=False):
   Returns:
     train_ds, eval_ds, dataset_builder.
   """
+  config = args.config
+  
   # Create dataset builders for each dataset.
   if config.data.dataset == "speech_commands":
     if config.data.category in ['audio', 'mel']:
-      train_loader = get_torch_loader(dataset="speech", mode="training",   config=config)
-      valid_loader = get_torch_loader(dataset="speech", mode="validation", config=config)
+      train_loader = get_torch_loader(dataset="speech", mode="training",   args=args)
+      valid_loader = get_torch_loader(dataset="speech", mode="validation", args=args)
   else:
     raise NotImplementedError(
       f'Dataset {config.data.dataset} not yet supported.')

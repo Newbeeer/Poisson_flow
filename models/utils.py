@@ -59,14 +59,17 @@ def get_sigmas(config):
     return sigmas
 
 
-def create_model(config):
+def create_model(args):
     """Create the model."""
-    if torch.cuda.device_count() > 1:
-        print("Creating model on", torch.cuda.device_count(), "GPUs!")
+    config = args.config
     model_name = config.model.name
     model = get_model(model_name)(config)
-    model = model.to(config.device)
-    model = torch.nn.DataParallel(model)
+    if args.DDP:
+        model.cuda(args.gpu)
+        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu])
+    else:
+        model = model.to(config.device)
+        model = torch.nn.DataParallel(model)
     return model
 
 

@@ -30,7 +30,9 @@ import run_lib
 import os
 import argparse
 from configs.get_configs import get_config
-
+import torch.multiprocessing as mp
+import torch 
+import wandb 
 
 def main():
     parser = argparse.ArgumentParser()
@@ -39,9 +41,28 @@ def main():
     parser.add_argument("--mode", choices=["train", "eval"], required=True)
     parser.add_argument("--eval_folder", default="eval")
     parser.add_argument("--test", action="store_true")
+    parser.add_argument("--sampling", action="store_true")
+    parser.add_argument("--ckpt", default=None)
+    parser.add_argument("--DDP", action='store_true')
     args = parser.parse_args()
 
     args.config = get_config(args)
+    wandb.require("service")
+
+    if args.sampling:
+        print("Parsing sampling args...")
+        args.config.eval.enable_sampling = True
+        args.config.eval.save_images = True
+        args.config.eval.batch_size = 32
+        if args.ckpt is not None:
+            args.config.sampling.ckpt_number = int(args.ckpt)
+    # setup for DDP
+    if args.DDP:
+        DISTFILE = 'distfile'
+        args.gpus = torch.cuda.device_count()
+        args.world_size = args.gpus
+        os.environ['MASTER_ADDR'] = '127.0.0.1'
+        os.environ['MASTER_PORT'] = '29500'
 
     if args.mode == "train":
         print("START TRAINING")
@@ -49,15 +70,12 @@ def main():
         os.makedirs(args.workdir, exist_ok=True)
         # Set logger so that it outputs to both console and file
         # Make logging work for both disk and Google Cloud Storage
-        gfile_stream = open(os.path.join(args.workdir, 'stdout.txt'), 'w')
-        handler = logging.StreamHandler(gfile_stream)
-        formatter = logging.Formatter('%(levelname)s - %(filename)s - %(asctime)s - %(message)s')
-        handler.setFormatter(formatter)
-        logger = logging.getLogger()
-        logger.addHandler(handler)
-        logger.setLevel('INFO')
         # Run the training pipeline
-        run_lib.train(args.config, args.workdir)
+        if args.DDP:
+            mp.spawn(run_lib.train, nprocs=args.gpus, args=(args,))
+        else:
+            run_lib.train(0, args)
+            
     elif args.mode == "eval":
         print("START EVALUATION")
         pass

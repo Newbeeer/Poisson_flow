@@ -26,8 +26,8 @@ def get_config():
     training = config.training
     training.sde = 'poisson'
     training.continuous = True
-    training.batch_size = 64  # 1024 for rtx 6000 and 64mels, small = bs/8
-    training.small_batch_size = 32
+    training.batch_size = 16  # 1024 for rtx 6000 and 64mels, small = bs/8
+    training.small_batch_size = 16
     training.gamma = 5
     training.restrict_M = True
     training.M = 293
@@ -35,7 +35,7 @@ def get_config():
     training.snapshot_freq = 10000
     training.model = 'stablediff'
     training.reduce_mean = True
-    training.accum_iter = 8  # gradient accumulations
+    training.accum_iter = 32  # gradient accumulations
 
     # data
     data = config.data
@@ -65,7 +65,7 @@ def get_config():
     model = config.model
     model.name = 'stablediff'
     model.scale_by_sigma = False
-    model.ema_rate = 0.9999
+    model.ema_rate = 0.995
     model.nf = 128
     model.conv_size = 3
     model.sigma_end = 0.01
@@ -74,13 +74,13 @@ def get_config():
     model.channels = 128  # channels of the features = nf value
     model.d_cond = 128  # like nf, size of conditional embeddings => we have none, it would be the CLIP embed size
     model.n_res_blocks = 2
-    model.attention_levels = [2] # 64 -> 32 -> 16 -> 8
+    model.attention_levels = [3] # 128 -> 64 -> 32 -> 16
     model.channel_multipliers = [1, 2, 2, 2] # 128, 256, 256, 256
     model.n_heads = 1
     model.transformer_depth = 1
 
     # optim
     optim = config.optim
-    optim.lr = 2e-5
+    optim.lr = 1e-4
 
     return config

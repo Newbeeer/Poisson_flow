@@ -24,7 +24,7 @@ def main():
             "sbatch",
             f"{shfile}",
         })
-        os.remove(shfile)
+    os.remove(shfile)
 
 
 if __name__ == "__main__":

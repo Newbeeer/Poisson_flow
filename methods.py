@@ -261,14 +261,15 @@ class VESDE(SDE):
 
 
 class Poisson():
-    def __init__(self, config):
+    def __init__(self, args):
         """Construct a PFGM.
 
         Args:
           config: configurations
         """
-        self.config = config
-        self.N = config.sampling.N
+        self.config = args.config
+        self.N = args.config.sampling.N
+        self.DDP = args.DDP
 
     @property
     def M(self):
@@ -299,8 +300,7 @@ class Poisson():
         # Radius times the angle direction
         init_samples = unit_gaussian * samples_norm
 
-        return init_samples.float().view(len(init_samples), self.config.data.num_channels,
-                                         self.config.data.image_height, self.config.data.image_width)
+        return init_samples.float().view(len(init_samples), self.config.data.num_channels, self.config.data.image_height, self.config.data.image_width)
 
     def ode(self, net_fn, x, t):
 
@@ -325,8 +325,7 @@ class Poisson():
         v = torch.cat([x_drift, z_drift[:, None]], dim=1)
 
         dt_dz = 1 / (v[:, -1] + 1e-5)
-        dx_dt = v[:, :-1].view(len(x), self.config.data.num_channels, self.config.data.image_height,
-                               self.config.data.image_width)
+        dx_dt = v[:, :-1].view(len(x), self.config.data.num_channels, self.config.data.image_height, self.config.data.image_width)
         dx_dz = dx_dt * dt_dz.view(-1, *([1] * len(x.size()[1:])))
         # dx/dt_prime =  z * dx/dz
         dx_dt_prime = z * dx_dz
