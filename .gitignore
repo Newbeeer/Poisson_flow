@@ -26,3 +26,4 @@ pfgm*
 venv
 mel_datasets
 /Samples/
+*.lz4

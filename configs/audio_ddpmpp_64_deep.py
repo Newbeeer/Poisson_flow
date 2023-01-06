@@ -27,7 +27,7 @@ def get_config():
     training = config.training
     training.sde = 'poisson'
     training.continuous = True
-    training.batch_size = 512  # 1024 for rtx 6000 and 64mels, small = bs/8
+    training.batch_size = 128  # 1024 for rtx 6000 and 64mels, small = bs/8
     training.small_batch_size = training.batch_size // 8
     training.gamma = 5
     training.restrict_M = True
@@ -36,7 +36,7 @@ def get_config():
     training.snapshot_freq = 10000
     training.model = 'ddpmpp'
     training.reduce_mean = True
-    training.amp = False
+    training.accum_iter = 8
 
     # data
     data = config.data
@@ -67,17 +67,14 @@ def get_config():
     model = config.model
     model.name = 'ncsnpp_audio'
     model.scale_by_sigma = False
-    model.ema_rate = 0.9999
+    model.ema_rate = 0.995
     model.normalization = 'GroupNorm'
     model.nonlinearity = 'swish'
     model.nf = 128
     model.ch_mult = (1, 1, 2, 2, 4, 4)  # initial (1, 1, 2, 2, 4, 4)
-    model.num_res_blocks = 4  # initial 2
+    model.num_res_blocks = 6  # initial 2
     model.attn_resolutions = (16,)  # initial (16,)
     model.resamp_with_conv = True
-    model.conditional = True
-    model.fir = False
-    model.fir_kernel = [1, 3, 3, 1]
     model.skip_rescale = True
     model.resblock_type = 'biggan'
     model.progressive_combine = 'sum'
@@ -90,6 +87,6 @@ def get_config():
 
     # optim
     optim = config.optim
-    optim.lr = 2e-5
+    optim.lr = 1e-4
 
     return config

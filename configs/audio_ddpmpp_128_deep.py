@@ -35,6 +35,7 @@ def get_config():
     training.snapshot_freq = 10000
     training.model = 'ddpmpp'
     training.reduce_mean = True
+    training.accum_iter = 4
 
     # data
     data = config.data
@@ -81,9 +82,9 @@ def get_config():
     model.embedding_type = 'positional'
     model.conv_size = 3
     model.sigma_end = 0.01
-
+    
     # optim
     optim = config.optim
-    optim.lr = 2e-5
+    optim.lr = 1e-4
 
     return config

@@ -13,15 +13,18 @@ def get_config(args):
         config = sd_128()
     elif args.conf == "sd_64":
         config = sd_64()
+    else:
+        raise ValueError("Unknown conf name!")
 
     # set sizes for test mode
     if args.test:
         config.training.continuous = True
-        config.training.batch_size = 2
-        config.training.small_batch_size = 2
+        config.training.batch_size = 4
+        config.eval.batch_size = 4
+        config.training.small_batch_size = 4
         config.training.eval_freq = 100
         config.training.snapshot_freq = 100
-        config.training.snapshot_freq_for_preemption = 200
+        config.training.snapshot_freq_for_preemption = 250
 
     print("Read Config: ", config, sep='\n')
 
