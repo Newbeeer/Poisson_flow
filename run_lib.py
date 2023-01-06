@@ -191,9 +191,7 @@ def train(gpu, args):
     wandb.finish()
 
 
-def evaluate(config,
-             workdir,
-             eval_folder="eval"):
+def evaluate(args):
     """Evaluate trained models.
 
     Args:
@@ -203,21 +201,23 @@ def evaluate(config,
         "eval".
     """
     # Create directory to eval_folder
-
+    config = args.config
+    workdir = args.workdir
+    eval_folder = args.eval_folder
     eval_dir = os.path.join(workdir, eval_folder)
     os.makedirs(eval_dir, exist_ok=True)
 
     # Build data pipeline
 
     if not config.eval.save_images:
-        train_ds, eval_ds, _ = datasets.get_dataset(config, evaluation=True)
+        train_ds, eval_ds, _ = datasets.get_dataset(args, evaluation=True)
 
     # Create data normalizer and its inverse
     scaler = datasets.get_data_scaler(config)
     inverse_scaler = datasets.get_data_inverse_scaler(config)
 
     # Initialize model
-    net = mutils.create_model(config)
+    net = mutils.create_model(args)
     optimizer, scheduler = losses.get_optimizer(config, net.parameters())
     ema = ExponentialMovingAverage(net.parameters(), decay=config.model.ema_rate)
     state = dict(optimizer=optimizer, model=net, ema=ema, scheduler=scheduler, step=0)
@@ -249,6 +249,7 @@ def evaluate(config,
     # Wait if the target checkpoint doesn't exist yet
     torch.manual_seed(config.seed)
     np.random.seed(config.seed)
+    
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(config.seed)
 
