@@ -64,7 +64,7 @@ def get_embeddings_gt(model, stats_dir, config):
     activations = []
     cnt=0
     for batch in train_set:
-        # print("procnessing batch {}/151, {}%".format(cnt, np.round(cnt/151*100, decimals=2)))
+        print("processing batch {}/151, {}%".format(cnt, np.round(cnt/151*100, decimals=2)))
         # plt.imshow(batch['image'][0,0,:,:])
         # plt.savefig(stats_dir+"/test_pre.png")
         batch_tmp = torch.permute(batch, (0, 2, 3, 1))
@@ -107,15 +107,8 @@ def preprocess_samples(sample_file):
 def get_fid(sample_file, gt_stats_dir, config):
     # load data
     model_inputs = preprocess_samples(sample_file)
-    
-    # load model
-    # model = torch.hub.load('pytorch/vision:v0.10.0', 'inception_v3', pretrained=True)
-    # model.eval()
-    # input_shape=model_inputs.shape[-3:]
-    input_shape = (128, 128, 3)
-    model = InceptionV3(include_top=False, pooling='avg', input_shape=input_shape, weights="imagenet")
+    model = InceptionV3(include_top=False, pooling='avg', input_shape=model_inputs.shape[-3:], weights="imagenet")
     mu_gt, sigma_gt = get_gt_stats(gt_stats_dir, model, config)
-    breakpoint()
     # calculate activation
     act_s = model.predict(model_inputs)
     # calculate mean and covariance statistics

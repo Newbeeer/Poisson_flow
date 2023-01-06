@@ -29,4 +29,5 @@ poissound/lib
 poissound/bin
 poissound
 test
-eval
+eval/gt_stats_64/activations*
+eval/gt_stats_128/activations*
