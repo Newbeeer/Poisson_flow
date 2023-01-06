@@ -14,47 +14,76 @@
 # limitations under the License.
 
 """Training and evaluation"""
+# collections fix for python 10
+import collections
+import collections.abc
 
-import run_lib
-from absl import app
-from absl import flags
-from ml_collections.config_flags import config_flags
+collections.Container = collections.abc.Container
+collections.Mapping = collections.abc.Mapping
+collections.MutableMapping = collections.abc.MutableMapping
+collections.Iterable = collections.abc.Iterable
+collections.MutableSet = collections.abc.MutableSet
+collections.Callable = collections.abc.Callable
+
 import logging
+import run_lib
 import os
-import tensorflow as tf
+import argparse
+from configs.get_configs import get_config
+import torch.multiprocessing as mp
+import torch 
+import wandb 
 
-FLAGS = flags.FLAGS
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--conf", required=True)
+    parser.add_argument("--workdir", required=True)
+    parser.add_argument("--mode", choices=["train", "eval"], required=True)
+    parser.add_argument("--eval_folder", default="eval")
+    parser.add_argument("--test", action="store_true")
+    parser.add_argument("--sampling", action="store_true")
+    parser.add_argument("--ckpt", default=None)
+    parser.add_argument("--DDP", action='store_true')
+    args = parser.parse_args()
 
-config_flags.DEFINE_config_file(
-  "config", None, "Training configuration.", lock_config=True)
-flags.DEFINE_string("workdir", None, "Work directory.")
-flags.DEFINE_enum("mode", None, ["train", "eval"], "Running mode: train or eval")
-flags.DEFINE_string("eval_folder", "eval",
-                    "The folder name for storing evaluation results")
-flags.mark_flags_as_required(["workdir", "config", "mode"])
+    args.config = get_config(args)
+    wandb.require("service")
 
+    if args.sampling:
+        print("Parsing sampling args...")
+        args.config.eval.enable_sampling = True
+        args.config.eval.save_images = True
+        args.config.eval.batch_size = 32
+        if args.ckpt is not None:
+            args.config.sampling.ckpt_number = int(args.ckpt)
+    # setup for DDP
+    if args.DDP:
+        DISTFILE = 'distfile'
+        args.gpus = torch.cuda.device_count()
+        args.world_size = args.gpus
+        os.environ['MASTER_ADDR'] = '127.0.0.1'
+        os.environ['MASTER_PORT'] = '29500'
 
-def main(argv):
-  if FLAGS.mode == "train":
-    # Create the working directory
-    tf.io.gfile.makedirs(FLAGS.workdir)
-    # Set logger so that it outputs to both console and file
-    # Make logging work for both disk and Google Cloud Storage
-    gfile_stream = open(os.path.join(FLAGS.workdir, 'stdout.txt'), 'w')
-    handler = logging.StreamHandler(gfile_stream)
-    formatter = logging.Formatter('%(levelname)s - %(filename)s - %(asctime)s - %(message)s')
-    handler.setFormatter(formatter)
-    logger = logging.getLogger()
-    logger.addHandler(handler)
-    logger.setLevel('INFO')
-    # Run the training pipeline
-    run_lib.train(FLAGS.config, FLAGS.workdir)
-  elif FLAGS.mode == "eval":
-    # Run the evaluation pipeline
-    run_lib.evaluate(FLAGS.config, FLAGS.workdir, FLAGS.eval_folder)
-  else:
-    raise ValueError(f"Mode {FLAGS.mode} not recognized.")
+    if args.mode == "train":
+        print("START TRAINING")
+        # Create the working directory
+        os.makedirs(args.workdir, exist_ok=True)
+        # Set logger so that it outputs to both console and file
+        # Make logging work for both disk and Google Cloud Storage
+        # Run the training pipeline
+        if args.DDP:
+            mp.spawn(run_lib.train, nprocs=args.gpus, args=(args,))
+        else:
+            run_lib.train(0, args)
+            
+    elif args.mode == "eval":
+        print("START EVALUATION")
+        pass
+        # Run the evaluation pipeline
+        run_lib.evaluate(args)
+    else:
+        raise ValueError(f"Mode {args.mode} not recognized.")
 
 
 if __name__ == "__main__":
-  app.run(main)
+    main()

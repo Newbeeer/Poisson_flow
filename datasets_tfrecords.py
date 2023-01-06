@@ -1,5 +1,5 @@
-import tensorflow as tf
-import tensorflow_datasets as tfds
+# import tensorflow as tf
+# import tensorflow_datasets as tfds
 
 def preprocess_fn_64(d):
     # apply known data schema to decode the bytestrings

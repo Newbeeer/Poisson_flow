@@ -1,20 +1,15 @@
 import numpy as np
 from scipy.linalg import sqrtm
-from keras.applications.inception_v3 import InceptionV3
-from keras.applications.inception_v3 import preprocess_input
-import torch
+# from keras.applications.inception_v3 import InceptionV3
+# from keras.applications.inception_v3 import preprocess_input
 from skimage.transform import resize
 import os
 import json
-import tensorflow as tf
+# import tensorflow as tf
 # import matplotlib.pyplot as plt
 
 # from datasets_tfrecords import get_dataset
-from datasets import get_dataset
 import pickle
-import argparse
-from configs import gt_embeddings_128
-from configs.get_configs import get_config
  
 # scale an array of images to a new size
 def scale_images(images, new_shape):
@@ -54,24 +49,18 @@ def calculate_gt_stats(stats_dir):
 def load_sample_mels(samples):
     return [sample for sample in np.load(samples)['samples']]
 
-def get_embeddings_gt(model, stats_dir, config):
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--config", default=config)
-    parser.add_argument("--DDP", default=False)
-    args = parser.parse_args()
-
-    train_set, _, _ = get_dataset(args)
+def calculate_stats_gt(model, stats_dir, gt_dataset):
+    train_set, _ = get_dataset(gt_dataset)
     activations = []
     cnt=0
+
     for batch in train_set:
-        # print("procnessing batch {}/151, {}%".format(cnt, np.round(cnt/151*100, decimals=2)))
+        print("processing batch {}/151, {}%".format(cnt, np.round(cnt/151*100, decimals=2)))
         # plt.imshow(batch['image'][0,0,:,:])
         # plt.savefig(stats_dir+"/test_pre.png")
-        batch_tmp = torch.permute(batch, (0, 2, 3, 1))
+        batch_tmp = tf.transpose(batch['image'], perm=[0, 2, 3, 1])
         batch_pad = zero_pad_for_inception(batch_tmp)
-        batch_np = np.asarray(batch_pad)
-        batch_tf = tf.convert_to_tensor(batch_np)
-        act = model.predict(batch_tf)
+        act = model.predict(tf.convert_to_tensor(batch_pad))
         activations.append(act)
         if not cnt % 50 and cnt != 0:
             with open(os.path.join(stats_dir, "activations_{}.pickle".format(cnt)), 'wb') as f:
@@ -82,7 +71,7 @@ def get_embeddings_gt(model, stats_dir, config):
     with open(os.path.join(stats_dir, "activations_{}.pickle".format(cnt)), 'wb') as f:
                     pickle.dump(activations, f)
 
-def get_gt_stats(gt_stats_dir, model, config):
+def get_gt_stats(gt_stats_dir, model, gt_dataset):
     if not os.path.isdir(gt_stats_dir):
         os.mkdir(gt_stats_dir)
     if any("gt_" in file for file in os.listdir(gt_stats_dir)):
@@ -90,9 +79,9 @@ def get_gt_stats(gt_stats_dir, model, config):
     elif len(os.listdir(gt_stats_dir)):
         mu_gt, cov_gt = calculate_gt_stats(gt_stats_dir)
     else:
-        if config is None:
-            raise FileNotFoundError("No config file given, need config file to recompute gt stats".format(gt_stats_dir, config))
-        get_embeddings_gt(model, gt_stats_dir, config)
+        if gt_dataset is None:
+            raise FileNotFoundError("No gt stats data found at {}, need dataset file to recompute, {} was given".format(gt_stats_dir, gt_dataset))
+        calculate_stats_gt(model, gt_stats_dir, gt_dataset)
         mu_gt, cov_gt = calculate_gt_stats(gt_stats_dir) 
     
     return mu_gt, cov_gt
@@ -104,17 +93,13 @@ def preprocess_samples(sample_file):
     return preprocess_input(samples_tf)
 
     
-def get_fid(sample_file, gt_stats_dir, config):
+def get_fid(sample_file, gt_stats_dir, gt_dataset=None):
     # load data
     model_inputs = preprocess_samples(sample_file)
     
     # load model
-    # model = torch.hub.load('pytorch/vision:v0.10.0', 'inception_v3', pretrained=True)
-    # model.eval()
-    # input_shape=model_inputs.shape[-3:]
-    input_shape = (128, 128, 3)
-    model = InceptionV3(include_top=False, pooling='avg', input_shape=input_shape, weights="imagenet")
-    mu_gt, sigma_gt = get_gt_stats(gt_stats_dir, model, config)
+    model = InceptionV3(include_top=False, pooling='avg', input_shape=model_inputs.shape[-3:], weights="imagenet")
+    mu_gt, sigma_gt = get_gt_stats(gt_stats_dir, model, gt_dataset)
     breakpoint()
     # calculate activation
     act_s = model.predict(model_inputs)
@@ -197,19 +182,19 @@ def zero_pad_for_inception(samples):
 
     return samples_pad
 
-def get_stats(sample_file, gt_stats_dir, config):
+def get_stats(sample_file, gt_stats_dir, gt_dataset=None):
     stats = {}
     #### FID ####
-    stats["FID"] = get_fid(sample_file, gt_stats_dir, config)
+    stats["FID"] = get_fid(sample_file, gt_stats_dir, gt_dataset)
 
     return stats
     
 def main():
     results_dir = "./eval/results" # where to save evaluation scores
     data_dir = "./eval/samples" # directory with sample npz files
-    gt_stats_dir="./eval/gt_stats_128" # directory with gt mean and covariance
+    gt_stats_dir="./eval/gt_stats_64" # directory with gt mean and covariance
+    gt_file=None # path to tfrecords file if no gt data is available
 
-    config = gt_embeddings_128.get_config()
     print("Evaluating samples in {}".format(data_dir))
 
     if not os.path.isdir(results_dir):
@@ -218,7 +203,7 @@ def main():
     for sample in os.listdir(data_dir):
         print("Evaluating sample {}".format(sample))
         sample_file = os.path.join(data_dir, sample)
-        stats = get_stats(sample_file, gt_stats_dir, config)
+        stats = get_stats(sample_file, gt_stats_dir, gt_dataset=gt_file)
 
         results_file = os.path.join(results_dir, "{}_results".format(sample.split('.')[0]))
         with open(results_file, "w") as f:
