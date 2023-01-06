@@ -14,7 +14,7 @@ sys.path.append('..')
 
 from configs.default_audio_configs import get_mels_64, get_mels_128
 
-mel_cfg = get_mels_64()
+mel_cfg = get_mels_128()
 
 sample_rate = mel_cfg.sample_rate
 nfft = mel_cfg.nfft
@@ -45,15 +45,16 @@ def main():
 
         os.makedirs(os.path.join(args.dir, 'audio', args.ckpt), exist_ok=True)
         print(f"Data in range [{data.min()},{data.max()}]")
+
         for i, im in tqdm(enumerate(data), total=data.shape[0]):
-            data = torch.from_numpy(im).type(torch.float)
+            mel_dat = torch.from_numpy(im).type(torch.float)
             if plotting and i < 5:
                 plt.figure()
-                plt.imshow(data)
+                plt.imshow(mel_dat)
                 plt.show()
             if torch_inverse:
                 # change to channel first
-                data = data.permute(-1, 0, 1)
+                mel_dat = mel_dat.permute(-1, 0, 1)
                 # inverse mel scales to spectogram
                 inverse_data = torchaudio.transforms.InverseMelScale(
                     sample_rate=sample_rate,
@@ -61,11 +62,11 @@ def main():
                     n_mels=64,
                     f_min=20,
                     f_max=8000
-                )(data)
+                )(mel_dat)
                 # inverse the spectogram
                 audio = torchaudio.transforms.GriffinLim(n_fft=1024)(inverse_data[:, nfft // 2:, :]).squeeze().numpy()
             else:
-                mel_data = data.squeeze().numpy()
+                mel_data = mel_dat.squeeze().numpy()
                 # reshape to -80 to 0 db range from librosa standard
                 #mel_data /= mel_data.max()
                 mel_data = np.clip(mel_data, 0.0, 1.0)
@@ -80,7 +81,7 @@ def main():
                     hop_length=hop_length,
                     win_length=hop_length * 4,
                     center=True,
-                    power=2,
+                    power=1,
                     n_iter=32,
                     fmin=20.0,
                     fmax=sample_rate / 2.0,
@@ -93,7 +94,7 @@ def main():
                 plt.plot(audio)
                 plt.show()
 
-            sf.write(f"{args.dir}/audio/{args.ckpt}/sample_{i+fnum}.ogg", audio, 16_000)
+            sf.write(f"{args.dir}/audio/{args.ckpt}/sample_{i+fnum*len(data)}.ogg", audio, 16_000)
 
 
 if __name__ == "__main__":
