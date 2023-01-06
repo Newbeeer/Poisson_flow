@@ -80,7 +80,7 @@ def main():
         print("START EVALUATION")
         pass
         # Run the evaluation pipeline
-        run_lib.evaluate(args.config, args.workdir, args.eval_folder)
+        run_lib.evaluate(args)
     else:
         raise ValueError(f"Mode {args.mode} not recognized.")
 
