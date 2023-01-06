@@ -82,7 +82,7 @@ def get_embeddings_gt(model, stats_dir, config):
     with open(os.path.join(stats_dir, "activations_{}.pickle".format(cnt)), 'wb') as f:
                     pickle.dump(activations, f)
 
-def get_gt_stats(gt_stats_dir, model, config):
+def get_gt_stats(gt_stats_dir, model, config=None):
     if not os.path.isdir(gt_stats_dir):
         os.mkdir(gt_stats_dir)
     if any("gt_" in file for file in os.listdir(gt_stats_dir)):
@@ -104,7 +104,7 @@ def preprocess_samples(sample_file):
     return preprocess_input(samples_tf)
 
     
-def get_fid(sample_file, gt_stats_dir, config):
+def get_fid(sample_file, gt_stats_dir, config=None):
     # load data
     model_inputs = preprocess_samples(sample_file)
     model = InceptionV3(include_top=False, pooling='avg', input_shape=model_inputs.shape[-3:], weights="imagenet")
@@ -190,7 +190,7 @@ def zero_pad_for_inception(samples):
 
     return samples_pad
 
-def get_stats(sample_file, gt_stats_dir, config):
+def get_stats(sample_file, gt_stats_dir, config=None):
     stats = {}
     #### FID ####
     stats["FID"] = get_fid(sample_file, gt_stats_dir, config)
@@ -202,7 +202,8 @@ def main():
     data_dir = "./eval/samples" # directory with sample npz files
     gt_stats_dir="./eval/gt_stats_128" # directory with gt mean and covariance
 
-    config = gt_embeddings_128.get_config()
+    # config = gt_embeddings_128.get_config() 
+
     print("Evaluating samples in {}".format(data_dir))
 
     if not os.path.isdir(results_dir):
@@ -211,7 +212,7 @@ def main():
     for sample in os.listdir(data_dir):
         print("Evaluating sample {}".format(sample))
         sample_file = os.path.join(data_dir, sample)
-        stats = get_stats(sample_file, gt_stats_dir, config)
+        stats = get_stats(sample_file, gt_stats_dir, config=None) # only set config to recompute gt stats
 
         results_file = os.path.join(results_dir, "{}_results".format(sample.split('.')[0]))
         with open(results_file, "w") as f:
