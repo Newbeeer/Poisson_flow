@@ -31,7 +31,6 @@ import os
 import argparse
 from configs.get_configs import get_config
 
-
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--conf", required=True)

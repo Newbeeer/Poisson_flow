@@ -14,7 +14,7 @@ sys.path.append('..')
 
 from configs.default_audio_configs import get_mels_64, get_mels_128
 
-mel_cfg = get_mels_128()
+mel_cfg = get_mels_64()
 
 sample_rate = mel_cfg.sample_rate
 nfft = mel_cfg.nfft
@@ -32,8 +32,8 @@ def main():
 
     files = os.listdir(os.path.join(args.dir, args.ckpt))
 
-    for file in files:
-        if file.split('.')[-1] not in ['np','npz']:
+    for fnum, file in enumerate(files):
+        if file.split('.')[-1] not in ['np','npz', 'npy']:
             continue
         file_path = os.path.join(args.dir, args.ckpt, file)
         try:
@@ -67,7 +67,8 @@ def main():
             else:
                 mel_data = data.squeeze().numpy()
                 # reshape to -80 to 0 db range from librosa standard
-                mel_data /= mel_data.max()
+                #mel_data /= mel_data.max()
+                mel_data = np.clip(mel_data, 0.0, 1.0)
                 mel_data *= 80
                 mel_data -= 80
 
@@ -79,7 +80,7 @@ def main():
                     hop_length=hop_length,
                     win_length=hop_length * 4,
                     center=True,
-                    power=1,
+                    power=2,
                     n_iter=32,
                     fmin=20.0,
                     fmax=sample_rate / 2.0,
@@ -92,7 +93,7 @@ def main():
                 plt.plot(audio)
                 plt.show()
 
-            sf.write(f"{args.dir}/audio/{args.ckpt}/sample_{i}.ogg", audio, 16_000)
+            sf.write(f"{args.dir}/audio/{args.ckpt}/sample_{i+fnum}.ogg", audio, 16_000)
 
 
 if __name__ == "__main__":

@@ -64,7 +64,7 @@ def get_config():
     model = config.model
     model.name = 'ncsnpp_audio'
     model.scale_by_sigma = False
-    model.ema_rate = 0.9999
+    model.ema_rate = 0.995
     model.normalization = 'GroupNorm'
     model.nonlinearity = 'swish'
     model.nf = 128
