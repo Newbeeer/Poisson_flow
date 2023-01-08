@@ -35,15 +35,16 @@ def get_loader(dataset="speech", mode="training", args=None):
     if args.DDP:
         train_sampler = torch.utils.data.distributed.DistributedSampler(data, num_replicas=args.world_size, rank=args.rank)
     else:
-        train_sampler = data
+        train_sampler = None
     
     loader = DataLoader(
-        train_sampler,
+        data,
         batch_size=config.training.batch_size,
         shuffle=shuffling,
         drop_last=True,
-        num_workers=4,
-        pin_memory=True
+        num_workers=0,
+        pin_memory=True,
+        sampler=train_sampler
     )
 
     return loader

@@ -69,7 +69,7 @@ def get_default_configs():
     optim.lr = 2e-4
     optim.beta1 = 0.9
     optim.eps = 1e-8
-    optim.warmup = 1000
+    optim.warmup = 5000
     optim.grad_clip = 1.
     optim.scheduler = 'none'  # 'none', 'OneCylce'
     optim.T_max = 2000  # the period in STEPS (check the total steps for good idea)

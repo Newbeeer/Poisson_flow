@@ -37,7 +37,7 @@ def convert_folder(folder, target):
         f_path = os.path.join(folder, f)
         waveform, sr = librosa.load(f_path, sr=config.sample_rate, res_type='kaiser_fast')
         mel = librosa_melspec(waveform)
-        mel = librosa.power_to_db(mel, top_db=None).astype(np.float32)
+        mel = librosa.power_to_db(mel, top_db=80).astype(np.float32)
         # scale from 0 to 1
         mel = mel - mel.min()
         mel = mel / mel.max()

@@ -27,3 +27,4 @@ venv
 mel_datasets
 /Samples/
 *.lz4
+*_sync_*
