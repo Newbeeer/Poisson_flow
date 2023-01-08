@@ -708,13 +708,12 @@ def get_rk45_sampler_pfgm(sde, shape, inverse_scaler, rtol=1e-4, atol=1e-4,
             # We concatenate the extra dimension z as an addition channel to accomondate this solver
             x = torch.cat((x, z), dim=1)
             x = x.float()
-            new_shape = (
-            len(x), sde.config.data.channels + 1, sde.config.data.image_height, sde.config.data.image_width)
+            new_shape = (len(x), sde.config.data.channels + 1, sde.config.data.image_height, sde.config.data.image_width)
 
             def ode_func(t, x):
 
                 if sde.config.sampling.vs:
-                    print(np.exp(t))
+                    (np.exp(t))
                 x = from_flattened_numpy(x, new_shape).to(device).type(torch.float32)
                 # Change-of-variable z=exp(t)
                 z = np.exp(t)

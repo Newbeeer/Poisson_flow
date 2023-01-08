@@ -1,20 +1,3 @@
-# coding=utf-8
-# Copyright 2020 The Google Research Authors.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-# pylint: skip-file
-"""Training and evaluation for PFGM or score-based generative models. """
 import os
 import time
 import copy
@@ -75,8 +58,9 @@ def train(gpu, args):
     optimizer, scheduler = losses.get_optimizer(config, net.parameters())
     state = dict(optimizer=optimizer, model=net, ema=ema, scheduler=scheduler, step=0)
 
+    wandb.init(config=args.config, group=args.wandb_group, name=f"{args.wandb_group}_{gpu}")
+
     if gpu == 0:
-        wandb.init(config=args.config)
         # Create checkpoints directory
         checkpoint_dir = os.path.join(workdir, "checkpoints")
         # Intermediate checkpoints to resume training after pre-emption in cloud environments
@@ -87,7 +71,13 @@ def train(gpu, args):
     # Resume training when intermediate checkpoints are detected
     # TODO make one for DDP
     if not args.DDP:
-        state = restore_checkpoint(checkpoint_meta_dir, state, config.device)
+        state = restore_checkpoint(checkpoint_meta_dir, state, map_location=config.device)
+    else:
+        checkpoint_meta_dir = os.path.join(workdir, "checkpoints-meta", "checkpoint.pth")
+        os.makedirs(os.path.dirname(checkpoint_meta_dir), exist_ok=True)
+        map_location = {'cuda:%d' % 0: 'cuda:%d' % args.rank}
+        state = restore_checkpoint(checkpoint_meta_dir, state, map_location=map_location)
+
     initial_step = int(state['step'])
 
     # Build data iterators
@@ -109,8 +99,8 @@ def train(gpu, args):
     optimize_fn = losses.optimization_manager(config)
     reduce_mean = config.training.reduce_mean
     method_name = config.training.sde.lower()
-    train_step_fn = losses.get_step_fn(sde, train=True, optimize_fn=optimize_fn, reduce_mean=reduce_mean, method_name=method_name)
-    eval_step_fn = losses.get_step_fn(sde, train=False, optimize_fn=optimize_fn, reduce_mean=reduce_mean, method_name=method_name)
+    train_step_fn = losses.get_step_fn(sde, train=True, optimize_fn=optimize_fn,  reduce_mean=reduce_mean, method_name=method_name)
+    eval_step_fn  = losses.get_step_fn(sde, train=False, optimize_fn=optimize_fn, reduce_mean=reduce_mean, method_name=method_name)
 
     # Building sampling functions
     if config.training.snapshot_sampling:
@@ -140,14 +130,16 @@ def train(gpu, args):
         batch = scaler(batch)
         # Execute one training step
         loss = train_step_fn(state, batch)
-        if step % config.training.log_freq == 0 and gpu==0:
-            wandb.log({"train_loss": loss.item()}, step=step // config.training.log_freq)
+        if step % config.training.log_freq == 0:
+            
             if scheduler is not None:
                 lr = scheduler.get_last_lr()[0]
             else:
                 lr = optimizer.param_groups[0]['lr']
+            
             wandb.log({"lr": lr}, step=step // config.training.log_freq)
-            logging.info("step: %d, training_loss: %.5e, lr: %f" % (step, loss.item(), lr))
+            wandb.log({"train_loss": loss.item()}, step=step // config.training.log_freq)
+            logging.info("gpu: %d, step: %d, training_loss: %.5e, lr: %f" % (gpu, step, loss.item(), lr))
 
         # Save a temporary checkpoint to resume training after pre-emption periodically
         if step != 0 and step % config.training.snapshot_freq_for_preemption == 0 and gpu==0:
@@ -207,6 +199,13 @@ def evaluate(args):
     eval_dir = os.path.join(workdir, eval_folder)
     os.makedirs(eval_dir, exist_ok=True)
 
+    # setup logger
+    formatter = logging.Formatter('%(levelname)s - %(filename)s - %(asctime)s - %(message)s')
+    handler.setFormatter(formatter)
+    logger = logging.getLogger()
+    logger.addHandler(handler)
+    logger.setLevel('INFO')
+
     # Build data pipeline
 
     if not config.eval.save_images:
@@ -228,7 +227,7 @@ def evaluate(args):
     if config.training.sde.lower() == 'poisson':
         sde = methods.Poisson(args=args)
         sampling_eps = config.sampling.z_min
-        print("--- sampling eps:", sampling_eps)
+        logging.info("--- sampling eps:", sampling_eps)
     else:
         raise NotImplementedError(f"Method {config.training.sde} unknown.")
 
@@ -261,30 +260,30 @@ def evaluate(args):
             raise ValueError("Please provide a ckpt_number!")
 
     if not os.path.exists(ckpt_filename):
-        print(f"{ckpt_filename} does not exist! Loading from meta-checkpoint")
+        logging.info(f"{ckpt_filename} does not exist! Loading from meta-checkpoint")
         ckpt_filename = os.path.join(checkpoint_dir, os.pardir, 'checkpoints-meta', 'checkpoint.pth')
         if not os.path.exists(ckpt_filename):
-            print("No checkpoints-meta")
+             logging.info("No checkpoints-meta")
             return
 
     # Wait for 2 additional mins in case the file exists but is not ready for reading
-    print("Loading from ", ckpt_path)
+     logging.info("Loading from ", ckpt_path)
     try:
-        state = restore_checkpoint(ckpt_path, state, device=config.device)
+        state = restore_checkpoint(ckpt_path, state, map_location=config.device)
     except:
         logging.info("Loading Failed!")
         time.sleep(60)
         try:
-            state = restore_checkpoint(ckpt_path, state, device=config.device)
+            state = restore_checkpoint(ckpt_path, state, map_location=config.device)
         except:
             time.sleep(120)
-            state = restore_checkpoint(ckpt_path, state, device=config.device)
+            state = restore_checkpoint(ckpt_path, state, map_location=config.device)
 
     ckpt = config.sampling.ckpt_number
     ema.copy_to(net.parameters())
     # Compute the loss function on the full evaluation dataset if loss computation is enabled
     if config.eval.enable_loss:
-        print("please don't set the config.eval.save_images flag, or the datasets wouldn't be loaded.")
+         logging.info("please don't set the config.eval.save_images flag, or the datasets wouldn't be loaded.")
         all_losses = []
         eval_iter = iter(eval_ds)  # pytype: disable=wrong-arg-types
         for i, batch in enumerate(eval_iter):

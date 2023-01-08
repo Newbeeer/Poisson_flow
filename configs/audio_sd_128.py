@@ -26,8 +26,8 @@ def get_config():
     training = config.training
     training.sde = 'poisson'
     training.continuous = True
-    training.batch_size = 16  # 1024 for rtx 6000 and 64mels, small = bs/8
-    training.small_batch_size = 16
+    training.batch_size = 32  # 1024 for rtx 6000 and 64mels, small = bs/8
+    training.small_batch_size = 4
     training.gamma = 5
     training.restrict_M = True
     training.M = 293
@@ -61,7 +61,7 @@ def get_config():
     sampling.vs = False
     sampling.ckpt_number = 155000  # number of ckpt to load for sampling
 
-    # model TODO adapt a 1d attention unet not a
+    # model
     model = config.model
     model.name = 'stablediff'
     model.scale_by_sigma = False
