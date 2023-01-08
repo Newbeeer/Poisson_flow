@@ -199,6 +199,13 @@ def evaluate(args):
     eval_dir = os.path.join(workdir, eval_folder)
     os.makedirs(eval_dir, exist_ok=True)
 
+    # setup logger
+    formatter = logging.Formatter('%(levelname)s - %(filename)s - %(asctime)s - %(message)s')
+    handler.setFormatter(formatter)
+    logger = logging.getLogger()
+    logger.addHandler(handler)
+    logger.setLevel('INFO')
+
     # Build data pipeline
 
     if not config.eval.save_images:
@@ -220,7 +227,7 @@ def evaluate(args):
     if config.training.sde.lower() == 'poisson':
         sde = methods.Poisson(args=args)
         sampling_eps = config.sampling.z_min
-        print("--- sampling eps:", sampling_eps)
+        logging.info("--- sampling eps:", sampling_eps)
     else:
         raise NotImplementedError(f"Method {config.training.sde} unknown.")
 
@@ -253,14 +260,14 @@ def evaluate(args):
             raise ValueError("Please provide a ckpt_number!")
 
     if not os.path.exists(ckpt_filename):
-        print(f"{ckpt_filename} does not exist! Loading from meta-checkpoint")
+        logging.info(f"{ckpt_filename} does not exist! Loading from meta-checkpoint")
         ckpt_filename = os.path.join(checkpoint_dir, os.pardir, 'checkpoints-meta', 'checkpoint.pth')
         if not os.path.exists(ckpt_filename):
-            print("No checkpoints-meta")
+             logging.info("No checkpoints-meta")
             return
 
     # Wait for 2 additional mins in case the file exists but is not ready for reading
-    print("Loading from ", ckpt_path)
+     logging.info("Loading from ", ckpt_path)
     try:
         state = restore_checkpoint(ckpt_path, state, map_location=config.device)
     except:
@@ -276,7 +283,7 @@ def evaluate(args):
     ema.copy_to(net.parameters())
     # Compute the loss function on the full evaluation dataset if loss computation is enabled
     if config.eval.enable_loss:
-        print("please don't set the config.eval.save_images flag, or the datasets wouldn't be loaded.")
+         logging.info("please don't set the config.eval.save_images flag, or the datasets wouldn't be loaded.")
         all_losses = []
         eval_iter = iter(eval_ds)  # pytype: disable=wrong-arg-types
         for i, batch in enumerate(eval_iter):

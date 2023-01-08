@@ -61,7 +61,7 @@ def get_config():
     sampling.vs = False
     sampling.ckpt_number = 155000  # number of ckpt to load for sampling
 
-    # model TODO adapt a 1d attention unet not a
+    # model
     model = config.model
     model.name = 'stablediff'
     model.scale_by_sigma = False
