@@ -7,12 +7,12 @@ def get_default_configs():
     # training
     config.training = training = ml_collections.ConfigDict()
     config.training.batch_size = 256  # bs to calculate the gt field
-    training.n_iters = 200000  # 100k takes 17 hours on 4 gpus rtx 6000
+    training.n_iters = 500000  # 100k takes 17 hours on 4 gpus rtx 6000
     training.snapshot_freq = 10000
     training.log_freq = 100
     training.eval_freq = 10000
     ## store additional checkpoints for preemption in cloud computing environments
-    training.snapshot_freq_for_preemption = 500
+    training.snapshot_freq_for_preemption = 1000
     ## produce samples at each snapshot.
     training.snapshot_sampling = True
     training.continuous = True
@@ -26,7 +26,7 @@ def get_default_configs():
     sampling.n_steps_each = 1
     sampling.noise_removal = True
     sampling.probability_flow = False
-    sampling.snr = 0.1
+    sampling.snr = 0.2
     sampling.N = 1
     sampling.z_exp = 1
 

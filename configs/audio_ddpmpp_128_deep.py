@@ -26,8 +26,8 @@ def get_config():
     training = config.training
     training.sde = 'poisson'
     training.continuous = True
-    training.batch_size = 256
-    training.small_batch_size = training.batch_size // 8
+    training.batch_size = 64
+    training.small_batch_size = 8
     training.gamma = 5
     training.M = 293
     training.restrict_M = True
@@ -35,7 +35,7 @@ def get_config():
     training.snapshot_freq = 10000
     training.model = 'ddpmpp'
     training.reduce_mean = True
-    training.accum_iter = 4
+    training.accum_iter = 1024 // training.batch_size
 
     # data
     data = config.data
@@ -51,10 +51,10 @@ def get_config():
     # sampling
     sampling = config.sampling
     sampling.method = 'ode'
-    sampling.ode_solver = 'rk45'
-    # sampling.ode_solver = 'forward_euler'
+    # sampling.ode_solver = 'rk45'
+    sampling.ode_solver = 'forward_euler'
     # sampling.ode_solver = 'improved_euler'
-    sampling.N = 100
+    sampling.N = 200
     sampling.z_max = 46  # TODO find good value
     sampling.z_min = 1e-3
     sampling.upper_norm = 7400
@@ -69,8 +69,8 @@ def get_config():
     model.normalization = 'GroupNorm'
     model.nonlinearity = 'swish'
     model.nf = 128
-    model.ch_mult = (1, 2, 2, 4)  # initial (1, 1, 2, 2, 4, 4)
-    model.num_res_blocks = 8  # initial 2
+    model.ch_mult = (1, 1, 2, 2, 4, 4)  # initial (1, 1, 2, 2, 4, 4)
+    model.num_res_blocks = 6  # initial 2
     model.attn_resolutions = (16,)  # initial (16,)
     model.resamp_with_conv = True
     model.skip_rescale = True

@@ -28,8 +28,6 @@ def get_loader(dataset="speech", mode="training", args=None):
     if dataset=="speech":
         if config.data.category == 'mel':
             data = SPEECHCOMMANDS_MEL(subset=mode, config=config)
-        elif config.data.category == 'audio':
-            data = SPEECHCOMMANDS(root='.', download=False, subset=mode, config=config)
         else:
             exit("Wrong data category for speech dataset!")
     

@@ -3,14 +3,14 @@ import os
 import logging
 
 # TODO make one for DDP
-def restore_checkpoint(ckpt_dir, state, device):
+def restore_checkpoint(ckpt_dir, state, map_location):
     if not os.path.exists(ckpt_dir):
         os.makedirs(os.path.dirname(ckpt_dir), exist_ok=True)
         logging.warning(f"No checkpoint found at {ckpt_dir}. "
                         f"Returned the same state as input")
         return state
     else:
-        loaded_state = torch.load(ckpt_dir, map_location=device)
+        loaded_state = torch.load(ckpt_dir, map_location=map_location)
         state['optimizer'].load_state_dict(loaded_state['optimizer'])
         try:
             state['scheduler'].load_state_dict(loaded_state['scheduler'])

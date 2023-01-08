@@ -26,8 +26,8 @@ def get_config():
     training = config.training
     training.sde = 'poisson'
     training.continuous = True
-    training.batch_size = 16  # 1024 for rtx 6000 and 64mels, small = bs/8
-    training.small_batch_size = 16
+    training.batch_size = 32  # 1024 for rtx 6000 and 64mels, small = bs/8
+    training.small_batch_size = 4
     training.gamma = 5
     training.restrict_M = True
     training.M = 293

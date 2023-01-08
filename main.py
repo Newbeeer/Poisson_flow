@@ -47,6 +47,7 @@ def main():
     args = parser.parse_args()
 
     args.config = get_config(args)
+    args.wandb_group = args.conf
     wandb.require("service")
 
     if args.sampling:
@@ -61,6 +62,7 @@ def main():
         DISTFILE = 'distfile'
         args.gpus = torch.cuda.device_count()
         args.world_size = args.gpus
+        args.wandb_group += "_DDP"
         os.environ['MASTER_ADDR'] = '127.0.0.1'
         os.environ['MASTER_PORT'] = '29500'
 
