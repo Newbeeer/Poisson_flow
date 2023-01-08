@@ -18,6 +18,7 @@ import wandb
 import torch.distributed as dist
 import gc
 
+
 def train(gpu, args):
     """Runs the training pipeline.
 
@@ -26,7 +27,7 @@ def train(gpu, args):
       workdir: Working directory for checkpoints and TF summaries. If this
         contains checkpoint training will be resumed from the latest checkpoint.
     """
-    config = args.config 
+    config = args.config
     workdir = args.workdir
     if args.DDP:
         args.rank = gpu
@@ -38,7 +39,7 @@ def train(gpu, args):
         )
         torch.cuda.set_device(gpu)
         args.gpu = gpu
-    
+
     if gpu == 0:
         gfile_stream = open(os.path.join(args.workdir, 'stdout.txt'), 'w')
         handler = logging.StreamHandler(gfile_stream)
@@ -47,7 +48,7 @@ def train(gpu, args):
         logger = logging.getLogger()
         logger.addHandler(handler)
         logger.setLevel('INFO')
-    
+
     # Create directories for experimental logs
     sample_dir = os.path.join(workdir, "samples")
     os.makedirs(sample_dir, exist_ok=True)
@@ -99,8 +100,10 @@ def train(gpu, args):
     optimize_fn = losses.optimization_manager(config)
     reduce_mean = config.training.reduce_mean
     method_name = config.training.sde.lower()
-    train_step_fn = losses.get_step_fn(sde, train=True, optimize_fn=optimize_fn,  reduce_mean=reduce_mean, method_name=method_name)
-    eval_step_fn  = losses.get_step_fn(sde, train=False, optimize_fn=optimize_fn, reduce_mean=reduce_mean, method_name=method_name)
+    train_step_fn = losses.get_step_fn(sde, train=True, optimize_fn=optimize_fn, reduce_mean=reduce_mean,
+                                       method_name=method_name)
+    eval_step_fn = losses.get_step_fn(sde, train=False, optimize_fn=optimize_fn, reduce_mean=reduce_mean,
+                                      method_name=method_name)
 
     # Building sampling functions
     if config.training.snapshot_sampling:
@@ -126,41 +129,42 @@ def train(gpu, args):
             # change to channel first only for original tf datasets but not for mel datasets
             if config.data.category != 'tfmel':
                 batch = batch.permute(0, 3, 1, 2)
-        
+
         batch = scaler(batch)
         # Execute one training step
         loss = train_step_fn(state, batch)
         if step % config.training.log_freq == 0:
-            
+
             if scheduler is not None:
                 lr = scheduler.get_last_lr()[0]
             else:
                 lr = optimizer.param_groups[0]['lr']
-            
+
             wandb.log({"lr": lr}, step=step // config.training.log_freq)
             wandb.log({"train_loss": loss.item()}, step=step // config.training.log_freq)
             logging.info("gpu: %d, step: %d, training_loss: %.5e, lr: %f" % (gpu, step, loss.item(), lr))
 
         # Save a temporary checkpoint to resume training after pre-emption periodically
-        if step != 0 and step % config.training.snapshot_freq_for_preemption == 0 and gpu==0:
+        if step != 0 and step % config.training.snapshot_freq_for_preemption == 0 and gpu == 0:
             save_checkpoint(checkpoint_meta_dir, state)
 
         # Report the loss on an evaluation dataset periodically
-        if step % config.training.eval_freq == 0 and gpu==0:
+        if step % config.training.eval_freq == 0 and gpu == 0:
             if config.data.dataset == 'speech_commands' and not config.data.category == 'tfmel':
                 eval_batch = next(eval_iter).cuda()
             else:
-                eval_batch = torch.from_numpy(next(eval_iter)['image']._numpy()).to(config.device, non_blocking=True).float()
+                eval_batch = torch.from_numpy(next(eval_iter)['image']._numpy()).to(config.device,
+                                                                                    non_blocking=True).float()
                 if not config.data.category == 'tfmel':
                     eval_batch = eval_batch.permute(0, 3, 1, 2)
-            
+
             eval_batch = scaler(eval_batch)
             eval_loss = eval_step_fn(state, eval_batch)
             logging.info("step: %d, eval_loss: %.5e" % (step, eval_loss.item()))
             wandb.log({"val_loss": eval_loss.item()}, step=step // config.training.eval_freq)
 
         # Save a checkpoint periodically and generate samples if needed
-        if step != 0 and step % config.training.snapshot_freq == 0 or step == num_train_steps and gpu==0:
+        if step != 0 and step % config.training.snapshot_freq == 0 or step == num_train_steps and gpu == 0:
             # Save the checkpoint.
             save_step = step
             save_checkpoint(os.path.join(workdir, "checkpoints", f'checkpoint_{save_step}.pth'), state)
@@ -179,7 +183,7 @@ def train(gpu, args):
 
                 np.save(os.path.join(this_sample_dir, "sample"), sample)
                 save_image(image_grid, os.path.join(this_sample_dir, "sample.png"))
-        
+
     wandb.finish()
 
 
@@ -200,6 +204,8 @@ def evaluate(args):
     os.makedirs(eval_dir, exist_ok=True)
 
     # setup logger
+    gfile_stream = open(os.path.join(args.workdir, 'stdout_eval.txt'), 'w')
+    handler = logging.StreamHandler(gfile_stream)
     formatter = logging.Formatter('%(levelname)s - %(filename)s - %(asctime)s - %(message)s')
     handler.setFormatter(formatter)
     logger = logging.getLogger()
@@ -248,7 +254,7 @@ def evaluate(args):
     # Wait if the target checkpoint doesn't exist yet
     torch.manual_seed(config.seed)
     np.random.seed(config.seed)
-    
+
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(config.seed)
 
@@ -263,11 +269,11 @@ def evaluate(args):
         logging.info(f"{ckpt_filename} does not exist! Loading from meta-checkpoint")
         ckpt_filename = os.path.join(checkpoint_dir, os.pardir, 'checkpoints-meta', 'checkpoint.pth')
         if not os.path.exists(ckpt_filename):
-             logging.info("No checkpoints-meta")
-            return
+            logging.info("No checkpoints-meta")
+        return
 
     # Wait for 2 additional mins in case the file exists but is not ready for reading
-     logging.info("Loading from ", ckpt_path)
+    logging.info("Loading from ", ckpt_path)
     try:
         state = restore_checkpoint(ckpt_path, state, map_location=config.device)
     except:
@@ -283,22 +289,23 @@ def evaluate(args):
     ema.copy_to(net.parameters())
     # Compute the loss function on the full evaluation dataset if loss computation is enabled
     if config.eval.enable_loss:
-         logging.info("please don't set the config.eval.save_images flag, or the datasets wouldn't be loaded.")
-        all_losses = []
-        eval_iter = iter(eval_ds)  # pytype: disable=wrong-arg-types
-        for i, batch in enumerate(eval_iter):
-            eval_batch = torch.from_numpy(batch['image']._numpy()).to(config.device).float()
-            eval_batch = eval_batch.permute(0, 3, 1, 2)
-            eval_batch = scaler(eval_batch)
-            eval_loss = eval_step(state, eval_batch)
-            all_losses.append(eval_loss.item())
-            if (i + 1) % 1000 == 0:
-                logging.info("Finished %dth step loss evaluation" % (i + 1))
+        logging.info("please don't set the config.eval.save_images flag, or the datasets wouldn't be loaded.")
+    all_losses = []
+    eval_iter = iter(eval_ds)  # pytype: disable=wrong-arg-types
+    for i, batch in enumerate(eval_iter):
+        eval_batch = torch.from_numpy(batch['image']._numpy()).to(config.device).float()
+        eval_batch = eval_batch.permute(0, 3, 1, 2)
+        eval_batch = scaler(eval_batch)
+        eval_loss = eval_step(state, eval_batch)
+        all_losses.append(eval_loss.item())
+        if (i + 1) % 1000 == 0:
+            logging.info("Finished %dth step loss evaluation" % (i + 1))
 
-        # Save loss values to disk or Google Cloud Storage
-        all_losses = np.asarray(all_losses)
-        np.savez_compressed(os.path.join(eval_dir, f"ckpt_{ckpt}_loss.npz"), all_losses=all_losses,
-                            mean_loss=all_losses.mean())
+    # Save loss values to disk or Google Cloud Storage
+    all_losses = np.asarray(all_losses)
+    np.savez_compressed(os.path.join(eval_dir, f"ckpt_{ckpt}_loss.npz"), all_losses=all_losses,
+                        mean_loss=all_losses.mean())
+
 
     # Generate samples and compute IS/FID/KID when enabled
     if config.eval.enable_sampling:
@@ -313,7 +320,8 @@ def evaluate(args):
             logging.info(f"nfe: {n}")
             logging.info(f"sample shape: {samples.shape}")
             samples_torch = copy.deepcopy(samples)
-            samples_torch = samples_torch.view(-1, config.data.num_channels, config.data.image_height, config.data.image_width)
+            samples_torch = samples_torch.view(-1, config.data.num_channels, config.data.image_height,
+                                               config.data.image_width)
 
             # sample the output matrices differently for pictures vs mel spectograms
             samples = samples.permute(0, 2, 3, 1).cpu().numpy()
