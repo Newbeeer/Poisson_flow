@@ -14,21 +14,25 @@ sys.path.append('..')
 
 from configs.default_audio_configs import get_mels_64, get_mels_128
 
-mel_cfg = get_mels_128()
-
-sample_rate = mel_cfg.sample_rate
-nfft = mel_cfg.nfft
-hop_length = mel_cfg.hop_length
-
-torch_inverse = False
 plotting = False
-
+clipping = False
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--dir", required=True)
     parser.add_argument("--ckpt", required=True)
     args = parser.parse_args()
+
+    if "128" in args.dir:
+        mel_cfg = get_mels_128()
+    elif "64" in args.dir:
+        mel_cfg = get_mels_64()
+    else:
+        raise ValueError("Coudl not find the mel size in dir name!")
+
+    sample_rate = mel_cfg.sample_rate
+    nfft = mel_cfg.nfft
+    hop_length = mel_cfg.hop_length
 
     files = os.listdir(os.path.join(args.dir, args.ckpt))
 
@@ -52,43 +56,32 @@ def main():
                 plt.figure()
                 plt.imshow(mel_dat)
                 plt.show()
-            if torch_inverse:
-                # change to channel first
-                mel_dat = mel_dat.permute(-1, 0, 1)
-                # inverse mel scales to spectogram
-                inverse_data = torchaudio.transforms.InverseMelScale(
-                    sample_rate=sample_rate,
-                    n_stft=1024,
-                    n_mels=64,
-                    f_min=20,
-                    f_max=8000
-                )(mel_dat)
-                # inverse the spectogram
-                audio = torchaudio.transforms.GriffinLim(n_fft=1024)(inverse_data[:, nfft // 2:, :]).squeeze().numpy()
+            mel_data = mel_dat.squeeze().numpy()
+            # reshape to -80 to 0 db range from librosa standard
+            if not clipping:
+                mel_data /= mel_data.max()
             else:
-                mel_data = mel_dat.squeeze().numpy()
-                # reshape to -80 to 0 db range from librosa standard
-                #mel_data /= mel_data.max()
                 mel_data = np.clip(mel_data, 0.0, 1.0)
-                mel_data *= 80
-                mel_data -= 80
+            mel_data *= 80
+            mel_data -= 80
 
-                mel_data = db_to_power(mel_data)
-                audio = mel_to_audio(
-                    M=mel_data,
-                    sr=sample_rate,
-                    n_fft=nfft,
-                    hop_length=hop_length,
-                    win_length=hop_length * 4,
-                    center=True,
-                    power=1,
-                    n_iter=32,
-                    fmin=20.0,
-                    fmax=sample_rate / 2.0,
-                    pad_mode="reflect",
-                    norm='slaney',
-                    htk=True
-                )
+            mel_data = db_to_power(mel_data)
+            audio = mel_to_audio(
+                M=mel_data,
+                sr=sample_rate,
+                n_fft=nfft,
+                hop_length=hop_length,
+                win_length=hop_length * 4,
+                center=True,
+                power=1,
+                n_iter=32,
+                fmin=20,
+                fmax=sample_rate / 2.0,
+                pad_mode="reflect",
+                norm='slaney',
+                htk=True
+            )
+            audio /= max(audio.max(), -audio.min())
             if plotting:
                 plt.figure()
                 plt.plot(audio)
