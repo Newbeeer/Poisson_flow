@@ -38,7 +38,7 @@ def get_loader(dataset="speech", mode="training", args=None):
         train_sampler = data
     
     loader = DataLoader(
-        data,
+        train_sampler,
         batch_size=config.training.batch_size,
         shuffle=shuffling,
         drop_last=True,
