@@ -16,7 +16,6 @@ from torchvision.utils import make_grid, save_image
 from utils import save_checkpoint, restore_checkpoint
 import wandb
 import torch.distributed as dist
-import gc
 
 
 def train(gpu, args):
@@ -33,7 +32,7 @@ def train(gpu, args):
         args.rank = gpu
         dist.init_process_group(
             backend='nccl',
-            init_method='env://',
+            init_method=args.dist_url,
             world_size=args.world_size,
             rank=args.rank
         )
