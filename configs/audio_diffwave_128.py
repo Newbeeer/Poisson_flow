@@ -41,8 +41,8 @@ def get_config():
     data = config.data
     data.spec = ml_collections.ConfigDict()
     data.spec = get_mels_128()
-    data.image_height = data.spec.image_size
-    data.image_width = data.spec.image_size
+    data.image_height = 1
+    data.image_width = 16000
     data.channels = 1
     data.category = 'audio'  # audio, mel
     data.centered = True # data is scaled from -1 to 1
@@ -67,6 +67,7 @@ def get_config():
     model.ema_rate = 0.995
     model.sigma_end = 0.01
     model.nf = 128
+    model.n_mels = data.spec.num_mels
     # diffwave
     model.residual_channels=64
     model.residual_layers=30

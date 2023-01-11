@@ -4,7 +4,7 @@ import copy
 import logging
 import numpy as np
 # Keep the import below for registering all model definitions
-from models import ncsnpp_audio, stablediff
+from models import ncsnpp_audio, stablediff, diffwave
 import losses
 import sampling
 from models import utils as mutils

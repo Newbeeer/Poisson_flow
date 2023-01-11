@@ -3,7 +3,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from math import sqrt
+from . import utils
 from .layers import get_positional_embedding
+
 
 Linear = nn.Linear
 ConvTranspose2d = nn.ConvTranspose2d
