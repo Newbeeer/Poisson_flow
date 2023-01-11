@@ -1,9 +1,9 @@
 #!/bin/bash
 
-#SBATCH -n 8
-#SBACTH --mem-per-cpu=4G
-#SBATCH --gpus=4
-#SBATCH --gres=gpumem:10g
+#SBATCH -n 16
+#SBACTH --mem-per-cpu=8G
+#SBATCH --gpus=2
+#SBATCH --gres=gpumem:20g
 #SBATCH --nodes=1
 #SBATCH --time=100:00:00
 wandb online

@@ -27,7 +27,7 @@ def get_config():
     training.sde = 'poisson'
     training.continuous = True
     training.batch_size = 32
-    training.small_batch_size = 4
+    training.small_batch_size = 8
     training.gamma = 5
     training.M = 293
     training.restrict_M = True
@@ -55,11 +55,11 @@ def get_config():
     # sampling.ode_solver = 'forward_euler'
     sampling.ode_solver = 'improved_euler'
     sampling.N = 100
-    sampling.z_max = 150
+    sampling.z_max = 45
     sampling.z_min = 1e-3
     sampling.upper_norm = 5000
     sampling.vs = False
-    sampling.ckpt_number = 180000  # number of ckpt to load for sampling
+    sampling.ckpt_number = 270000  # number of ckpt to load for sampling
 
     # model TODO adapt a 1d attention unet not a
     model = config.model

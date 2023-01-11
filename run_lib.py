@@ -16,7 +16,7 @@ from torchvision.utils import make_grid, save_image
 from utils import save_checkpoint, restore_checkpoint
 import wandb
 import torch.distributed as dist
-
+import gc
 
 def train(gpu, args):
     """Runs the training pipeline.
@@ -142,21 +142,22 @@ def train(gpu, args):
             wandb.log({"lr": lr}, step=step // config.training.log_freq)
             wandb.log({"train_loss": loss.item()}, step=step // config.training.log_freq)
             logging.info("gpu: %d, step: %d, training_loss: %.5e, lr: %f" % (gpu, step, loss.item(), lr))
-
+        
         # Save a temporary checkpoint to resume training after pre-emption periodically
-        if step != 0 and step % config.training.snapshot_freq_for_preemption == 0 and gpu == 0:
-            save_checkpoint(checkpoint_meta_dir, state)
+        if step != 0 and step % config.training.snapshot_freq_for_preemption == 0:
+            if args.DDP:
+                if gpu==0:
+                    save_checkpoint(checkpoint_meta_dir, state)
+                dist.barrier()
+
+            else:
+                save_checkpoint(checkpoint_meta_dir, state)
+            gc.collect()
 
         # Report the loss on an evaluation dataset periodically
         if step % config.training.eval_freq == 0 and gpu == 0:
-            if config.data.dataset == 'speech_commands' and not config.data.category == 'tfmel':
+            if config.data.dataset == 'speech_commands':
                 eval_batch = next(eval_iter).cuda()
-            else:
-                eval_batch = torch.from_numpy(next(eval_iter)['image']._numpy()).to(config.device,
-                                                                                    non_blocking=True).float()
-                if not config.data.category == 'tfmel':
-                    eval_batch = eval_batch.permute(0, 3, 1, 2)
-
             eval_batch = scaler(eval_batch)
             eval_loss = eval_step_fn(state, eval_batch)
             logging.info("step: %d, eval_loss: %.5e" % (step, eval_loss.item()))
@@ -212,9 +213,7 @@ def evaluate(args):
     logger.setLevel('INFO')
 
     # Build data pipeline
-
-    if not config.eval.save_images:
-        train_ds, eval_ds, _ = datasets.get_dataset(args, evaluation=True)
+    train_ds, eval_ds, _ = datasets.get_dataset(args, evaluation=True)
 
     # Create data normalizer and its inverse
     scaler = datasets.get_data_scaler(config)
@@ -222,6 +221,7 @@ def evaluate(args):
 
     # Initialize model
     net = mutils.create_model(args)
+    print("Created Model")
     optimizer, scheduler = losses.get_optimizer(config, net.parameters())
     ema = ExponentialMovingAverage(net.parameters(), decay=config.model.ema_rate)
     state = dict(optimizer=optimizer, model=net, ema=ema, scheduler=scheduler, step=0)
@@ -232,7 +232,7 @@ def evaluate(args):
     if config.training.sde.lower() == 'poisson':
         sde = methods.Poisson(args=args)
         sampling_eps = config.sampling.z_min
-        logging.info("--- sampling eps:", sampling_eps)
+        print("--- sampling eps:", sampling_eps)
     else:
         raise NotImplementedError(f"Method {config.training.sde} unknown.")
 
@@ -272,7 +272,7 @@ def evaluate(args):
         return
 
     # Wait for 2 additional mins in case the file exists but is not ready for reading
-    logging.info("Loading from ", ckpt_path)
+    print("Loading from ", ckpt_path)
     try:
         state = restore_checkpoint(ckpt_path, state, map_location=config.device)
     except:
@@ -289,21 +289,20 @@ def evaluate(args):
     # Compute the loss function on the full evaluation dataset if loss computation is enabled
     if config.eval.enable_loss:
         logging.info("please don't set the config.eval.save_images flag, or the datasets wouldn't be loaded.")
-    all_losses = []
-    eval_iter = iter(eval_ds)  # pytype: disable=wrong-arg-types
-    for i, batch in enumerate(eval_iter):
-        eval_batch = torch.from_numpy(batch['image']._numpy()).to(config.device).float()
-        eval_batch = eval_batch.permute(0, 3, 1, 2)
-        eval_batch = scaler(eval_batch)
-        eval_loss = eval_step(state, eval_batch)
-        all_losses.append(eval_loss.item())
-        if (i + 1) % 1000 == 0:
-            logging.info("Finished %dth step loss evaluation" % (i + 1))
+        all_losses = []
+        eval_iter = iter(eval_ds)  # pytype: disable=wrong-arg-types
+        for i, batch in enumerate(eval_iter):
+            eval_batch = batch.to(config.device).float()
+            eval_batch = eval_batch.permute(0, 3, 1, 2)
+            eval_batch = scaler(eval_batch)
+            eval_loss = eval_step(state, eval_batch)
+            all_losses.append(eval_loss.item())
+            if (i + 1) % 1000 == 0:
+                logging.info("Finished %dth step loss evaluation" % (i + 1))
 
-    # Save loss values to disk or Google Cloud Storage
-    all_losses = np.asarray(all_losses)
-    np.savez_compressed(os.path.join(eval_dir, f"ckpt_{ckpt}_loss.npz"), all_losses=all_losses,
-                        mean_loss=all_losses.mean())
+        # Save loss values to disk or Google Cloud Storage
+        all_losses = np.asarray(all_losses)
+        np.savez_compressed(os.path.join(eval_dir, f"ckpt_{ckpt}_loss.npz"), all_losses=all_losses, mean_loss=all_losses.mean())
 
 
     # Generate samples and compute IS/FID/KID when enabled

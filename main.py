@@ -48,7 +48,7 @@ def main():
     args = parser.parse_args()
 
     args.config = get_config(args)
-    args.wandb_group = args.conf
+    args.wandb_group = args.workdir
     wandb.require("service")
 
     if args.sampling:

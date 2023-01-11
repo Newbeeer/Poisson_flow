@@ -34,7 +34,7 @@ def get_default_configs():
     config.eval = evaluate = ml_collections.ConfigDict()
     evaluate.begin_ckpt = 30
     evaluate.end_ckpt = 31
-    evaluate.batch_size = 32
+    evaluate.batch_size = 8
     evaluate.enable_sampling = True
     evaluate.enable_interpolate = False
     evaluate.num_samples = 32
