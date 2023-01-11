@@ -26,7 +26,7 @@ class DiffusionEmbedding(nn.Module):
     def __init__(self, nf):
         super().__init__()
         self.nf = nf
-        self.projection1 = Linear(128, 512)
+        self.projection1 = Linear(nf, 512)
         self.projection2 = Linear(512, 512)
 
     def forward(self, z):
@@ -118,11 +118,11 @@ class DiffWave(nn.Module):
         assert (spectrogram is None and self.spectrogram_upsampler is None) or \
                (spectrogram is not None and self.spectrogram_upsampler is not None)
         print(audio.shape)
-        x = audio.unsqueeze(1)
-        x = self.input_projection(x)
+        x = self.input_projection(audio)
         x = F.relu(x)
 
         diffusion_step = self.diffusion_embedding(diffusion_step)
+
         if self.spectrogram_upsampler:  # use conditional model
             spectrogram = self.spectrogram_upsampler(spectrogram)
 
@@ -135,6 +135,8 @@ class DiffWave(nn.Module):
         x = self.skip_projection(x)
         x = F.relu(x)
         x = self.output_projection(x)
+
+        # TODO extract z
         x_out = x[:, :, 0]
         z_direction = x[:, :, 1]
         return x_out, z_direction
