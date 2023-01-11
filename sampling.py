@@ -22,7 +22,7 @@ import torch
 import numpy as np
 import abc
 
-from models.utils import from_flattened_numpy, to_flattened_numpy, get_predict_fn
+from models.utils import from_flattened_numpy, to_flattened_numpy, get_predict_fn, from_flattened_tensor
 from scipy import integrate
 from torchdiffeq import odeint
 import methods
@@ -753,9 +753,7 @@ def get_rk45_sampler_pfgm(sde, shape, inverse_scaler, rtol=1e-4, atol=1e-4,
 
             # Black-box ODE solver for the probability flow ODE.
             # Note that we use z = exp(t) for change-of-variable to accelearte the ODE simulation
-            solution = integrate.solve_ivp(ode_func, (np.log(sde.config.sampling.z_max), np.log(eps)),
-                                           to_flattened_numpy(x),
-                                           rtol=rtol, atol=atol, method=method)
+            solution = integrate.solve_ivp(ode_func, (np.log(sde.config.sampling.z_max), np.log(eps)),to_flattened_numpy(x),rtol=rtol, atol=atol, method=method)
 
             nfe = solution.nfev
             x = torch.tensor(solution.y[:, -1]).reshape(new_shape).to(device).type(torch.float32)
@@ -768,7 +766,7 @@ def get_rk45_sampler_pfgm(sde, shape, inverse_scaler, rtol=1e-4, atol=1e-4,
     return ode_sampler
 
 
-def get_torchdiffeq_sampler_pfgm(sde, shape, inverse_scaler, rtol=1e-4, atol=1e-4, eps=1e-3, device='cuda'):
+def get_torchdiffeq_sampler_pfgm(sde, shape, inverse_scaler, rtol=1e-3, atol=1e-4, eps=1e-3, device='cuda'):
     """RK45 ODE sampler for PFGM.
 
     Args:
@@ -804,22 +802,21 @@ def get_torchdiffeq_sampler_pfgm(sde, shape, inverse_scaler, rtol=1e-4, atol=1e-
 
             def ode_func(t, x):
 
-                if sde.config.sampling.vs:
-                    (np.exp(t))
-                x = from_flattened_numpy(x, new_shape).to(device).type(torch.float32)
+                x = from_flattened_tensor(x, new_shape)
+                
                 # Change-of-variable z=exp(t)
-                z = np.exp(t)
+                z = torch.exp(t)
                 net_fn = get_predict_fn(sde, model, train=False)
-
                 x_drift, z_drift = net_fn(x[:, :-1], torch.ones((len(x))).cuda() * z)
                 x_drift = x_drift.view(len(x_drift), -1)
 
                 # Substitute the predicted z with the ground-truth
                 # Please see Appendix B.2.3 in PFGM paper (https://arxiv.org/abs/2209.11178) for details
+                # TODO check the necessity
                 z_exp = sde.config.sampling.z_exp
-                if z < z_exp and sde.config.training.gamma > 0:
+                if z < z_exp and sde.config.training.gamma > 0 :
                     data_dim = sde.config.data.image_height * sde.config.data.image_width * sde.config.data.channels
-                    sqrt_dim = np.sqrt(data_dim)
+                    sqrt_dim = torch.sqrt(torch.tensor(data_dim))
                     norm_1 = x_drift.norm(p=2, dim=1) / sqrt_dim
                     x_norm = sde.config.training.gamma * norm_1 / (1 - norm_1)
                     x_norm = torch.sqrt(x_norm ** 2 + z ** 2)
@@ -836,20 +833,30 @@ def get_torchdiffeq_sampler_pfgm(sde, shape, inverse_scaler, rtol=1e-4, atol=1e-
                 drift = torch.cat([z * dx_dz, torch.ones(
                     (len(dx_dz), 1, sde.config.data.image_height, sde.config.data.image_width)).to(dx_dz.device) * z],
                                   dim=1)
-                return to_flattened_numpy(drift)
+                
+                return torch.flatten(drift)
 
             # Black-box ODE solver for the probability flow ODE.
             # Note that we use z = exp(t) for change-of-variable to accelearte the ODE simulation
+            t_start = np.log(sde.config.sampling.z_max)
+            t_end = np.log(eps)
+            # make a spaced sampling strategy
+            time_span = torch.linspace(t_start, t_end, 100).to(x.device)
+
             solution = odeint(ode_func,
-                              y0=to_flattened_numpy(x),
-                              t=(np.log(sde.config.sampling.z_max), np.log(eps)),
+                              y0=torch.flatten(x),
+                              t=time_span,
                               rtol=rtol,
-                              atol=atol
+                              atol=atol,
+                              method='adaptive_heun'
                               )
 
             #nfe = solution.nfev
-            x = torch.tensor(solution.y[:, -1]).reshape(new_shape).to(device).type(torch.float32)
-
+            # solution.y has shape (n,n_points) and is the y for step t (n steps)
+            # x = torch.tensor(solution.y[:, -1]).reshape(new_shape).to(device).type(torch.float32)
+            # get the solution for the final timestep only
+            x = solution[-1].reshape(new_shape)
+            
             # Detach augmented z dimension
             x = x[:, :-1]
             x = inverse_scaler(x)

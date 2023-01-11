@@ -139,3 +139,7 @@ def to_flattened_numpy(x):
 def from_flattened_numpy(x, shape):
     """Form a torch tensor with the given `shape` from a flattened numpy array `x`."""
     return torch.from_numpy(x.reshape(shape))
+
+def from_flattened_tensor(x, shape):
+    """Form a torch tensor with the given `shape` from a flattened tensor `x`."""
+    return x.reshape(shape)

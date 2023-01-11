@@ -228,6 +228,9 @@ def evaluate(args):
 
     checkpoint_dir = os.path.join(workdir, "checkpoints")
 
+    torch.cuda.empty_cache()
+    gc.collect()
+    
     # Setup methods
     if config.training.sde.lower() == 'poisson':
         sde = methods.Poisson(args=args)
@@ -265,7 +268,7 @@ def evaluate(args):
             raise ValueError("Please provide a ckpt_number!")
 
     if not os.path.exists(ckpt_filename):
-        logging.info(f"{ckpt_filename} does not exist! Loading from meta-checkpoint")
+        print(f"{ckpt_filename} does not exist! Loading from meta-checkpoint")
         ckpt_filename = os.path.join(checkpoint_dir, os.pardir, 'checkpoints-meta', 'checkpoint.pth')
         if not os.path.exists(ckpt_filename):
             logging.info("No checkpoints-meta")
@@ -275,8 +278,9 @@ def evaluate(args):
     print("Loading from ", ckpt_path)
     try:
         state = restore_checkpoint(ckpt_path, state, map_location=config.device)
-    except:
-        logging.info("Loading Failed!")
+    except Exception as e:
+        print("Loading Failed!")
+        print(e)
         time.sleep(60)
         try:
             state = restore_checkpoint(ckpt_path, state, map_location=config.device)
@@ -311,19 +315,19 @@ def evaluate(args):
         # Directory to save samples. Different for each host to avoid writing conflicts
         this_sample_dir = os.path.join(eval_dir, f"ckpt_{ckpt}")
         os.makedirs(this_sample_dir, exist_ok=True)
-        logging.info(f"Sampling for {num_sampling_rounds} rounds...")
+        print(f"Sampling for {num_sampling_rounds} rounds...")
         for r in range(num_sampling_rounds):
-            logging.info("sampling -- ckpt: %d, round: %d" % (ckpt, r))
+            print("sampling -- ckpt: %d, round: %d" % (ckpt, r))
             samples, n = sampling_fn(net)
-            logging.info(f"nfe: {n}")
-            logging.info(f"sample shape: {samples.shape}")
+            print(f"nfe: {n}")
+            print(f"sample shape: {samples.shape}")
             samples_torch = copy.deepcopy(samples)
             samples_torch = samples_torch.view(-1, config.data.num_channels, config.data.image_height,
                                                config.data.image_width)
 
             # sample the output matrices differently for pictures vs mel spectograms
             samples = samples.permute(0, 2, 3, 1).cpu().numpy()
-            logging.info("Saving images as raw mel specs.")
+            print("Saving images as raw mel specs.")
 
             samples = samples.reshape((-1, config.data.image_height, config.data.image_width, config.data.num_channels))
 

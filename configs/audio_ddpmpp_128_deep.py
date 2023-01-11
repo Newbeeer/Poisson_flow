@@ -53,7 +53,8 @@ def get_config():
     sampling.method = 'ode'
     # sampling.ode_solver = 'rk45'
     # sampling.ode_solver = 'forward_euler'
-    sampling.ode_solver = 'improved_euler'
+    #sampling.ode_solver = 'improved_euler'
+    sampling.ode_solver = 'torchdiffeq'
     sampling.N = 100
     sampling.z_max = 45
     sampling.z_min = 1e-3
