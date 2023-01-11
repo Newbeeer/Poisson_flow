@@ -43,13 +43,13 @@ def main():
     parser.add_argument("--test", action="store_true")
     parser.add_argument("--sampling", action="store_true")
     parser.add_argument("--ckpt", default=None)
-    parser.add_argument("--DDP", action='store_true')
+    parser.add_argument("--DDP", action='store_true', default=False)
     parser.add_argument("--dist_file", default="ddp_sync_")
     args = parser.parse_args()
 
     args.config = get_config(args)
     args.wandb_group = args.workdir
-    wandb.require("service")
+    
 
     if args.sampling:
         print("Parsing sampling args...")
@@ -58,8 +58,10 @@ def main():
         args.config.eval.batch_size = 32
         if args.ckpt is not None:
             args.config.sampling.ckpt_number = int(args.ckpt)
+        
     # setup for DDP
-    if args.DDP:
+    if args.DDP is True:
+        wandb.require("service")
         args.gpus = torch.cuda.device_count()
         args.world_size = args.gpus
         args.wandb_group += "_DDP"
