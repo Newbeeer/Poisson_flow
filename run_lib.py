@@ -303,7 +303,7 @@ def evaluate(args):
 
     # Generate samples and compute IS/FID/KID when enabled
     if config.eval.enable_sampling:
-        num_sampling_rounds = config.eval.num_samples // config.eval.batch_size + 1
+        num_sampling_rounds = config.eval.num_samples // config.eval.batch_size
         # Directory to save samples. Different for each host to avoid writing conflicts
         this_sample_dir = os.path.join(eval_dir, f"ckpt_{ckpt}")
         os.makedirs(this_sample_dir, exist_ok=True)
