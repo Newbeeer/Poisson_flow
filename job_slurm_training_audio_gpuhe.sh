@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #SBATCH -n 24
-#SBATCH --mem-per-cpu=2048
+#SBACTH --mem-per-cpu=2048
 #SBATCH --gpus=4
 #SBATCH --gres=gpumem:20g
 #SBATCH --time=100:00:00

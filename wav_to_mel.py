@@ -1,6 +1,8 @@
 import argparse
 import os
 import subprocess
+from convert_folder import convert_folder
+import tqdm
 
 
 def main():
@@ -12,7 +14,7 @@ def main():
     SC09 = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"]
     folders = [f for f in os.listdir(args.dir) if f in SC09]
 
-    for folder in folders:
+    for folder in tqdm.tqdm(folders):
         folder = os.path.join(args.dir, folder)
         if not os.path.isdir(folder): continue
         print(f"Processing {folder}")

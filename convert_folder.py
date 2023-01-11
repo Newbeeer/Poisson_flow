@@ -6,7 +6,6 @@ import warnings
 warnings.filterwarnings("ignore")
 from configs.default_audio_configs import get_mels_128, get_mels_64
 
-
 config = get_mels_128()
 FMIN = 20.0
 

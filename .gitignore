@@ -26,5 +26,11 @@ pfgm*
 venv
 mel_datasets
 /Samples/
+poissound/lib
+poissound/bin
+poissound
+test
+eval/gt_stats_64/activations*
+eval/gt_stats_128/activations*
 *.lz4
 evaluation/
