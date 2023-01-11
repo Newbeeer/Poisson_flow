@@ -327,6 +327,8 @@ class Poisson():
         dt_dz = 1 / (v[:, -1] + 1e-5)
         dx_dt = v[:, :-1].view(len(x), self.config.data.num_channels, self.config.data.image_height, self.config.data.image_width)
         dx_dz = dx_dt * dt_dz.view(-1, *([1] * len(x.size()[1:])))
+
         # dx/dt_prime =  z * dx/dz
         dx_dt_prime = z * dx_dz
+
         return dx_dt_prime
