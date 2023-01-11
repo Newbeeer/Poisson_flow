@@ -112,12 +112,16 @@ class DiffWave(nn.Module):
         ])
         self.skip_projection = Conv1d(model_params.residual_channels, model_params.residual_channels, 1)
         self.output_projection = Conv1d(model_params.residual_channels, 2, 1)
+        self.out_pooling = torch.nn.AdaptiveAvgPool1d(1)
         nn.init.zeros_(self.output_projection.weight)
 
     def forward(self, audio, diffusion_step, spectrogram=None):
         assert (spectrogram is None and self.spectrogram_upsampler is None) or \
                (spectrogram is not None and self.spectrogram_upsampler is not None)
-        print(audio.shape)
+
+        # delete one of the image dimensions if it was there
+        if audio.ndim == 4:
+            audio = audio.squeeze(-2)    
         x = self.input_projection(audio)
         x = F.relu(x)
 
@@ -136,7 +140,7 @@ class DiffWave(nn.Module):
         x = F.relu(x)
         x = self.output_projection(x)
 
-        # TODO extract z
-        x_out = x[:, :, 0]
-        z_direction = x[:, :, 1]
+        x_out = x[:, 0, :]
+        z_direction = self.out_pooling(x[:, 1, :]).squeeze()
+        # add channel information to audio
         return x_out, z_direction

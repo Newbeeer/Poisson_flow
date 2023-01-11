@@ -213,7 +213,8 @@ def evaluate(args):
     logger.setLevel('INFO')
 
     # Build data pipeline
-    train_ds, eval_ds, _ = datasets.get_dataset(args, evaluation=True)
+    if config.eval.enable_loss:
+        train_ds, eval_ds, _ = datasets.get_dataset(args, evaluation=True)
 
     # Create data normalizer and its inverse
     scaler = datasets.get_data_scaler(config)
