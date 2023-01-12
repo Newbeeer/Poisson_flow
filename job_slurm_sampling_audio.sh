@@ -3,4 +3,4 @@
 #SBATCH --gpus=1
 #SBATCH --gres=gpumem:10g
 wandb offline
-python3 main.py --conf sd_128 --mode eval --workdir sd_128 --ckpt 280000 --sampling
+python3 main.py --conf diffwave --mode eval --workdir diffwave --ckpt 50000 --sampling

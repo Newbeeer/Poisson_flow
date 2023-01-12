@@ -17,6 +17,7 @@ from utils import save_checkpoint, restore_checkpoint
 import wandb
 import torch.distributed as dist
 import gc
+import torchaudio 
 
 def train(gpu, args):
     """Runs the training pipeline.
@@ -285,7 +286,7 @@ def evaluate(args):
         time.sleep(60)
         try:
             state = restore_checkpoint(ckpt_path, state, map_location=config.device)
-        except:
+        except Exception as e:
             time.sleep(120)
             state = restore_checkpoint(ckpt_path, state, map_location=config.device)
 
@@ -315,7 +316,10 @@ def evaluate(args):
         num_sampling_rounds = config.eval.num_samples // config.eval.batch_size + 1
         # Directory to save samples. Different for each host to avoid writing conflicts
         this_sample_dir = os.path.join(eval_dir, f"ckpt_{ckpt}")
+        audio_dir = os.path.join(this_sample_dir,f"audio_{ckpt}")
         os.makedirs(this_sample_dir, exist_ok=True)
+        os.makedirs(audio_dir, exist_ok=True)
+
         print(f"Sampling for {num_sampling_rounds} rounds...")
         for r in range(num_sampling_rounds):
             print("sampling -- ckpt: %d, round: %d" % (ckpt, r))
@@ -328,14 +332,21 @@ def evaluate(args):
 
             # sample the output matrices differently for pictures vs mel spectograms
             samples = samples.permute(0, 2, 3, 1).cpu().numpy()
-            print("Saving images as raw mel specs.")
 
-            samples = samples.reshape((-1, config.data.image_height, config.data.image_width, config.data.num_channels))
+            if config.data.category == 'mel':
+                print("Saving images as raw mel specs.")
+                samples = samples.reshape((-1, config.data.image_height, config.data.image_width, config.data.num_channels))
 
-            # Write samples to disk or Google Cloud Storage
-            np.savez_compressed(os.path.join(this_sample_dir, f"samples_{r}.npz"), samples=samples)
+                # Write samples to disk or Google Cloud Storage
+                np.savez_compressed(os.path.join(this_sample_dir, f"samples_{r}.npz"), samples=samples)
 
-            if config.eval.save_images:
-                # Saving a few generated images for debugging / visualization
-                image_grid = make_grid(samples_torch, nrow=int(np.sqrt(len(samples_torch))))
-                save_image(image_grid, os.path.join(eval_dir, f'ode_images_{ckpt}.png'))
+                if config.eval.save_images:
+                    # Saving a few generated images for debugging / visualization
+                    image_grid = make_grid(samples_torch, nrow=int(np.sqrt(len(samples_torch))))
+                    save_image(image_grid, os.path.join(eval_dir, f'ode_images_{ckpt}.png'))
+            elif config.data.category == 'audio':
+                samples = samples_torch.reshape((-1, config.data.image_width)).cpu()
+                for si, sample in enumerate(samples):
+                    sample = torch.clamp(sample, -1.0, 1.0).unsqueeze(0)
+                    torchaudio.save(os.path.join(audio_dir,f"sample_{r}_{si}.wav"), sample, 16000)
+

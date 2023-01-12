@@ -152,7 +152,7 @@ class SPEECHCOMMANDS_MEL(Dataset):
             mel += noise
             mel = torch.clamp(mel, 0, 1.0)
         
-        return mel.unsqueeze(0), path
+        return mel.unsqueeze(0)
 
 
     def __len__(self) -> int:

@@ -26,7 +26,7 @@ def get_config():
     training = config.training
     training.sde = 'poisson'
     training.continuous = True
-    training.n_iters = 2000000
+    training.n_iters = 5000000
     training.batch_size = 4
     training.small_batch_size = 4
     training.gamma = 5
@@ -37,7 +37,7 @@ def get_config():
     training.snapshot_freq_for_preemption = 10000
     training.model = 'diffwave'
     training.reduce_mean = True
-    training.accum_iter = 8
+    training.accum_iter = 4
 
     # data
     data = config.data
@@ -51,14 +51,14 @@ def get_config():
     sampling = config.sampling
     sampling.method = 'ode'
     # sampling.ode_solver = 'rk45'
-    # sampling.ode_solver = 'forward_euler'
-    sampling.ode_solver = 'improved_euler'
+    sampling.ode_solver = 'forward_euler'
+    # sampling.ode_solver = 'improved_euler'
     sampling.N = 100
     sampling.z_max = 550
     sampling.z_min = 1e-3
     sampling.upper_norm = 1000
     sampling.vs = False
-    sampling.ckpt_number = 270000  # number of ckpt to load for sampling
+    sampling.ckpt_number = 50000  # number of ckpt to load for sampling
 
     # model TODO adapt a 1d attention unet not a
     model = config.model
@@ -71,7 +71,7 @@ def get_config():
     # from paper : We use a 36-layer DiffWave model
     # with kernel size 3 and dilation cycle [1, 2, · · · , 2048]. We set the number of diffusion steps T = 200
     # and residual channels C = 256. 
-    model.residual_channels=256
+    model.residual_channels=64
     model.residual_layers=30
     model.dilation_cycle_length=10
     model.unconditional = True # conditioning on mel spec of audio
