@@ -71,7 +71,7 @@ def get_config():
     # from paper : We use a 36-layer DiffWave model
     # with kernel size 3 and dilation cycle [1, 2, · · · , 2048]. We set the number of diffusion steps T = 200
     # and residual channels C = 256. 
-    model.residual_channels=64
+    model.residual_channels=128
     model.residual_layers=30
     model.dilation_cycle_length=10
     model.unconditional = True # conditioning on mel spec of audio

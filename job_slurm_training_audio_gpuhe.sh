@@ -2,7 +2,7 @@
 
 #SBATCH -n 12
 #SBACTH --mem-per-cpu=8G
-#SBATCH --gpus=4
+#SBATCH --gpus=2
 #SBATCH --gres=gpumem:20g
 #SBATCH --nodes=1
 #SBATCH --time=100:00:00
