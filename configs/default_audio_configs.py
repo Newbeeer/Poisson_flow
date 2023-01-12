@@ -51,7 +51,8 @@ def get_default_configs():
     data.uniform_dequantization = False
     data.centered = False
     data.num_channels = 1
-
+    data.add_noise = False
+    
     # model
     config.model = model = ml_collections.ConfigDict()
     model.sigma_max = 378

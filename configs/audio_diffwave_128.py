@@ -16,7 +16,7 @@
 # Lint as: python3
 """Config file for reproducing the results of DDPM on bedrooms."""
 import ml_collections
-from configs.default_audio_configs import get_default_configs, get_mels_128
+from configs.default_audio_configs import get_default_configs
 
 
 def get_config():
@@ -26,21 +26,21 @@ def get_config():
     training = config.training
     training.sde = 'poisson'
     training.continuous = True
-    training.batch_size = 32
-    training.small_batch_size = 8
+    training.n_iters = 2000000
+    training.batch_size = 4
+    training.small_batch_size = 4
     training.gamma = 5
-    training.M = 293 # TODO calculate it
+    training.M = 377
     training.restrict_M = True
     training.tau = 0.03
-    training.snapshot_freq = 10000
+    training.snapshot_freq = 50000
+    training.snapshot_freq_for_preemption = 10000
     training.model = 'diffwave'
     training.reduce_mean = True
     training.accum_iter = 8
 
     # data
     data = config.data
-    data.spec = ml_collections.ConfigDict()
-    data.spec = get_mels_128()
     data.image_height = 1
     data.image_width = 16000
     data.channels = 1
@@ -54,9 +54,9 @@ def get_config():
     # sampling.ode_solver = 'forward_euler'
     sampling.ode_solver = 'improved_euler'
     sampling.N = 100
-    sampling.z_max = 45
+    sampling.z_max = 550
     sampling.z_min = 1e-3
-    sampling.upper_norm = 5000
+    sampling.upper_norm = 1000
     sampling.vs = False
     sampling.ckpt_number = 270000  # number of ckpt to load for sampling
 
@@ -67,11 +67,12 @@ def get_config():
     model.ema_rate = 0.995
     model.sigma_end = 0.01
     model.nf = 128
-    model.n_mels = data.spec.num_mels
     # diffwave
-    model.residual_channels=64
+    # from paper : We use a 36-layer DiffWave model
+    # with kernel size 3 and dilation cycle [1, 2, · · · , 2048]. We set the number of diffusion steps T = 200
+    # and residual channels C = 256. 
+    model.residual_channels=256
     model.residual_layers=30
-    model.residual_channels=64
     model.dilation_cycle_length=10
     model.unconditional = True # conditioning on mel spec of audio
     

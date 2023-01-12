@@ -5,13 +5,13 @@ from datasets_torch import get_loader
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--conf", default='sd_128')
+    parser.add_argument("--conf", default='diffwave')
     args = parser.parse_args()
     args.test = False
 
     config = get_config(args)
 
-    DATA_NORM = 51 # is 32 for cifar | 22 for 64 mels | | 51 for 128 mels
+    DATA_NORM = 28 # is 32 for cifar | 22 for 64 mels | 51 for 128 mels | 28 for pure audio
     N = config.data.image_height*config.data.image_height*config.data.num_channels + 1
     #N = 3072 #3072 for cifar
     sigma = config.model.sigma_min

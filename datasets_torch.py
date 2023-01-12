@@ -45,7 +45,7 @@ def get_loader(dataset="speech", mode="training", args=None):
         batch_size=config.training.batch_size,
         shuffle=shuffling,
         drop_last=True,
-        num_workers=0,
+        num_workers=2,
         pin_memory=True,
         sampler=train_sampler
     )
@@ -104,7 +104,7 @@ class SPEECHCOMMANDS_MEL(Dataset):
         root = os.fspath('.')
         self._archive = os.path.join(root, folder_in_archive)
         self._mel_root = config.data.mel_root
-
+        self.noise_injection = config.data.add_noise
         self._path = 'SpeechCommands/speech_commands_v0.02'
         
         if not os.path.exists(self._path):
@@ -144,8 +144,15 @@ class SPEECHCOMMANDS_MEL(Dataset):
 
         mel_path = os.path.join(self._mel_root, splits[1], splits[2].split('.')[0]+".npy")
         mel = np.load(mel_path)
+        mel = torch.tensor(mel, dtype=torch.float)
 
-        return torch.tensor(mel, dtype=torch.float).unsqueeze(0)
+        # add noise if noise injection is set
+        if self.noise_injection:
+            noise = torch.abs(torch.randn_like(mel))*1e-2
+            mel += noise
+            mel = torch.clamp(mel, 0, 1.0)
+        
+        return mel.unsqueeze(0), path
 
 
     def __len__(self) -> int:
@@ -269,6 +276,10 @@ class SPEECHCOMMANDS(Dataset):
         # make it mono
         waveform = torch.mean(waveform, dim=0, keepdim=True)
 
+        # randomly flip the phase
+        if torch.rand(1).item() < 0.5:
+            waveform *= -1
+        
         # pad waveform
         if waveform.shape[-1] < self.file_len:
             padding = self.file_len-waveform.shape[-1]
