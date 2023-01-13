@@ -24,7 +24,6 @@ import abc
 
 from models.utils import from_flattened_numpy, to_flattened_numpy, get_predict_fn, from_flattened_tensor
 from scipy import integrate
-from torchdiffeq import odeint
 import methods
 from models import utils as mutils
 from tqdm import tqdm
@@ -780,7 +779,8 @@ def get_torchdiffeq_sampler_pfgm(sde, shape, inverse_scaler, rtol=1e-3, atol=1e-
     Returns:
       A sampling function that returns samples and the number of function evaluations during sampling.
     """
-
+    from torchdiffeq import odeint
+    
     def ode_sampler(model, x=None):
 
         with torch.no_grad():
