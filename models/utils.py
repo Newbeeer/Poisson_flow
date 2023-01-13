@@ -119,40 +119,7 @@ def get_predict_fn(sde, model, train=False, continuous=True):
     """
     model_fn = get_model_fn(model, train=train, sde=sde)
 
-    if isinstance(sde, methods.VPSDE) or isinstance(sde, methods.subVPSDE):
-        def predict_fn(x, t):
-            # Scale neural network output by standard deviation and flip sign
-            if continuous or isinstance(sde, methods.subVPSDE):
-                # For VP-trained models, t=0 corresponds to the lowest noise level
-                # The maximum value of time embedding is assumed to 999 for
-                # continuously-trained models.
-                labels = t * 999
-                score = model_fn(x, labels)
-                std = sde.marginal_prob(torch.zeros_like(x), t)[1]
-            else:
-                # For VP-trained models, t=0 corresponds to the lowest noise level
-                labels = t * (sde.N - 1)
-                score = model_fn(x, labels)
-                std = sde.sqrt_1m_alphas_cumprod.to(labels.device)[labels.long()]
-
-            score = -score / std[:, None, None, None]
-            return score
-
-    elif isinstance(sde, methods.VESDE):
-        def predict_fn(x, t):
-            if continuous:
-                # get sigmas by t
-                labels = sde.marginal_prob(torch.zeros_like(x), t)[1]
-            else:
-                # For VE-trained models, t=0 corresponds to the highest noise level
-                labels = sde.T - t
-                labels *= sde.N - 1
-                labels = torch.round(labels).long()
-
-            score = model_fn(x, labels)
-            return score
-
-    elif isinstance(sde, methods.Poisson):
+    if isinstance(sde, methods.Poisson):
         # PFGM
         def predict_fn(x, z):
             # For PFGM, z is the augmented dimension
@@ -172,3 +139,7 @@ def to_flattened_numpy(x):
 def from_flattened_numpy(x, shape):
     """Form a torch tensor with the given `shape` from a flattened numpy array `x`."""
     return torch.from_numpy(x.reshape(shape))
+
+def from_flattened_tensor(x, shape):
+    """Form a torch tensor with the given `shape` from a flattened tensor `x`."""
+    return x.reshape(shape)

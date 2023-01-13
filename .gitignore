@@ -37,3 +37,7 @@ evaluation/
 checkpoints/pfgm/*
 checkpoints/resnext/*
 checkpoints/diffwave/*
+*.lz4
+*_sync_*
+gdrive*
+cifar*

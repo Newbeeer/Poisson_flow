@@ -43,11 +43,13 @@ def main():
     parser.add_argument("--test", action="store_true")
     parser.add_argument("--sampling", action="store_true")
     parser.add_argument("--ckpt", default=None)
-    parser.add_argument("--DDP", action='store_true')
+    parser.add_argument("--DDP", action='store_true', default=False)
+    parser.add_argument("--dist_file", default="ddp_sync_")
     args = parser.parse_args()
 
     args.config = get_config(args)
-    wandb.require("service")
+    args.wandb_group = args.workdir
+    
 
     if args.sampling:
         print("Parsing sampling args...")
@@ -56,13 +58,16 @@ def main():
         args.config.eval.batch_size = 32
         if args.ckpt is not None:
             args.config.sampling.ckpt_number = int(args.ckpt)
+        
     # setup for DDP
-    if args.DDP:
-        DISTFILE = 'distfile'
+    if args.DDP is True:
+        wandb.require("service")
         args.gpus = torch.cuda.device_count()
         args.world_size = args.gpus
-        os.environ['MASTER_ADDR'] = '127.0.0.1'
-        os.environ['MASTER_PORT'] = '29500'
+        args.wandb_group += "_DDP"
+
+        job_id = os.environ["SLURM_JOBID"]
+        args.dist_url = "file://{}.{}".format(os.path.realpath(args.dist_file), job_id)
 
     if args.mode == "train":
         print("START TRAINING")

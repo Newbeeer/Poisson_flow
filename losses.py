@@ -139,6 +139,7 @@ def get_loss_fn(sde, train, reduce_mean=True, continuous=True, eps=1e-5, method_
 
             net_x, net_z = net_fn(perturbed_samples_x, perturbed_samples_z)
             net_x = net_x.view(net_x.shape[0], -1)
+            
             # Predicted N+1-dimensional Poisson field
             net = torch.cat([net_x, net_z[:, None]], dim=1)
             # calculate the loss => squared L2 distance TODO add mel specific loss?

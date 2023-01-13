@@ -27,7 +27,7 @@ def get_config():
     training.sde = 'poisson'
     training.continuous = True
     training.batch_size = 16  # 1024 for rtx 6000 and 64mels, small = bs/8
-    training.small_batch_size = 16
+    training.small_batch_size = 2
     training.gamma = 5
     training.restrict_M = True
     training.M = 293
@@ -35,7 +35,7 @@ def get_config():
     training.snapshot_freq = 10000
     training.model = 'stablediff'
     training.reduce_mean = True
-    training.accum_iter = 32  # gradient accumulations
+    training.accum_iter = 16  # gradient accumulations
 
     # data
     data = config.data
@@ -43,25 +43,26 @@ def get_config():
     data.spec = get_mels_128()
     data.image_height = data.spec.image_size
     data.image_width = data.spec.image_size
-    data.mel_root = 'mel_datasets/sc09_128'
+    data.mel_root = 'mel_datasets/sc09_128_v2'
     data.channels = 1
     data.category = 'mel'  # audio, mel
     data.centered = False
 
     # sampling
+    config.eval.batch_size = 1
     sampling = config.sampling
     sampling.method = 'ode'
-    sampling.ode_solver = 'rk45'
-    # sampling.ode_solver = 'forward_euler'
+    # sampling.ode_solver = 'rk45'
+    sampling.ode_solver = 'forward_euler'
     # sampling.ode_solver = 'improved_euler'
     sampling.N = 100
     sampling.z_max = 46  # TODO find good value
     sampling.z_min = 1e-3
     sampling.upper_norm = 7400
     sampling.vs = False
-    sampling.ckpt_number = 155000  # number of ckpt to load for sampling
+    sampling.ckpt_number = 70000  # number of ckpt to load for sampling
 
-    # model TODO adapt a 1d attention unet not a
+    # model
     model = config.model
     model.name = 'stablediff'
     model.scale_by_sigma = False

@@ -36,7 +36,7 @@ def get_config():
     training.snapshot_freq = 10000
     training.model = 'ddpmpp'
     training.reduce_mean = True
-    training.accum_iter = 8
+    training.accum_iter = 1024 // training.batch_size
 
     # data
     data = config.data
@@ -53,9 +53,9 @@ def get_config():
     # sampling
     sampling = config.sampling
     sampling.method = 'ode'
-    sampling.ode_solver = 'rk45'
+    #sampling.ode_solver = 'rk45'
     # sampling.ode_solver = 'forward_euler'
-    # sampling.ode_solver = 'improved_euler'
+    sampling.ode_solver = 'improved_euler'
     sampling.N = 100
     sampling.z_max = 22
     sampling.z_min = 1e-3

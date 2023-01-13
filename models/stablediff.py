@@ -66,14 +66,14 @@ class UNetModel(nn.Module):
             for _ in range(n_res_blocks):
                 # Residual block maps from previous number of channels to the number of
                 # channels in the current level
-                layers = [ResBlock(channels, d_time_emb, out_channels=channels_list[i])]
+                layers_block = [ResBlock(channels, d_time_emb, out_channels=channels_list[i])]
                 channels = channels_list[i]
                 # Add transformer
                 if i in attention_levels:
-                    layers.append(SpatialTransformer(channels, n_heads, tf_layers))
+                    layers_block.append(SpatialTransformer(channels, n_heads, tf_layers))
                 # Add them to the input half of the U-Net and keep track of the number of channels of
                 # its output
-                self.input_blocks.append(TimestepEmbedSequential(*layers))
+                self.input_blocks.append(TimestepEmbedSequential(*layers_block))
                 input_block_channels.append(channels)
             # Down sample at all levels except last
             if i != levels - 1:
@@ -96,18 +96,18 @@ class UNetModel(nn.Module):
                 # Residual block maps from previous number of channels plus the
                 # skip connections from the input half of U-Net to the number of
                 # channels in the current level.
-                layers = [ResBlock(channels + input_block_channels.pop(), d_time_emb, out_channels=channels_list[i])]
+                layers_block = [ResBlock(channels + input_block_channels.pop(), d_time_emb, out_channels=channels_list[i])]
                 channels = channels_list[i]
                 # Add transformer
                 if i in attention_levels:
-                    layers.append(SpatialTransformer(channels, n_heads, tf_layers))
+                    layers_block.append(SpatialTransformer(channels, n_heads, tf_layers))
                 # Up-sample at every level after last residual block
                 # except the last one.
                 # Note that we are iterating in reverse; i.e. `i == 0` is the last.
                 if i != 0 and j == n_res_blocks:
-                    layers.append(UpSample(channels))
+                    layers_block.append(UpSample(channels))
                 # Add to the output half of the U-Net
-                self.output_blocks.append(TimestepEmbedSequential(*layers))
+                self.output_blocks.append(TimestepEmbedSequential(*layers_block))
 
         # Final normalization and $3 \times 3$ convolution
         self.out = nn.Sequential(

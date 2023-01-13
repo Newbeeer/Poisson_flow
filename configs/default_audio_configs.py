@@ -7,12 +7,12 @@ def get_default_configs():
     # training
     config.training = training = ml_collections.ConfigDict()
     config.training.batch_size = 256  # bs to calculate the gt field
-    training.n_iters = 200000  # 100k takes 17 hours on 4 gpus rtx 6000
+    training.n_iters = 500000  # 100k takes 17 hours on 4 gpus rtx 6000
     training.snapshot_freq = 10000
     training.log_freq = 100
     training.eval_freq = 10000
     ## store additional checkpoints for preemption in cloud computing environments
-    training.snapshot_freq_for_preemption = 500
+    training.snapshot_freq_for_preemption = 1000
     ## produce samples at each snapshot.
     training.snapshot_sampling = True
     training.continuous = True
@@ -26,7 +26,7 @@ def get_default_configs():
     sampling.n_steps_each = 1
     sampling.noise_removal = True
     sampling.probability_flow = False
-    sampling.snr = 0.1
+    sampling.snr = 0.2
     sampling.N = 1
     sampling.z_exp = 1
 
@@ -34,7 +34,7 @@ def get_default_configs():
     config.eval = evaluate = ml_collections.ConfigDict()
     evaluate.begin_ckpt = 30
     evaluate.end_ckpt = 31
-    evaluate.batch_size = 32
+    evaluate.batch_size = 8
     evaluate.enable_sampling = True
     evaluate.enable_interpolate = False
     evaluate.num_samples = 32
@@ -51,7 +51,8 @@ def get_default_configs():
     data.uniform_dequantization = False
     data.centered = False
     data.num_channels = 1
-
+    data.add_noise = False
+    
     # model
     config.model = model = ml_collections.ConfigDict()
     model.sigma_max = 378
@@ -69,7 +70,7 @@ def get_default_configs():
     optim.lr = 2e-4
     optim.beta1 = 0.9
     optim.eps = 1e-8
-    optim.warmup = 1000
+    optim.warmup = 5000
     optim.grad_clip = 1.
     optim.scheduler = 'none'  # 'none', 'OneCylce'
     optim.T_max = 2000  # the period in STEPS (check the total steps for good idea)

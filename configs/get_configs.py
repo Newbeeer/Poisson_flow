@@ -2,7 +2,7 @@ from .audio_ddpmpp_128_deep import get_config as ddpmpp_128_deep
 from .audio_ddpmpp_64_deep import get_config as ddpmpp_64_deep
 from .audio_sd_128 import get_config as sd_128
 from .audio_sd_64 import get_config as sd_64
-
+from .audio_diffwave_128 import get_config as diffwave
 
 def get_config(args):
     if args.conf == "128_deep":
@@ -13,6 +13,8 @@ def get_config(args):
         config = sd_128()
     elif args.conf == "sd_64":
         config = sd_64()
+    elif args.conf == "diffwave":
+        config = diffwave()
     else:
         raise ValueError("Unknown conf name!")
 
