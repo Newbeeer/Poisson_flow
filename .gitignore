@@ -30,3 +30,4 @@ mel_datasets
 *_sync_*
 gdrive*
 cifar*
+*.sh
