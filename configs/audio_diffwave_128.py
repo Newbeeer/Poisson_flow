@@ -27,8 +27,8 @@ def get_config():
     training.sde = 'poisson'
     training.continuous = True
     training.n_iters = 5000000
-    training.batch_size = 4
-    training.small_batch_size = 4
+    training.batch_size = 16
+    training.small_batch_size = 16
     training.gamma = 5
     training.M = 377
     training.restrict_M = True
@@ -71,8 +71,8 @@ def get_config():
     # from paper : We use a 36-layer DiffWave model
     # with kernel size 3 and dilation cycle [1, 2, · · · , 2048]. We set the number of diffusion steps T = 200
     # and residual channels C = 256. 
-    model.residual_channels=128
-    model.residual_layers=30
+    model.residual_channels=256
+    model.residual_layers=36
     model.dilation_cycle_length=10
     model.unconditional = True # conditioning on mel spec of audio
     
