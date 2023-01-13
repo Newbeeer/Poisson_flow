@@ -328,3 +328,5 @@ def evaluate(args):
                 # Saving a few generated images for debugging / visualization
             #    image_grid = make_grid(samples_torch, nrow=int(np.sqrt(len(samples_torch))))
             #    save_image(image_grid, os.path.join(eval_dir, f'ode_images_{ckpt}.png'))
+
+    del net

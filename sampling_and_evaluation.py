@@ -51,8 +51,8 @@ sample_rate = mel_cfg.sample_rate
 nfft = mel_cfg.nfft
 hop_length = mel_cfg.hop_length
 
-samples_path = f"{args.workdir}/ckpt_{args.config.sampling.ckpt_number}/mels/"
-audio_path = f"{args.workdir}/ckpt_{args.config.sampling.ckpt_number}/audio/"
+samples_path = f"{args.workdir}{args.eval_folder}/ckpt_{args.config.sampling.ckpt_number}/mels/"
+audio_path = f"{args.workdir}{args.eval_folder}/ckpt_{args.config.sampling.ckpt_number}/audio/"
 sample_files = os.listdir(samples_path)
 
 for sample in sample_files:

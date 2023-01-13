@@ -12,7 +12,7 @@ from torchvision.transforms import *
 import torchnet
 
 from resnext.samples_dataset import SamplesDataset
-from transforms import *
+from resnext.transforms import *
 import models
 
 import torch.nn.functional as F
@@ -60,6 +60,8 @@ def generate_embeddings(checkpoint_path, dataset_dir, batch_size=128, n_workers=
         embeddings = F.avg_pool2d(model(inputs), 8, 1).detach().squeeze().cpu()
         embeddings_list += [embeddings]
 
+    del model
+
     return torch.cat(embeddings_list, dim=0).numpy()
 
 def generate_label_distribution(checkpoint_path, dataset_dir, batch_size=128, n_workers=4, input="mel32"):
@@ -102,6 +104,8 @@ def generate_label_distribution(checkpoint_path, dataset_dir, batch_size=128, n_
         # forward
         logits = model(inputs).detach().squeeze().cpu()
         logits_list += [logits]
+
+    del model
 
     return torch.cat(logits_list, dim=0).numpy()
 

@@ -36,3 +36,4 @@ eval/gt_stats_128/activations*
 evaluation/
 checkpoints/pfgm/*
 checkpoints/resnext/*
+checkpoints/diffwave/*
