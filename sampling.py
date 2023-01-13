@@ -780,7 +780,7 @@ def get_torchdiffeq_sampler_pfgm(sde, shape, inverse_scaler, rtol=1e-3, atol=1e-
       A sampling function that returns samples and the number of function evaluations during sampling.
     """
     from torchdiffeq import odeint
-    
+
     def ode_sampler(model, x=None):
 
         with torch.no_grad():
@@ -838,14 +838,13 @@ def get_torchdiffeq_sampler_pfgm(sde, shape, inverse_scaler, rtol=1e-3, atol=1e-
             t_start = np.log(sde.config.sampling.z_max)
             t_end = np.log(eps)
             # make a spaced sampling strategy
-            time_span = torch.linspace(t_start, t_end, 100).to(x.device)
+            time_span = torch.linspace(t_start, t_end, sde.config.sampling.N).to(x.device)
 
             solution = odeint(ode_func,
                               y0=torch.flatten(x),
                               t=time_span,
                               rtol=rtol,
                               atol=atol,
-                              method='adaptive_heun'
                               )
 
             #nfe = solution.nfev
