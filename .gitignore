@@ -34,3 +34,5 @@ eval/gt_stats_64/activations*
 eval/gt_stats_128/activations*
 *.lz4
 evaluation/
+checkpoints/pfgm/*
+checkpoints/resnext/*

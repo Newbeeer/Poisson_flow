@@ -7,6 +7,7 @@ from skimage.transform import resize
 import os
 import json
 import tensorflow as tf
+from pathlib import Path
 # import matplotlib.pyplot as plt
 
 # from datasets_tfrecords import get_dataset
@@ -198,7 +199,8 @@ def get_stats(sample_file, gt_stats_dir, config=None):
     return stats
     
 def main():
-    results_dir = "./eval/results" # where to save evaluation scores
+    results_dir = Path("./evaluation")
+    results_dir = "./evaluation/results" # where to save evaluation scores
     data_dir = "./eval/samples" # directory with sample npz files
     gt_stats_dir="./eval/gt_stats_128" # directory with gt mean and covariance
 

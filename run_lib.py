@@ -203,6 +203,7 @@ def evaluate(args):
     # Create directory to eval_folder
     config = args.config
     workdir = args.workdir
+    checkpoint_dir = args.checkpoint_dir
     eval_folder = args.eval_folder
     eval_dir = os.path.join(workdir, eval_folder)
     os.makedirs(eval_dir, exist_ok=True)
@@ -221,8 +222,6 @@ def evaluate(args):
     optimizer, scheduler = losses.get_optimizer(config, net.parameters())
     ema = ExponentialMovingAverage(net.parameters(), decay=config.model.ema_rate)
     state = dict(optimizer=optimizer, model=net, ema=ema, scheduler=scheduler, step=0)
-
-    checkpoint_dir = os.path.join(workdir, "checkpoints")
 
     # Setup methods
     if config.training.sde.lower() == 'poisson':
@@ -305,7 +304,7 @@ def evaluate(args):
     if config.eval.enable_sampling:
         num_sampling_rounds = config.eval.num_samples // config.eval.batch_size
         # Directory to save samples. Different for each host to avoid writing conflicts
-        this_sample_dir = os.path.join(eval_dir, f"ckpt_{ckpt}")
+        this_sample_dir = os.path.join(eval_dir, f"ckpt_{ckpt}/mels")
         os.makedirs(this_sample_dir, exist_ok=True)
         logging.info(f"Sampling for {num_sampling_rounds} rounds...")
         for r in range(num_sampling_rounds):
@@ -325,7 +324,7 @@ def evaluate(args):
             # Write samples to disk or Google Cloud Storage
             np.savez_compressed(os.path.join(this_sample_dir, f"samples_{r}.npz"), samples=samples)
 
-            if config.eval.save_images:
+            #if config.eval.save_images:
                 # Saving a few generated images for debugging / visualization
-                image_grid = make_grid(samples_torch, nrow=int(np.sqrt(len(samples_torch))))
-                save_image(image_grid, os.path.join(eval_dir, f'ode_images_{ckpt}.png'))
+            #    image_grid = make_grid(samples_torch, nrow=int(np.sqrt(len(samples_torch))))
+            #    save_image(image_grid, os.path.join(eval_dir, f'ode_images_{ckpt}.png'))
