@@ -16,7 +16,7 @@
 # Lint as: python3
 """Config file for reproducing the results of DDPM on bedrooms."""
 import ml_collections
-from configs.default_audio_configs import get_default_configs
+from configs.default_audio_configs import get_default_configs, get_mels_128
 
 
 def get_config():
@@ -44,6 +44,7 @@ def get_config():
     data.image_height = 1
     data.image_width = 16000
     data.channels = 1
+    data.spec = get_mels_128()
     data.category = 'audio'  # audio, mel
     data.centered = True # data is scaled from -1 to 1
 
@@ -71,8 +72,8 @@ def get_config():
     # from paper : We use a 36-layer DiffWave model
     # with kernel size 3 and dilation cycle [1, 2, · · · , 2048]. We set the number of diffusion steps T = 200
     # and residual channels C = 256. 
-    model.residual_channels=256
-    model.residual_layers=36
+    model.residual_channels=128
+    model.residual_layers=30
     model.dilation_cycle_length=10
     model.unconditional = True # conditioning on mel spec of audio
     

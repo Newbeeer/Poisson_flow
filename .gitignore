@@ -31,3 +31,5 @@ mel_datasets
 gdrive*
 cifar*
 *.sh
+*.pt
+*.ipynb

@@ -24,11 +24,6 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-from .layersad import SkipBlock, FourierFeatures, SelfAttention1d, ResConvBlock
-from .up_or_down_sampling import Downsample1d, Upsample1d
-from .layerssd import SpatialTransformer
-
-
 ResnetBlockDDPM = layerspp.ResnetBlockDDPMpp
 ResnetBlockBigGAN = layerspp.ResnetBlockBigGANpp
 Combine = layerspp.Combine
@@ -63,7 +58,6 @@ class NCSNpp(nn.Module):
         self.embedding_type = embedding_type = config.model.embedding_type.lower()
         init_scale = config.model.init_scale
         combine_method = config.model.progressive_combine.lower()
-        combiner = functools.partial(Combine, method=combine_method)
 
         modules = []
         # z/noise_level embedding; only for continuous training
