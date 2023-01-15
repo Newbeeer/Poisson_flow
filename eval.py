@@ -55,7 +55,9 @@ args.eval_folder = f"os_{args.config.sampling.ode_solver}_N_{args.config.samplin
 print("Generate samples ... ")
 evaluate.run(args)
 
-print("Compute metrics ... ")
+exit(0)
+
+#print("Compute metrics ... ")
 metrics = compute_metrics(f"{args.workdir}/ckpt_{args.config.sampling.ckpt_number}/{args.eval_folder}/audio")
 
 # Log metrics

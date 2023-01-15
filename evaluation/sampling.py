@@ -391,6 +391,7 @@ class OdeFunct(torch.nn.Module):
 
 
 class OdeTorch(torch.nn.Module):
+    "Ode solver using torchdiffeq"
     def __init__(self, sde, shape, inverse_scaler, rtol=1e-4, atol=1e-4, eps=1e-3, device='cuda', model=None):
         super(OdeTorch, self).__init__()
         self.sde = sde
