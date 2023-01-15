@@ -108,9 +108,9 @@ class ToMelSpectrogramFromSTFT(object):
         stft = data['stft']
         sample_rate = data['sample_rate']
         n_fft = data['n_fft']
-        mel_basis = librosa.filters.mel(sample_rate, n_fft, self.n_mels)
+        mel_basis = librosa.filters.mel(sample_rate, n_fft, self.n_mels, htk=True, fmin=20)
         s = np.dot(mel_basis, np.abs(stft)**2.0)
-        data['mel_spectrogram'] = librosa.power_to_db(s, ref=np.max)
+        data['mel_spectrogram'] = librosa.power_to_db(s, ref=np.max, top_db=80)
         return data
 
 class DeleteSTFT(object):

@@ -15,9 +15,9 @@ from utils.classes import DotDict
 
 print("Loading configuration ... ")
 args = DotDict()
-args.workdir = "/cluster/scratch/tshpakov/results/128_deep"
-args.checkpoint_dir = "checkpoints/pfgm/128"
-args.conf = "128_deep"
+args.workdir = "sd_128"
+args.checkpoint_dir = "sd_128/checkpoints"
+args.conf = "sd_128"
 args.test = False
 args.DDP = False
 args.sampling = True
@@ -30,10 +30,11 @@ args.config.eval.save_audio = True
 args.config.eval.enable_benchmarking = True
 
 # Sampling params
+#128
 args.config.sampling.ode_solver = 'torchdiffeq' # 'improved_euler', 'forward_euler', 'rk45'
-args.config.sampling.ckpt_number = 500000
-args.config.sampling.N = 100
-args.config.sampling.z_max = 100
+args.config.sampling.ckpt_number = 350000
+args.config.sampling.N = 50
+args.config.sampling.z_max = 200
 args.config.sampling.z_min = 1e-3
 args.config.sampling.upper_norm = 5000
 args.config.seed = 49
