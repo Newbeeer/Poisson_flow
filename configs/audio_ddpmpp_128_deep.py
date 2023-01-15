@@ -47,7 +47,7 @@ def get_config():
     data.channels = 1
     data.category = 'mel'  # audio, mel
     data.centered = False
-    data.add_noise = True 
+    data.add_noise = True
     
     # sampling
     sampling = config.sampling

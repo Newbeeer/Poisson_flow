@@ -36,6 +36,8 @@ checkpoints/*
 *_sync_*
 gdrive*
 cifar*
-setup.sh
-tester.ipynb
 /research/
+*.sh
+*.pt
+movie.gif
+tester.ipynb

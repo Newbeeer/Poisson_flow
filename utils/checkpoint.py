@@ -2,7 +2,6 @@ import torch
 import os
 import logging
 
-# TODO make one for DDP
 def restore_checkpoint(ckpt_dir, state, map_location):
     if not os.path.exists(ckpt_dir):
         os.makedirs(os.path.dirname(ckpt_dir), exist_ok=True)

@@ -1,9 +1,6 @@
 # https://github.com/labmlai/annotated_deep_learning_paper_implementations/blob/master/labml_nn/diffusion
 # /stable_diffusion/model/unet.py
 import math
-from typing import List
-
-import numpy as np
 import torch
 import torch as th
 import torch.nn as nn
