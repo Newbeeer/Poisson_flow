@@ -3,13 +3,13 @@ from .audio_ddpmpp_64_deep import get_config as ddpmpp_64_deep
 from .audio_sd_128 import get_config as sd_128
 from .audio_sd_64 import get_config as sd_64
 from .audio_diffwave_128 import get_config as diffwave
-from .audio_ddpmpp_128_tiny import get_config as ddpmpp_128_tiny
+from .audio_ddpmpp_128_deep_ddpmres import get_config as ddpmpp_128_deep_2
 
 def get_config(args):
     if args.conf == "128_deep":
         config = ddpmpp_128_deep()
-    elif args.conf == "128_tiny":
-        config = ddpmpp_128_tiny()
+    elif args.conf == "128_deep_2":
+        config = ddpmpp_128_deep_2()
     elif args.conf == "64_deep":
         config = ddpmpp_64_deep()
     elif args.conf == "sd_128":

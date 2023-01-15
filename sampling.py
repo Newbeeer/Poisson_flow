@@ -29,9 +29,8 @@ from tqdm import tqdm
 from PIL import Image
 from torchvision.utils import make_grid, save_image
 from torchdiffeq import odeint, odeint_adjoint
+import time
 
-_CORRECTORS = {}
-_PREDICTORS = {}
 _ODESOLVER = {}
 
 
@@ -56,10 +55,6 @@ def register_odesolver(cls=None, *, name=None):
 
 def get_ode_solver(name):
     return _ODESOLVER[name]
-
-
-def get_corrector(name):
-    return _CORRECTORS[name]
 
 
 def get_sampling_fn(config, sde, shape, inverse_scaler, eps, model=None):
@@ -397,7 +392,7 @@ class OdeFunct(torch.nn.Module):
 
 
 class OdeTorch(torch.nn.Module):
-    def __init__(self, sde, shape, inverse_scaler, rtol=1e-3, atol=1e-4, eps=1e-3, device='cuda', model=None):
+    def __init__(self, sde, shape, inverse_scaler, rtol=1e-4, atol=1e-4, eps=1e-3, device='cuda', model=None):
         super(OdeTorch, self).__init__()
         self.sde = sde
         self.shape = shape
@@ -415,24 +410,24 @@ class OdeTorch(torch.nn.Module):
         sde = self.sde
         shape = self.shape
         # Initial sample
-        x = sde.prior_sampling(shape).to(self.device)
+        x = sde.prior_sampling(shape).to(self.device, non_blocking=True)
 
-        z = torch.ones((len(x), 1, 1, 1)).to(x.device)
+        z = torch.ones((len(x), 1, 1, 1)).to(x.device, non_blocking=True)
         z = z.repeat((1, 1, sde.config.data.image_height, sde.config.data.image_width)) * sde.config.sampling.z_max
         x = x.view(shape)
         # Augment the samples with extra dimension z
         # We concatenate the extra dimension z as an addition channel to accomondate this solver
-        x = torch.cat((x, z), dim=1)
-        # x = x.float()
+        x = torch.cat((x, z), dim=1).float()
         new_shape = (len(x), sde.config.data.channels + 1, sde.config.data.image_height, sde.config.data.image_width)
         # Black-box ODE solver for the probability flow ODE.
         # Note that we use z = exp(t) for change-of-variable to accelearte the ODE simulation
         t_start = np.log(sde.config.sampling.z_max)
         t_end = np.log(self.eps)
         # make a spaced sampling strategy
-        time_span = torch.linspace(t_start, t_end, sde.config.sampling.N).to(x.device)
-
-        Ode = OdeFunct(sde, shape, new_shape, self.model).cuda()
+        #time_span = torch.linspace(t_start, t_end, sde.config.sampling.N).to(x.device)
+        time_span = torch.tensor((t_start, t_end)).to(x.device)
+        
+        Ode = OdeFunct(sde, shape, new_shape, self.model).to(self.device, non_blocking=True)
 
         solution = odeint(
             Ode,
@@ -440,8 +435,9 @@ class OdeTorch(torch.nn.Module):
             t=time_span,
             rtol=self.rtol,
             atol=self.atol,
-            # method='euler'
+            method='rk4', options=dict(step_size=0.5, perturb=True)
         )
+
         x = solution[-1].reshape(new_shape)
 
         # Detach augmented z dimension

@@ -1,18 +1,3 @@
-# coding=utf-8
-# Copyright 2020 The Google Research Authors.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 # pylint: skip-file
 
 from . import utils, layers, layerspp, normalization
@@ -55,9 +40,7 @@ class NCSNpp(nn.Module):
         self.all_resolutions = all_resolutions = [config.data.image_height // (2 ** i) for i in range(num_resolutions)]
         self.skip_rescale = skip_rescale = config.model.skip_rescale
         self.resblock_type = resblock_type = config.model.resblock_type.lower()
-        self.embedding_type = embedding_type = config.model.embedding_type.lower()
         init_scale = config.model.init_scale
-        combine_method = config.model.progressive_combine.lower()
 
         modules = []
         # z/noise_level embedding; only for continuous training

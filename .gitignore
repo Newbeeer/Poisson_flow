@@ -32,4 +32,4 @@ gdrive*
 cifar*
 *.sh
 *.pt
-*.ipynb
+tester.ipynb
