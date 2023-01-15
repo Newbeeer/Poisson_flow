@@ -770,6 +770,7 @@ class OdeFunct(torch.nn.Module):
         self.shape = shape 
         self.new_shape = new_shape
         self.model = model
+        self.nfe = 0
 
     @torch.no_grad()
     def forward(self, t, x):
@@ -777,6 +778,7 @@ class OdeFunct(torch.nn.Module):
         z = torch.exp(t)
         x_drift, z_drift = self.model(x[:, :-1], torch.ones((len(x))).cuda() * z)
         drift = self.calculate_drift(x, z, x_drift, z_drift).flatten()
+        self.nfe += 1
         return drift
 
     def calculate_drift(self, x, z, x_drift, z_drift):
@@ -857,4 +859,4 @@ class OdeTorch(torch.nn.Module):
         # Detach augmented z dimension
         x = x[:, :-1]
         x = self.inverse_scaler(x)
-        return x, 0
+        return x, Ode.nfe
