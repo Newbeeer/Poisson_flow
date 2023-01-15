@@ -174,6 +174,10 @@ def run(args):
                 b_file.write(f"{result}\n")
                 b_file.close()
 
+                nfe_file = open(f"{workdir}/ckpt_{ckpt}/{eval_folder}/nfe.txt", "a+")
+                nfe_file.write(f"{n}\n")
+                nfe_file.close()
+
             print(f"nfe: {n}")
             print(f"sample shape: {samples.shape}")
             samples_torch = copy.deepcopy(samples)
