@@ -343,19 +343,27 @@ def get_rk45_sampler_pfgm(sde, shape, inverse_scaler, rtol=1e-4, atol=1e-4,
 
 
 class OdeFunct(torch.nn.Module):
-    def __init__(self, sde, shape, new_shape, model):
+    def __init__(self, sde, shape, new_shape, model, inverse_scaler=None):
         super(OdeFunct, self).__init__()
         self.sde = sde
         self.shape = shape
         self.new_shape = new_shape
         self.model = model
         self.nfe = 0
+        self.inverse_scaler = inverse_scaler
+        self.samples = []
 
     @torch.no_grad()
     def forward(self, t, x):
         x = x.reshape(self.new_shape)
         z = torch.exp(t)
         x_drift, z_drift = self.model(x[:, :-1], torch.ones((len(x))).cuda() * z)
+        if self.sde.config.eval.show_sampling:
+            image_grid = make_grid(self.inverse_scaler(x), nrow=int(np.sqrt(len(x))))
+            im = Image.fromarray(image_grid.mul_(255).add_(0.5).clamp_(0, 255).permute(1, 2, 0).to('cpu',
+            torch.uint8).numpy())
+            self.samples.append(im)
+        
         drift = self.calculate_drift(x, z, x_drift, z_drift).flatten()
         self.nfe += 1
         return drift
@@ -424,10 +432,10 @@ class OdeTorch(torch.nn.Module):
         t_start = np.log(sde.config.sampling.z_max)
         t_end = np.log(self.eps)
         # make a spaced sampling strategy
-        #time_span = torch.linspace(t_start, t_end, sde.config.sampling.N).to(x.device)
-        time_span = torch.tensor((t_start, t_end)).to(x.device)
+        time_span = torch.linspace(t_start, t_end, sde.config.sampling.N).to(x.device)
+        #time_span = torch.tensor((t_start, t_end)).to(x.device)
         
-        Ode = OdeFunct(sde, shape, new_shape, self.model).to(self.device, non_blocking=True)
+        Ode = OdeFunct(sde, shape, new_shape, self.model, self.inverse_scaler).to(self.device, non_blocking=True)
 
         solution = odeint(
             Ode,
@@ -435,9 +443,10 @@ class OdeTorch(torch.nn.Module):
             t=time_span,
             rtol=self.rtol,
             atol=self.atol,
-            method='rk4', options=dict(step_size=0.5, perturb=True)
+            method='rk4'#, options=dict(step_size=0.5, perturb=False)
         )
-
+        if self.sde.config.eval.show_sampling:
+            Ode.samples[0].save(os.path.join("movie.gif"), save_all=True, append_images=Ode.samples[1:], duration=5, loop=0)
         x = solution[-1].reshape(new_shape)
 
         # Detach augmented z dimension

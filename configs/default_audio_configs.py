@@ -43,7 +43,8 @@ def get_default_configs():
     evaluate.bpd_dataset = 'test'
     evaluate.save_images = True  # debugging
     evaluate.enable_rescale = False
-
+    evaluate.show_sampling = False
+    
     # data
     config.data = data = ml_collections.ConfigDict()
     data.dataset = 'speech_commands'
