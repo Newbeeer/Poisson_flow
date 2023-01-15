@@ -39,3 +39,6 @@ cifar*
 setup.sh
 tester.ipynb
 /research/
+*.npz
+*.sh
+*.gif
