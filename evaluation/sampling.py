@@ -163,17 +163,13 @@ class ImprovedEulerPredictor(OdeSolverABC):
         super().__init__(sde, net_fn, eps)
 
     def update_fn(self, x, t, t_list=None, idx=None):
-        if self.sde.config.training.sde == 'poisson':
-            if t_list is None:
-                dt = - (np.log(self.sde.config.sampling.z_max) - np.log(self.eps)) / self.sde.N
-            else:
-                # integration over z
-                dt = (torch.exp(t_list[idx + 1] - t_list[idx]) - 1)
-                dt = float(dt.cpu().numpy())
-            drift = self.sde.ode(self.net_fn, x, t)
+        if t_list is None:
+            dt = - (np.log(self.sde.config.sampling.z_max) - np.log(self.eps)) / self.sde.N
         else:
-            dt = -1. / self.sde.N
-            drift, _ = self.rsde.sde(x, t)
+            # integration over z
+            dt = (torch.exp(t_list[idx + 1] - t_list[idx]) - 1)
+            dt = float(dt.cpu().numpy())
+        drift = self.sde.ode(self.net_fn, x, t)
         x_new = x + drift * dt
 
         if idx == self.sde.N - 1:
@@ -182,18 +178,14 @@ class ImprovedEulerPredictor(OdeSolverABC):
             idx_new = idx + 1
             t_new = t_list[idx_new]
             t_new = torch.ones(len(t), device=t.device) * t_new
-
-            if self.sde.config.training.sde == 'poisson':
-                if t_list is None:
-                    dt_new = - (np.log(self.sde.config.sampling.z_max) - np.log(self.eps)) / self.sde.N
-                else:
-                    # integration over z
-                    dt_new = (1 - torch.exp(t_list[idx] - t_list[idx + 1]))
-                    dt_new = float(dt_new.cpu().numpy())
-                drift_new = self.sde.ode(self.net_fn, x_new, t_new)
+            
+            if t_list is None:
+                dt_new = - (np.log(self.sde.config.sampling.z_max) - np.log(self.eps)) / self.sde.N
             else:
-                drift_new, diffusion = self.rsde.sde(x_new, t_new)
-                dt_new = -1. / self.sde.N
+                # integration over z
+                dt_new = (1 - torch.exp(t_list[idx] - t_list[idx + 1]))
+                dt_new = float(dt_new.cpu().numpy())
+            drift_new = self.sde.ode(self.net_fn, x_new, t_new)
 
             x = x + (0.5 * drift * dt + 0.5 * drift_new * dt_new)
             return x
@@ -329,7 +321,7 @@ def get_rk45_sampler_pfgm(sde, shape, inverse_scaler, rtol=1e-4, atol=1e-4,
             # Black-box ODE solver for the probability flow ODE.
             # Note that we use z = exp(t) for change-of-variable to accelearte the ODE simulation
             solution = integrate.solve_ivp(ode_func, (np.log(sde.config.sampling.z_max), np.log(eps)),
-                                           to_flattened_numpy(x), rtol=rtol, atol=atol, method=method)
+                                           to_flattened_numpy(x), rtol=rtol, atol=atol, method='RK45')
 
             nfe = solution.nfev
             x = torch.tensor(solution.y[:, -1]).reshape(new_shape).to(device).type(torch.float32)
@@ -432,7 +424,7 @@ class OdeTorch(torch.nn.Module):
         t_start = np.log(sde.config.sampling.z_max)
         t_end = np.log(self.eps)
         # make a spaced sampling strategy
-        time_span = torch.linspace(t_start, t_end, sde.config.sampling.N).to(x.device)
+        time_span = torch.linspace(t_start, t_end, sde.config.sampling.N+1).to(x.device).float()
         #time_span = torch.tensor((t_start, t_end)).to(x.device)
         
         Ode = OdeFunct(sde, shape, new_shape, self.model, self.inverse_scaler).to(self.device, non_blocking=True)
@@ -443,7 +435,8 @@ class OdeTorch(torch.nn.Module):
             t=time_span,
             rtol=self.rtol,
             atol=self.atol,
-            method='rk4'#, options=dict(step_size=0.5, perturb=False)
+            method='rk4', options=dict(step_size=0.9, perturb=False)
+            #method='dopri5', options=dict(max_num_steps=sde.config.sampling.N+1)
         )
         if self.sde.config.eval.show_sampling:
             Ode.samples[0].save(os.path.join("movie.gif"), save_all=True, append_images=Ode.samples[1:], duration=5, loop=0)
