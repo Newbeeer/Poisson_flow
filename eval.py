@@ -51,7 +51,7 @@ args.config.seed = 49
 args.eval_folder = f"os_{args.config.sampling.ode_solver}_N_{args.config.sampling.N}_zmax_{args.config.sampling.z_max}_zmin_{args.config.sampling.z_min}_un_{args.config.sampling.upper_norm}_seed_{args.config.seed}"
 
 print("Generate samples ... ")
-#evaluate.run(args)
+evaluate.run(args)
 
 print("Compute metrics ... ")
 metrics = compute_metrics(f"{args.workdir}/ckpt_{args.config.sampling.ckpt_number}/{args.eval_folder}/audio")
