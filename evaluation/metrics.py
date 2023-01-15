@@ -7,6 +7,7 @@ from sklearn.cluster import KMeans
 from scipy.special import softmax
 from scipy.stats import entropy
 import scipy.stats as st
+from scipy.linalg import sqrtm
 
 from evaluation.resnext.resnext_utils import generate_embeddings, generate_label_distribution
 
@@ -26,19 +27,20 @@ def kl(p, q):
 
 
 def fid(train_embeddings, sample_embeddings):
-    mean_gt = np.mean(train_embeddings, axis=0)
-    mean_gen = np.mean(sample_embeddings, axis=0)
+    mu_s, sigma_s = train_embeddings.mean(axis=0), np.cov(train_embeddings, rowvar=False)
 
-    print(mean_gt.shape)
-
-    cov_gt = np.cov(train_embeddings.T)
-    cov_gen = np.cov(sample_embeddings.T)
-
-    dist = np.linalg.norm(mean_gen - mean_gt) ** 2
-    trace = np.trace(cov_gt + cov_gen - 2 * np.emath.sqrt(np.matmul(cov_gt, cov_gen)).real)
-    print(trace)
-    print(dist)
-    return dist + trace
+    mu1, sigma1 = train_embeddings.mean(axis=0), np.cov(train_embeddings, rowvar=False)
+    mu2, sigma2 = sample_embeddings.mean(axis=0), np.cov(sample_embeddings, rowvar=False)
+    # calculate sum squared difference between means
+    ssdiff = np.sum((mu1 - mu2)**2.0)
+    # calculate sqrt of product between cov
+    covmean = sqrtm(sigma1.dot(sigma2))
+    # check and correct imaginary numbers from sqrt
+    if np.iscomplexobj(covmean):
+        covmean = covmean.real
+    # calculate score
+    fid = ssdiff + np.trace(sigma1 + sigma2 - 2.0 * covmean)
+    return fid
 
 
 def inception_score(label_dist):
