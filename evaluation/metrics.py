@@ -107,7 +107,7 @@ def ndb(train_embeddings, sample_embeddings, n_classes=10, alpha=0.05):
     return np.sum((np.array(zs) > upper) | (np.array(zs) < lower) | (np.isinf(ses))) / n_classes
 
 
-def compute_metrics(audio_path):
+def compute_metrics(audio_path, gt_metrics=False):
     # Compute embeddings and label distribution
     embeddings_train = np.load(RESNEXT_TRAIN_EMBEDDINGS_PATH)
     embeddings_samples = generate_embeddings(RESNEXT_CHECKPOINT_PATH, audio_path)
@@ -120,10 +120,12 @@ def compute_metrics(audio_path):
 
     metrics["fid"] = fid(embeddings_train, embeddings_samples)
     metrics["is"] = inception_score(label_distribution_samples)
-    metrics["train_is"] = inception_score(label_distribution_train)
 
     metrics["mis"] = modified_inception_score(label_distribution_samples)
-    metrics["train_mis"] = modified_inception_score(label_distribution_train)
+
+    if gt_metrics:
+        metrics["train_mis"] = modified_inception_score(label_distribution_train)
+        metrics["train_is"] = inception_score(label_distribution_train)
 
     metrics["am"] = am_score(label_distribution_train, label_distribution_samples)
     metrics["ndb"] = ndb(embeddings_train, embeddings_samples)

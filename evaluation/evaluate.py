@@ -93,7 +93,7 @@ def run(args):
         sampling_shape = (config.eval.batch_size,
                           config.data.num_channels,
                           config.data.image_height, config.data.image_width)
-        sampling_fn = sampling.get_sampling_fn(config, sde, sampling_shape, inverse_scaler, sampling_eps)
+        sampling_fn = sampling.get_sampling_fn(config, sde, sampling_shape, inverse_scaler, sampling_eps, net)
 
     # Wait if the target checkpoint doesn't exist yet
     torch.manual_seed(config.seed)
