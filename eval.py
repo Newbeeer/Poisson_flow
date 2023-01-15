@@ -15,9 +15,9 @@ from utils.classes import DotDict
 
 print("Loading configuration ... ")
 args = DotDict()
-args.workdir = "/cluster/scratch/tshpakov/results/128_deep"
-args.checkpoint_dir = "checkpoints/pfgm/128"
-args.conf = "128_deep"
+args.workdir = "sd_128"
+args.checkpoint_dir = "sd_128/checkpoints"
+args.conf = "sd_128"
 args.test = False
 args.DDP = False
 args.sampling = True

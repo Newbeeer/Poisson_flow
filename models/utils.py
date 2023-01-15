@@ -67,11 +67,9 @@ def create_model(args):
     if args.DDP:
         model.cuda(args.gpu)
         model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu])
-    elif not args.sampling:
-        model = model.to(config.device)
-        model = torch.nn.DataParallel(model)
     else:
         model = model.to(config.device)
+        model = torch.nn.DataParallel(model)
     return model
 
 
