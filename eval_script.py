@@ -10,7 +10,6 @@ import tensorflow as tf
 from pathlib import Path
 # import matplotlib.pyplot as plt
 
-# from datasets_tfrecords import get_dataset
 from datasets import get_dataset
 import pickle
 import argparse

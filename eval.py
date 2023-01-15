@@ -31,7 +31,7 @@ args.config.eval.enable_benchmarking = True
 # Sampling params
 args.config.sampling.ode_solver = 'torchdiffeq' # 'improved_euler', 'forward_euler', 'rk45'
 args.config.sampling.N = 100
-args.config.sampling.z_max = 200
+args.config.sampling.z_max = 45
 args.config.sampling.z_min = 1e-3
 args.config.sampling.upper_norm = 5000
 args.config.seed = 49
@@ -55,7 +55,9 @@ evaluate.run(args)
 
 print("Compute metrics ... ")
 metrics = compute_metrics(f"{args.workdir}/ckpt_{args.config.sampling.ckpt_number}/{args.eval_folder}/audio")
+#metrics = compute_metrics("/cluster/scratch/tshpakov/results/diffwave_samples/ckpt/audio")
 
 # Log metrics
 with open(f'{args.workdir}/ckpt_{args.config.sampling.ckpt_number}/{args.eval_folder}/metrics.txt', 'w+') as metric_file:
+#with open(f'/cluster/scratch/tshpakov/results/diffwave_samples/ckpt/metrics.txt', 'w+') as metric_file:
      metric_file.write(json.dumps(metrics))
