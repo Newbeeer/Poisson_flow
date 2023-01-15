@@ -42,3 +42,4 @@ tester.ipynb
 *.npz
 *.sh
 *.gif
+diffwave-ljspeech-22kHz-1000578.pt
