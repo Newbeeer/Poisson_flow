@@ -45,3 +45,4 @@ diffwave-ljspeech-22kHz-1000578.pt
 *.pt
 movie.gif
 /research/
+eval mathias.py

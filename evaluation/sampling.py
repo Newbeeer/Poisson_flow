@@ -17,7 +17,6 @@
 # pytype: skip-file
 """Various sampling methods."""
 import functools
-
 import torch
 import numpy as np
 import abc
@@ -28,9 +27,9 @@ from models import utils as mutils
 from tqdm import tqdm
 from PIL import Image
 from torchvision.utils import make_grid, save_image
-from torchdiffeq import odeint, odeint_adjoint
-import time
+from torchdiffeq import odeint
 import os
+from methods import gt_substituion
 
 _ODESOLVER = {}
 
@@ -164,11 +163,10 @@ class ImprovedEulerPredictor(OdeSolverABC):
 
     def update_fn(self, x, t, t_list=None, idx=None):
         if t_list is None:
-            dt = - (np.log(self.sde.config.sampling.z_max) - np.log(self.eps)) / self.sde.N
+            dt = - (torch.log(self.sde.config.sampling.z_max) - torch.log(self.eps)) / self.sde.N
         else:
             # integration over z
             dt = (torch.exp(t_list[idx + 1] - t_list[idx]) - 1)
-            dt = float(dt.cpu().numpy())
         drift = self.sde.ode(self.net_fn, x, t)
         x_new = x + drift * dt
 
@@ -180,11 +178,11 @@ class ImprovedEulerPredictor(OdeSolverABC):
             t_new = torch.ones(len(t), device=t.device) * t_new
             
             if t_list is None:
-                dt_new = - (np.log(self.sde.config.sampling.z_max) - np.log(self.eps)) / self.sde.N
+                dt_new = - (torch.log(self.sde.config.sampling.z_max) - torch.log(self.eps)) / self.sde.N
             else:
                 # integration over z
                 dt_new = (1 - torch.exp(t_list[idx] - t_list[idx + 1]))
-                dt_new = float(dt_new.cpu().numpy())
+                #dt_new = float(dt_new.cpu().numpy())
             drift_new = self.sde.ode(self.net_fn, x_new, t_new)
 
             x = x + (0.5 * drift * dt + 0.5 * drift_new * dt_new)
@@ -351,6 +349,7 @@ class OdeFunct(torch.nn.Module):
         x = x.reshape(self.new_shape)
         z = torch.exp(t)
         x_drift, z_drift = self.model(x[:, :-1], torch.ones((len(x))).cuda() * z)
+
         if self.sde.config.eval.show_sampling:
             image_grid = make_grid(self.inverse_scaler(x), nrow=int(np.sqrt(len(x))))
             im = Image.fromarray(image_grid.mul_(255).add_(0.5).clamp_(0, 255).permute(1, 2, 0).to('cpu',
@@ -368,13 +367,8 @@ class OdeFunct(torch.nn.Module):
         # Please see Appendix B.2.3 in PFGM paper (https://arxiv.org/abs/2209.11178) for details
         z_exp = self.sde.config.sampling.z_exp
         if z < z_exp and self.sde.config.training.gamma > 0:
-            data_dim = self.sde.config.data.image_height * self.sde.config.data.image_width * \
-                       self.sde.config.data.channels
-            sqrt_dim = torch.sqrt(torch.tensor(data_dim))
-            norm_1 = x_drift.norm(p=2, dim=1) / sqrt_dim
-            x_norm = self.sde.config.training.gamma * norm_1 / (1 - norm_1)
-            x_norm = torch.sqrt(x_norm ** 2 + z ** 2)
-            z_drift = -sqrt_dim * torch.ones_like(z_drift) * z / (x_norm + self.sde.config.training.gamma)
+            data_dim = self.sde.config.data.image_height * self.sde.config.data.image_width * self.sde.config.data.channels
+            z_drift = gt_substituion(x_drift, z_drift, z, torch.tensor(data_dim), torch.tensor(self.sde.config.training.gamma))
 
         # Predicted normalized Poisson field
         v = torch.cat([x_drift, z_drift[:, None]], dim=1)
@@ -436,9 +430,10 @@ class OdeTorch(torch.nn.Module):
             t=time_span,
             rtol=self.rtol,
             atol=self.atol,
-            method='rk4', options=dict(step_size=0.9, perturb=False)
+            method='rk4', options=dict(step_size=0.5, perturb=False)
             #method='dopri5', options=dict(max_num_steps=sde.config.sampling.N+1)
         )
+
         if self.sde.config.eval.show_sampling:
             Ode.samples[0].save(os.path.join("movie.gif"), save_all=True, append_images=Ode.samples[1:], duration=5, loop=0)
         x = solution[-1].reshape(new_shape)
