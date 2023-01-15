@@ -33,3 +33,5 @@ cifar*
 *.sh
 *.pt
 tester.ipynb
+movie.gif
+tester.ipynb
