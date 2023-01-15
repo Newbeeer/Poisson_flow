@@ -67,9 +67,11 @@ def create_model(args):
     if args.DDP:
         model.cuda(args.gpu)
         model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu])
-    else:
+    elif not args.sampling:
         model = model.to(config.device)
         model = torch.nn.DataParallel(model)
+    else:
+        model = model.to(config.device)
     return model
 
 
@@ -139,7 +141,3 @@ def to_flattened_numpy(x):
 def from_flattened_numpy(x, shape):
     """Form a torch tensor with the given `shape` from a flattened numpy array `x`."""
     return torch.from_numpy(x.reshape(shape))
-
-def from_flattened_tensor(x, shape):
-    """Form a torch tensor with the given `shape` from a flattened tensor `x`."""
-    return x.reshape(shape)

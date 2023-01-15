@@ -325,7 +325,8 @@ def evaluate(args):
         print(f"Sampling for {num_sampling_rounds} rounds...")
         for r in range(num_sampling_rounds):
             print("sampling -- ckpt: %d, round: %d" % (ckpt, r))
-            samples, n = sampling_fn(net)
+            with torch.no_grad():
+                samples, n = sampling_fn(net)
             print(f"nfe: {n}")
             print(f"sample shape: {samples.shape}")
             samples_torch = copy.deepcopy(samples)
@@ -346,10 +347,11 @@ def evaluate(args):
                     # Saving a few generated images for debugging / visualization
                     image_grid = make_grid(samples_torch, nrow=int(np.sqrt(len(samples_torch))))
                     save_image(image_grid, os.path.join(eval_dir, f'ode_images_{ckpt}.png'))
-            #elif config.data.category == 'audio':
-            #    samples = samples_torch.reshape((-1, config.data.image_width)).cpu()
-            #    for si, sample in enumerate(samples):
-            #        sample = torch.clamp(sample, -1.0, 1.0).unsqueeze(0)
-            #        torchaudio.save(os.path.join(audio_dir,f"sample_{r}_{si}.wav"), sample, 16000)
+            elif config.data.category == 'audio':
+                samples = samples_torch.reshape((-1, config.data.image_width)).cpu()
+                for si, sample in enumerate(samples):
+                    sample = sample / max(torch.max(sample), -torch.min(sample))
+                    sample = sample.unsqueeze(0)
+                    torchaudio.save(os.path.join(audio_dir,f"sample_{r}_{si}.wav"), sample, 16000)
 
     del net

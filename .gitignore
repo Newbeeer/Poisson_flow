@@ -36,10 +36,13 @@ checkpoints/*
 *_sync_*
 gdrive*
 cifar*
-setup.sh
-tester.ipynb
 /research/
 *.npz
 *.sh
 *.gif
 diffwave-ljspeech-22kHz-1000578.pt
+*.sh
+*.pt
+movie.gif
+tester.ipynb
+/research/
