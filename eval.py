@@ -1,0 +1,61 @@
+import os
+import json
+from tqdm import tqdm
+
+import torch
+import torchaudio
+import numpy as np
+import matplotlib.pyplot as plt
+
+from configs.get_configs import get_config
+from evaluation.metrics import compute_metrics
+from evaluation import evaluate
+
+from utils.classes import DotDict
+
+print("Loading configuration ... ")
+args = DotDict()
+args.conf = "128_deep"
+args.test = False
+args.config = get_config(args)
+args.workdir = "/cluster/scratch/tshpakov/results/128_deep"
+args.checkpoint_dir = "checkpoints/pfgm/128"
+args.config.eval.batch_size = 32
+args.DDP = False
+args.config.eval.num_samples = 1200
+args.config.sampling.ckpt_number = 500000
+args.config.eval.input_mel = "128"
+args.config.eval.save_audio = True
+args.config.eval.enable_benchmarking = True
+
+# Sampling params
+args.config.sampling.ode_solver = 'torchdiffeq' # 'improved_euler', 'forward_euler', 'rk45'
+args.config.sampling.N = 100
+args.config.sampling.z_max = 200
+args.config.sampling.z_min = 1e-3
+args.config.sampling.upper_norm = 5000
+args.config.seed = 49
+
+# 64
+#args.config.sampling.N = 100
+#args.config.sampling.z_max = 22
+#args.config.sampling.z_min = 1e-3
+#args.config.sampling.upper_norm = 1800
+
+# Diffwave 
+#args.config.sampling.N = 100
+#args.config.sampling.z_max = 550
+#args.config.sampling.z_min = 1e-3
+#args.config.sampling.upper_norm = 1000
+
+args.eval_folder = f"os_{args.config.sampling.ode_solver}_N_{args.config.sampling.N}_zmax_{args.config.sampling.z_max}_zmin_{args.config.sampling.z_min}_un_{args.config.sampling.upper_norm}_seed_{args.config.seed}"
+
+print("Generate samples ... ")
+#evaluate.run(args)
+
+print("Compute metrics ... ")
+metrics = compute_metrics(f"{args.workdir}/ckpt_{args.config.sampling.ckpt_number}/{args.eval_folder}/audio")
+
+# Log metrics
+with open(f'{args.workdir}/ckpt_{args.config.sampling.ckpt_number}/{args.eval_folder}/metrics.txt', 'w+') as metric_file:
+     metric_file.write(json.dumps(metrics))

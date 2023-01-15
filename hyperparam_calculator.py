@@ -26,5 +26,7 @@ def main():
     print("E: ", EXP)
     print("zmax: ", ZMAX)
     print("Upper norm: ", UPPERNORM)
+
+    
 if __name__ == "__main__":
     main()

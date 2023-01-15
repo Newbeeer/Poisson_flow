@@ -229,14 +229,11 @@ def evaluate(args):
     ema = ExponentialMovingAverage(net.parameters(), decay=config.model.ema_rate)
     state = dict(optimizer=optimizer, model=net, ema=ema, scheduler=scheduler, step=0)
 
-<<<<<<< HEAD
-=======
-    checkpoint_dir = os.path.join(workdir, "checkpoints")
+    #checkpoint_dir = os.path.join(workdir, "checkpoints")
 
     torch.cuda.empty_cache()
     gc.collect()
     
->>>>>>> f8f6c44e1499fe0ac3f908b4629c659f9bbf574d
     # Setup methods
     if config.training.sde.lower() == 'poisson':
         sde = methods.Poisson(args=args)
@@ -319,14 +316,11 @@ def evaluate(args):
     if config.eval.enable_sampling:
         num_sampling_rounds = config.eval.num_samples // config.eval.batch_size
         # Directory to save samples. Different for each host to avoid writing conflicts
-<<<<<<< HEAD
         this_sample_dir = os.path.join(eval_dir, f"ckpt_{ckpt}/mels")
-=======
-        this_sample_dir = os.path.join(eval_dir, f"ckpt_{ckpt}")
+        #this_sample_dir = os.path.join(eval_dir, f"ckpt_{ckpt}")
         audio_dir = os.path.join(this_sample_dir,f"audio_{ckpt}")
->>>>>>> f8f6c44e1499fe0ac3f908b4629c659f9bbf574d
         os.makedirs(this_sample_dir, exist_ok=True)
-        os.makedirs(audio_dir, exist_ok=True)
+        #os.makedirs(audio_dir, exist_ok=True)
 
         print(f"Sampling for {num_sampling_rounds} rounds...")
         for r in range(num_sampling_rounds):
@@ -352,18 +346,10 @@ def evaluate(args):
                     # Saving a few generated images for debugging / visualization
                     image_grid = make_grid(samples_torch, nrow=int(np.sqrt(len(samples_torch))))
                     save_image(image_grid, os.path.join(eval_dir, f'ode_images_{ckpt}.png'))
-            elif config.data.category == 'audio':
-                samples = samples_torch.reshape((-1, config.data.image_width)).cpu()
-                for si, sample in enumerate(samples):
-                    sample = torch.clamp(sample, -1.0, 1.0).unsqueeze(0)
-                    torchaudio.save(os.path.join(audio_dir,f"sample_{r}_{si}.wav"), sample, 16000)
-
-<<<<<<< HEAD
-            #if config.eval.save_images:
-                # Saving a few generated images for debugging / visualization
-            #    image_grid = make_grid(samples_torch, nrow=int(np.sqrt(len(samples_torch))))
-            #    save_image(image_grid, os.path.join(eval_dir, f'ode_images_{ckpt}.png'))
+            #elif config.data.category == 'audio':
+            #    samples = samples_torch.reshape((-1, config.data.image_width)).cpu()
+            #    for si, sample in enumerate(samples):
+            #        sample = torch.clamp(sample, -1.0, 1.0).unsqueeze(0)
+            #        torchaudio.save(os.path.join(audio_dir,f"sample_{r}_{si}.wav"), sample, 16000)
 
     del net
-=======
->>>>>>> f8f6c44e1499fe0ac3f908b4629c659f9bbf574d

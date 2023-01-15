@@ -103,17 +103,8 @@ class SPEECHCOMMANDS_MEL(Dataset):
         root = os.fspath('.') 
         self._archive = os.path.join(root, folder_in_archive)
         self._mel_root = config.data.mel_root
-<<<<<<< HEAD
-
-        if not config.data_path: 
-            self._path = 'SpeechCommands/speech_commands_v0.02'
-        else:
-            self._path = config.data_path
-            print(self._path)
-=======
         self.noise_injection = config.data.add_noise
         self._path = 'SpeechCommands/speech_commands_v0.02'
->>>>>>> f8f6c44e1499fe0ac3f908b4629c659f9bbf574d
         
         if not os.path.exists(self._path):
             raise RuntimeError(
