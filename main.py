@@ -67,8 +67,6 @@ def main():
             args.wandb_group += "_DDP"
         args.gpus = torch.cuda.device_count()
         args.world_size = args.gpus
-        
-
         job_id = os.environ["SLURM_JOBID"]
         args.dist_url = "file://{}.{}".format(os.path.realpath(args.dist_file), job_id)
 
@@ -85,9 +83,9 @@ def main():
             run_lib.train(0, args)
             
     elif args.mode == "eval":
-        print("START EVALUATION")
+        print("Please use the seperate evaluation script")
         # Run the evaluation pipeline
-        run_lib.evaluate(args)
+        #run_lib.evaluate(args)
     else:
         raise ValueError(f"Mode {args.mode} not recognized.")
 
