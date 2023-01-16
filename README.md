@@ -70,7 +70,7 @@ https://github.com/TSHP/PFGM_MOS
 
 ## Google Drive
 
-Please find the checkpoints of the models, as well as the default configuration used to obtain the results as described in our report in the Google drive below.
+Please find our dataset, the checkpoints of the models and the default configuration used to obtain the results as described in our report in the Google drive below.
 
 https://drive.google.com/drive/folders/18cMaVX4o5fwFsZ8ZPpnvWDg9H57EaX3_?usp=share_link
 
