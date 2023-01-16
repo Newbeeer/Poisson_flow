@@ -220,7 +220,7 @@ class ResnetBlockBigGANpp(nn.Module):
                 x = up_or_down_sampling.naive_downsample_2d(x, factor=2)
 
         h = self.Conv_0(h)
-        # Add bias to each feature map conditioned on the time embedding
+        # Add bias to each feature map conditioned on the z-value embedding
         if zemb is not None:
             h += self.Dense_0(self.act(zemb))[:, :, None, None]
         h = self.act(self.GroupNorm_1(h))

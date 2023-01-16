@@ -7,4 +7,4 @@
 #SBATCH --nodes=1
 #SBATCH --time=100:00:00
 wandb online
-python3 main.py --conf 128_deep_2 --mode train --workdir pfgm_128_deep_v3 --DDP
+python3 main.py --conf 128_deep --mode train --workdir test --test

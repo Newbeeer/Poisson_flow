@@ -13,7 +13,7 @@ import datasets
 import methods
 import torch
 from torchvision.utils import make_grid, save_image
-from utils import save_checkpoint, restore_checkpoint
+from utils.checkpoint import save_checkpoint, restore_checkpoint
 import wandb
 import torch.distributed as dist
 import gc
@@ -29,6 +29,7 @@ def train(gpu, args):
     """
     config = args.config
     workdir = args.workdir
+    
     if args.DDP:
         args.rank = gpu
         dist.init_process_group(
@@ -108,7 +109,7 @@ def train(gpu, args):
     # Building sampling functions
     if config.training.snapshot_sampling:
         sampling_shape = (16, config.data.num_channels, config.data.image_height, config.data.image_width)
-        sampling_fn = sampling.get_sampling_fn(config, sde, sampling_shape, inverse_scaler, sampling_eps)
+        sampling_fn = sampling.get_sampling_fn(config, sde, sampling_shape, inverse_scaler, sampling_eps, net)
 
     num_train_steps = config.training.n_iters
 

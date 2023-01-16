@@ -95,12 +95,13 @@ class SPEECHCOMMANDS_MEL(Dataset):
         config = None,
         filter_numbers=True,
     ) -> None:
+
         if subset is not None and subset not in ["training", "validation", "testing"]:
             raise ValueError("When `subset` is not None, it must be one of ['training', 'validation', 'testing'].")
 
 
         # Get string representation of 'root' in case Path object is passed
-        root = os.fspath('.') 
+        root = os.fspath('.')
         self._archive = os.path.join(root, folder_in_archive)
         self._mel_root = config.data.mel_root
         self.noise_injection = config.data.add_noise
@@ -111,6 +112,7 @@ class SPEECHCOMMANDS_MEL(Dataset):
                 f"The path {self._path} doesn't exist. "
                 "Please check the ``root`` path or set `download=True` to download it"
             )
+
         if subset == "validation":
             self._walker = _load_list(self._path, "validation_list.txt", number_filter=filter_numbers)
         elif subset == "testing":
@@ -139,7 +141,8 @@ class SPEECHCOMMANDS_MEL(Dataset):
         metadata = self.get_metadata(n)
         path = metadata[0]
         splits = path.split('/')
-        mel_path = os.path.join(self._mel_root, splits[-2], splits[-1].split('.')[0]+".npy")
+
+        mel_path = os.path.join(self._mel_root, splits[1], splits[2].split('.')[0]+".npy")
         mel = np.load(mel_path)
         mel = torch.tensor(mel, dtype=torch.float)
 

@@ -430,7 +430,7 @@ class OdeTorch(torch.nn.Module):
             t=time_span,
             rtol=self.rtol,
             atol=self.atol,
-            method='rk4', options=dict(step_size=0.5, perturb=False)
+            method='rk4', options=dict(step_size=sde.config.sampling.rk_stepsize, perturb=False)
             #method='dopri5', options=dict(max_num_steps=sde.config.sampling.N+1)
         )
 
