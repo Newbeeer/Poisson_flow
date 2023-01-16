@@ -62,8 +62,15 @@ To evaluate and generate samples from the 128 deep network from checkpoint numbe
 Please place the pretrained checkpoints under the directory `workdir/checkpoints`, e.g., `cifar10_ddpmpp/checkpoints`. 
 
 
+## Mean Opinion Score 
 
+Please find the code used for conducting the mean opinion score survey in the link below:
 
+https://github.com/TSHP/PFGM_MOS
 
+## Google Drive
 
+Please find the checkpoints of the models, as well as the default configuration used to obtain the results as described in our report in the Google drive below.
+
+https://drive.google.com/drive/folders/18cMaVX4o5fwFsZ8ZPpnvWDg9H57EaX3_?usp=share_link
 
