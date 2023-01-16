@@ -8,6 +8,7 @@ from scipy.special import softmax
 from scipy.stats import entropy
 import scipy.stats as st
 from scipy.linalg import sqrtm
+import random
 
 from evaluation.resnext.resnext_utils import generate_embeddings, generate_label_distribution
 
@@ -124,8 +125,12 @@ def compute_metrics(audio_path, gt_metrics=False):
     metrics["mis"] = modified_inception_score(label_distribution_samples)
 
     if gt_metrics:
-        metrics["train_mis"] = modified_inception_score(label_distribution_train)
-        metrics["train_is"] = inception_score(label_distribution_train)
+        indices = random.sample(range(len(label_distribution_train)), 2000)
+        label_distribution_train_sampled = label_distribution_train[indices]
+        metrics["train_mis"] = modified_inception_score(label_distribution_train_sampled)
+        print(metrics["train_mis"])
+        metrics["train_is"] = inception_score(label_distribution_train_sampled)
+        print(metrics["train_is"])
 
     metrics["am"] = am_score(label_distribution_train, label_distribution_samples)
     metrics["ndb"] = ndb(embeddings_train, embeddings_samples)

@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader
 from torchvision.transforms import *
 import torchnet
 
-from evaluation.resnext.samples_dataset import SamplesDataset
+from evaluation.resnext.resnext_datasets import SamplesDataset
 from evaluation.resnext.transforms import *
 import models
 

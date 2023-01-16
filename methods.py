@@ -2,7 +2,7 @@
 import abc
 import torch
 import numpy as np
-
+import time
 
 class SDE(abc.ABC):
     """SDE abstract class. Functions are designed for a mini-batch of inputs."""
@@ -154,8 +154,7 @@ class Poisson():
         return init_samples.float().view(len(init_samples), self.config.data.num_channels, self.config.data.image_height, self.config.data.image_width)
 
     def ode(self, net_fn, x, t):
-
-        z = np.exp(t.mean().cpu())
+        z = torch.exp(t.mean())
         if self.config.sampling.vs:
             print(z)
         x_drift, z_drift = net_fn(x, torch.ones((len(x))).cuda() * z)
@@ -167,11 +166,7 @@ class Poisson():
         
         if z < z_exp and self.config.training.gamma > 0:
             data_dim = self.config.data.image_height * self.config.data.image_width * self.config.data.channels
-            sqrt_dim = np.sqrt(data_dim)
-            norm_1 = x_drift.norm(p=2, dim=1) / sqrt_dim
-            x_norm = self.config.training.gamma * norm_1 / (1 - norm_1)
-            x_norm = torch.sqrt(x_norm ** 2 + z ** 2)
-            z_drift = -sqrt_dim * torch.ones_like(z_drift) * z / (x_norm + self.config.training.gamma)
+            z_drift = gt_substituion(x_drift, z_drift, z, torch.tensor(data_dim), torch.tensor(self.config.training.gamma))
 
         # Predicted normalized Poisson field
         v = torch.cat([x_drift, z_drift[:, None]], dim=1)
@@ -182,5 +177,14 @@ class Poisson():
 
         # dx/dt_prime =  z * dx/dz
         dx_dt_prime = z * dx_dz
-
         return dx_dt_prime
+
+
+@torch.jit.script
+def gt_substituion(x_drift, z_drift, z, data_dim, gamma):
+    sqrt_dim = torch.sqrt(torch.tensor(data_dim))
+    norm_1 = x_drift.norm(p=2, dim=1) / sqrt_dim
+    x_norm = gamma * norm_1 / (1 - norm_1)
+    x_norm = torch.sqrt(x_norm ** 2 + z ** 2)
+    z_drift = -sqrt_dim * torch.ones_like(z_drift) * z / (x_norm + gamma)
+    return z_drift

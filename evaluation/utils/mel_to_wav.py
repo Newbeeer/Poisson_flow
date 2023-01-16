@@ -18,7 +18,7 @@ plotting = False
 clipping = False
 
 
-def convert(mel, sample_rate, nfft, hop_length, clipping=True):
+def convert(mel, sample_rate, nfft, hop_length, clipping=False):
     mel_data = mel.copy()
     # reshape to -80 to 0 db range from librosa standard
     if not clipping:
