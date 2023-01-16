@@ -38,7 +38,6 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--conf", required=True)
     parser.add_argument("--workdir", required=True)
-    parser.add_argument("--mode", choices=["train", "eval"], required=True)
     parser.add_argument("--eval_folder", default="eval")
     parser.add_argument("--test", action="store_true")
     parser.add_argument("--sampling", action="store_true")
@@ -70,25 +69,17 @@ def main():
         job_id = os.environ["SLURM_JOBID"]
         args.dist_url = "file://{}.{}".format(os.path.realpath(args.dist_file), job_id)
 
-    if args.mode == "train":
-        print("START TRAINING")
-        # Create the working directory
-        os.makedirs(args.workdir, exist_ok=True)
-        # Set logger so that it outputs to both console and file
-        # Make logging work for both disk and Google Cloud Storage
-        # Run the training pipeline
-        if args.DDP:
-            mp.spawn(run_lib.train, nprocs=args.gpus, args=(args,))
-        else:
-            run_lib.train(0, args)
-            
-    elif args.mode == "eval":
-        print("Please use the seperate evaluation script")
-        # Run the evaluation pipeline
-        #run_lib.evaluate(args)
-    else:
-        raise ValueError(f"Mode {args.mode} not recognized.")
 
+    print("START TRAINING")
+    # Create the working directory
+    os.makedirs(args.workdir, exist_ok=True)
+    # Set logger so that it outputs to both console and file
+    # Make logging work for both disk and Google Cloud Storage
+    # Run the training pipeline
+    if args.DDP:
+        mp.spawn(run_lib.train, nprocs=args.gpus, args=(args,))
+    else:
+        run_lib.train(0, args)
 
 if __name__ == "__main__":
     main()
