@@ -125,12 +125,11 @@ def compute_metrics(audio_path, gt_metrics=False):
     metrics["mis"] = modified_inception_score(label_distribution_samples)
 
     if gt_metrics:
+        # Sample 2000 GT embeddings to reduce computation
         indices = random.sample(range(len(label_distribution_train)), 2000)
         label_distribution_train_sampled = label_distribution_train[indices]
-        metrics["train_mis"] = modified_inception_score(label_distribution_train_sampled)
-        print(metrics["train_mis"])
-        metrics["train_is"] = inception_score(label_distribution_train_sampled)
-        print(metrics["train_is"])
+        metrics["gt_mis"] = modified_inception_score(label_distribution_train_sampled)
+        metrics["gt_is"] = inception_score(label_distribution_train_sampled)
 
     metrics["am"] = am_score(label_distribution_train, label_distribution_samples)
     metrics["ndb"] = ndb(embeddings_train, embeddings_samples)
