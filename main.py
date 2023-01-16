@@ -45,6 +45,7 @@ def main():
     parser.add_argument("--ckpt", default=None)
     parser.add_argument("--DDP", action='store_true', default=False)
     parser.add_argument("--dist_file", default="ddp_sync_")
+    parser.add_argument("--wandb", action='store_true', default=False)
     args = parser.parse_args()
 
     args.config = get_config(args)
@@ -61,10 +62,12 @@ def main():
         
     # setup for DDP
     if args.DDP is True:
-        wandb.require("service")
+        if args.wandb:
+            wandb.require("service")
+            args.wandb_group += "_DDP"
         args.gpus = torch.cuda.device_count()
         args.world_size = args.gpus
-        args.wandb_group += "_DDP"
+        
 
         job_id = os.environ["SLURM_JOBID"]
         args.dist_url = "file://{}.{}".format(os.path.realpath(args.dist_file), job_id)
@@ -83,7 +86,6 @@ def main():
             
     elif args.mode == "eval":
         print("START EVALUATION")
-        pass
         # Run the evaluation pipeline
         run_lib.evaluate(args)
     else:

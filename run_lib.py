@@ -60,7 +60,8 @@ def train(gpu, args):
     optimizer, scheduler = losses.get_optimizer(config, net.parameters())
     state = dict(optimizer=optimizer, model=net, ema=ema, scheduler=scheduler, step=0)
 
-    wandb.init(config=args.config, group=args.wandb_group, name=f"{args.wandb_group}_{gpu}")
+    if args.wandb:
+        wandb.init(config=args.config, group=args.wandb_group, name=f"{args.wandb_group}_{gpu}")
 
     if gpu == 0:
         # Create checkpoints directory
@@ -141,8 +142,9 @@ def train(gpu, args):
             else:
                 lr = optimizer.param_groups[0]['lr']
 
-            wandb.log({"lr": lr}, step=step // config.training.log_freq)
-            wandb.log({"train_loss": loss.item()}, step=step // config.training.log_freq)
+            if args.wandb:
+                wandb.log({"lr": lr}, step=step // config.training.log_freq)
+                wandb.log({"train_loss": loss.item()}, step=step // config.training.log_freq)
             logging.info("gpu: %d, step: %d, training_loss: %.5e, lr: %f" % (gpu, step, loss.item(), lr))
         
         # Save a temporary checkpoint to resume training after pre-emption periodically
@@ -163,7 +165,8 @@ def train(gpu, args):
             eval_batch = scaler(eval_batch)
             eval_loss = eval_step_fn(state, eval_batch)
             logging.info("step: %d, eval_loss: %.5e" % (step, eval_loss.item()))
-            wandb.log({"val_loss": eval_loss.item()}, step=step // config.training.eval_freq)
+            if args.wandb:
+                wandb.log({"val_loss": eval_loss.item()}, step=step // config.training.eval_freq)
 
         # Save a checkpoint periodically and generate samples if needed
         if step != 0 and step % config.training.snapshot_freq == 0 or step == num_train_steps and gpu == 0:
@@ -185,8 +188,8 @@ def train(gpu, args):
 
                 np.save(os.path.join(this_sample_dir, "sample"), sample)
                 save_image(image_grid, os.path.join(this_sample_dir, "sample.png"))
-
-    wandb.finish()
+    if args.wandb:
+        wandb.finish()
 
 
 def evaluate(args):
