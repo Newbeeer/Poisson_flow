@@ -21,7 +21,7 @@ import torch.optim as optim
 import numpy as np
 from models import utils as mutils
 from models import utils_poisson
-
+import matplotlib.pyplot as plt
 
 def get_optimizer(config, params):
     """Returns a flax optimizer object based on `config`."""
@@ -138,6 +138,9 @@ def get_loss_fn(sde, train, reduce_mean=True, continuous=True, eps=1e-5, method_
             perturbed_samples_z = torch.clamp(perturbed_samples_vec[:, -1], 1e-10)
 
             net_x, net_z = net_fn(perturbed_samples_x, perturbed_samples_z)
+            plt.imshow(net_x[0].numy())
+            plt.imsave('field.png')
+            exit(0)
             net_x = net_x.view(net_x.shape[0], -1)
             
             # Predicted N+1-dimensional Poisson field

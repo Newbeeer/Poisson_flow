@@ -30,11 +30,11 @@ args.config.eval.save_audio = True
 args.config.eval.enable_benchmarking = True
 
 # Sampling params
-args.config.sampling.ode_solver = 'rk45' # 'torchdiffeq', 'improved_euler', 'forward_euler'
+args.config.sampling.ode_solver = 'torchdiffeq' # 'torchdiffeq', 'improved_euler', 'forward_euler'
 args.config.sampling.ckpt_number = 500000
-args.config.sampling.N = 100
-args.config.sampling.z_max = 25
-args.config.sampling.z_min = 1e-3
+args.config.sampling.N = 75
+args.config.sampling.z_max = 200
+args.config.sampling.z_min = 1e-4
 args.config.sampling.upper_norm = 5000
 args.config.seed = 49
 

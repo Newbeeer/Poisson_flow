@@ -46,3 +46,5 @@ diffwave-ljspeech-22kHz-1000578.pt
 movie.gif
 /research/
 eval mathias.py
+eval.py
+eval_mathias.py

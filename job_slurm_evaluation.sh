@@ -4,4 +4,4 @@
 #SBATCH --gpus=4
 #SBATCH --gres=gpumem:20g
 #SBATCH --time=4:00:00
-python eval.py
+python eval_mathias.py

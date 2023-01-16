@@ -190,7 +190,8 @@ def run(args):
             if config.data.category == 'mel':
                 print("Saving images as raw mel specs.")
                 samples = samples.reshape((-1, config.data.image_height, config.data.image_width, config.data.num_channels))
-                np.savez_compressed(os.path.join(sample_dir, f"samples_{r}.npz"), samples=samples)
+                if config.eval.save_mels == True:
+                    np.savez_compressed(os.path.join(sample_dir, f"samples_{r}.npz"), samples=samples)
 
                 if config.eval.save_audio:
                     mel_cfg = None
@@ -206,13 +207,14 @@ def run(args):
                     hop_length = mel_cfg.hop_length
 
                     for i, mel in enumerate(samples):
-                        audio = convert(mel.squeeze(), sample_rate,nfft, hop_length, clipping=False)
+                        audio = convert(mel.squeeze(), sample_rate, nfft, hop_length, clipping=False)
                         sf.write(f'{audio_dir}/sample_{r}_{i}.wav', audio, sample_rate, 'PCM_24')
 
                 if config.eval.save_images:
                     # Saving a few generated images for debugging / visualization
                     image_grid = make_grid(samples_torch, nrow=int(np.sqrt(len(samples_torch))))
                     save_image(image_grid, f"{img_dir}/ode_images_{r}.png")
+
             elif config.data.category == 'audio':
                 samples = samples_torch.reshape((-1, config.data.image_width)).cpu()
                 for si, sample in enumerate(samples):
