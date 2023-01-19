@@ -7,7 +7,6 @@ warnings.filterwarnings("ignore")
 from configs.default_audio_configs import get_mels_128, get_mels_64
 
 config = get_mels_128()
-FMIN = 20.0
 
 def librosa_melspec(y):
     melspec = librosa.feature.melspectrogram(
@@ -17,7 +16,7 @@ def librosa_melspec(y):
         win_length=config.hop_length * 4,
         hop_length=config.hop_length,
         n_mels=config.num_mels, 
-        fmin=FMIN, 
+        fmin=config.data.spec.,
         fmax=config.sample_rate / 2.0,
         center=True,
         pad_mode="reflect",
