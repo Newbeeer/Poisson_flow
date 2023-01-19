@@ -1,4 +1,3 @@
-*.txt
 *.pyc
 __pycache_
 .idea
@@ -49,3 +48,4 @@ eval_mathias.py
 /Samples/
 *sc09*
 /audio_samples/
+*std*.txt

@@ -1,0 +1,16 @@
+torch
+numpy
+argparse
+wandb
+matplotlib
+torchaudio
+tqdm
+torchvision
+tensorboardx
+scipy
+scikit-learn
+pillow
+torchdiffeq
+ml_collections
+librosa
+gdown
