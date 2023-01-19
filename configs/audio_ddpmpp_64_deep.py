@@ -18,8 +18,9 @@
 
 from configs.default_audio_configs import get_default_configs, get_mels_64
 import ml_collections
+from . import get_configs
 
-
+@get_configs.register_config(name='64_deep')
 def get_config():
     config = get_default_configs()
 

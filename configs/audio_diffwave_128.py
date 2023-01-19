@@ -15,10 +15,11 @@
 
 # Lint as: python3
 """Config file for reproducing the results of DDPM on bedrooms."""
-import ml_collections
 from configs.default_audio_configs import get_default_configs, get_mels_128
+from . import get_configs
 
 
+@get_configs.register_config(name='diffwave')
 def get_config():
     config = get_default_configs()
 

@@ -4,12 +4,9 @@ import copy
 import logging
 import numpy as np
 import gc
-
 import torch
-import torchaudio 
+import torchaudio
 from torchvision.utils import make_grid, save_image
-import torch.distributed as dist
-
 import soundfile as sf
 
 # Keep the import below for registering all model definitions
@@ -17,15 +14,12 @@ from models import ncsnpp_audio, stablediff, diffwave
 from models import utils as mutils
 from models.ema import ExponentialMovingAverage
 import losses
-
 from configs.default_audio_configs import get_mels_64, get_mels_128
-
 from evaluation import sampling
 from evaluation.utils.mel_to_wav import convert
 import datasets
 import methods
-
-from utils.checkpoint import save_checkpoint, restore_checkpoint
+from utils.checkpoint import restore_checkpoint
 
 
 def run(args):
@@ -72,7 +66,7 @@ def run(args):
 
     torch.cuda.empty_cache()
     gc.collect()
-    
+
     # Setup methods
     if config.training.sde.lower() == 'poisson':
         sde = methods.Poisson(args=args)
@@ -148,7 +142,8 @@ def run(args):
                 logging.info("Finished %dth step loss evaluation" % (i + 1))
 
         all_losses = np.asarray(all_losses)
-        np.savez_compressed(os.path.join(workdir, f"ckpt_{ckpt}_loss.npz"), all_losses=all_losses, mean_loss=all_losses.mean())
+        np.savez_compressed(os.path.join(workdir, f"ckpt_{ckpt}_loss.npz"), all_losses=all_losses,
+                            mean_loss=all_losses.mean())
 
     # Generate samples
     if config.eval.enable_sampling:
@@ -189,7 +184,8 @@ def run(args):
 
             if config.data.category == 'mel':
                 print("Saving images as raw mel specs.")
-                samples = samples.reshape((-1, config.data.image_height, config.data.image_width, config.data.num_channels))
+                samples = samples.reshape(
+                    (-1, config.data.image_height, config.data.image_width, config.data.num_channels))
                 if config.eval.save_mels == True:
                     np.savez_compressed(os.path.join(sample_dir, f"samples_{r}.npz"), samples=samples)
 
@@ -219,7 +215,7 @@ def run(args):
                 samples = samples_torch.reshape((-1, config.data.image_width)).cpu()
                 for si, sample in enumerate(samples):
                     sample = torch.clamp(sample, -1.0, 1.0).unsqueeze(0)
-                    torchaudio.save(os.path.join(audio_dir,f"sample_{r}_{si}.wav"), sample, 16000)
+                    torchaudio.save(os.path.join(audio_dir, f"sample_{r}_{si}.wav"), sample, 16000)
 
-        # Free allocated net after evaluation
+        # Free allocated net after evaluation
         del net

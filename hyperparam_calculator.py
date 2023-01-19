@@ -1,7 +1,6 @@
 import argparse
 from configs.get_configs import get_config
 import numpy as np
-from datasets_torch import get_loader
 
 def main():
     parser = argparse.ArgumentParser()

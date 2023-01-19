@@ -17,8 +17,10 @@
 """Config file for reproducing the results of DDPM on bedrooms."""
 import ml_collections
 from configs.default_audio_configs import get_default_configs, get_mels_128
+from . import get_configs
 
 
+@get_configs.register_config(name='128_deep')
 def get_config():
     config = get_default_configs()
 
@@ -43,7 +45,7 @@ def get_config():
     data.spec = get_mels_128()
     data.image_height = data.spec.image_size
     data.image_width = data.spec.image_size
-    data.mel_root = 'mel_datasets/sc09_128_v2'
+    data.mel_root = 'mel_sc09_128'
     data.channels = 1
     data.category = 'mel'  # audio, mel
     data.centered = False

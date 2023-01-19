@@ -1,34 +1,39 @@
-from .audio_ddpmpp_128_deep import get_config as ddpmpp_128_deep
-from .audio_ddpmpp_64_deep import get_config as ddpmpp_64_deep
-from .audio_sd_128 import get_config as sd_128
-from .audio_sd_64 import get_config as sd_64
-from .audio_diffwave_128 import get_config as diffwave
+# local dictionary holding configs
+_CONFS = {}
+
+
+def register_config(cls=None, *, name=None):
+    """A decorator for registering configs."""
+
+    def _register(cls):
+        if name is None:
+            local_name = cls.__name__
+        else:
+            local_name = name
+        if local_name in _CONFS:
+            raise ValueError(f'Already registered config with name: {local_name}')
+        _CONFS[local_name] = cls
+        return cls
+
+    if cls is None:
+        return _register
+    else:
+        return _register(cls)
+
 
 def get_config(args):
-    if args.conf == "128_deep":
-        config = ddpmpp_128_deep()
-    elif args.conf == "128_deep_2":
-        config = ddpmpp_128_deep_2()
-    elif args.conf == "64_deep":
-        config = ddpmpp_64_deep()
-    elif args.conf == "sd_128":
-        config = sd_128()
-    elif args.conf == "sd_64":
-        config = sd_64()
-    elif args.conf == "diffwave":
-        config = diffwave()
-    else:
-        raise ValueError("Unknown conf name!")
+    config =  _CONFS[args.conf]()
 
     # set sizes for test mode
-    if args.test:
-        config.training.continuous = True
-        config.training.batch_size = 4
-        config.eval.batch_size = 4
-        config.training.small_batch_size = 4
-        config.training.eval_freq = 100
-        config.training.snapshot_freq = 100
-        config.training.snapshot_freq_for_preemption = 250
+    if 'test' in args:
+        if args.test:
+            config.training.batch_size = 2
+            config.eval.batch_size = 1
+            config.training.small_batch_size = 2
+            config.training.accum_iter = 1
+            config.training.eval_freq = 1
+            config.training.snapshot_freq = 1
+            config.training.snapshot_freq_for_preemption = 1
 
     print("Read Config: ", config, sep='\n')
 

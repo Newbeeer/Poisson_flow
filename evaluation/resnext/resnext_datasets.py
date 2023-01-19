@@ -8,9 +8,10 @@ import librosa
 
 from torch.utils.data import Dataset
 
-__all__ = [ 'CLASSES', 'SpeechCommandsDataset', 'BackgroundNoiseDataset' ]
+__all__ = ['CLASSES', 'SpeechCommandsDataset', 'BackgroundNoiseDataset']
 
 CLASSES = 'zero, one, two, three, four, five, six, seven. eight, nine'.split(', ')
+
 
 class SpeechCommandsDataset(Dataset):
     """Google speech commands dataset. Only 'yes', 'no', 'up', 'down', 'left',
@@ -20,7 +21,8 @@ class SpeechCommandsDataset(Dataset):
     """
 
     def __init__(self, folder, transform=None, classes=CLASSES, silence_percentage=0.1):
-        all_classes = [d for d in os.listdir(folder) if os.path.isdir(os.path.join(folder, d)) and not d.startswith('_')]
+        all_classes = [d for d in os.listdir(folder) if
+                       os.path.isdir(os.path.join(folder, d)) and not d.startswith('_')]
 
         class_to_idx = {classes[i]: i for i in range(len(classes))}
         for c in all_classes:
@@ -52,7 +54,8 @@ class SpeechCommandsDataset(Dataset):
         return data
 
     def make_weights_for_balanced_classes(self):
-        """adopted from https://discuss.pytorch.org/t/balanced-sampling-between-classes-with-torchvision-dataloader/2703/3"""
+        """adopted from https://discuss.pytorch.org/t/balanced-sampling-between-classes-with-torchvision-dataloader
+        /2703/3"""
 
         nclasses = len(self.classes)
         count = np.zeros(nclasses)
@@ -65,6 +68,7 @@ class SpeechCommandsDataset(Dataset):
         for idx, item in enumerate(self.data):
             weight[idx] = weight_per_class[item[1]]
         return weight
+
 
 class BackgroundNoiseDataset(Dataset):
     """Dataset for silence / background noise."""
@@ -80,7 +84,7 @@ class BackgroundNoiseDataset(Dataset):
         samples = np.hstack(samples)
         c = int(sample_rate * sample_length)
         r = len(samples) // c
-        self.samples = samples[:r*c].reshape(-1, c)
+        self.samples = samples[:r * c].reshape(-1, c)
         self.sample_rate = sample_rate
         self.classes = CLASSES
         self.transform = transform
@@ -96,7 +100,7 @@ class BackgroundNoiseDataset(Dataset):
             data = self.transform(data)
 
         return data
-        
+
 
 class SamplesDataset(Dataset):
     """

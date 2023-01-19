@@ -6,7 +6,6 @@ from math import sqrt
 from . import utils
 from .layers import get_positional_embedding
 
-
 Linear = nn.Linear
 ConvTranspose2d = nn.ConvTranspose2d
 
@@ -94,7 +93,7 @@ class DiffWave(nn.Module):
 
         # delete one of the image dimensions if it was there
         if audio.ndim == 4:
-            audio = audio.squeeze(-2)    
+            audio = audio.squeeze(-2)
         x = self.input_projection(audio)
         x = F.relu(x)
 

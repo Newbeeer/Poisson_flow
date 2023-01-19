@@ -1,6 +1,7 @@
 import ml_collections
 from configs.default_audio_configs import get_mels_128
 
+
 def get_config():
     config = ml_collections.ConfigDict()
 
@@ -32,6 +33,5 @@ def get_config():
     training.M = 280
     training.amp = False
     training.accum_iter = 0
-
 
     return config

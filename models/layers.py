@@ -21,6 +21,7 @@ def get_act(config):
     else:
         raise NotImplementedError('activation function does not exist!')
 
+
 def variance_scaling(scale, mode, distribution, in_axis=1, out_axis=0, dtype=torch.float32, device='cpu'):
     """Ported from JAX. """
 
@@ -100,9 +101,11 @@ def get_positional_embedding(positions, embedding_dim, max_positions=10000):
     assert emb.shape == (positions.shape[0], embedding_dim)
     return emb
 
+
 def _einsum(a, b, c, x, y):
     einsum_str = '{},{}->{}'.format(''.join(a), ''.join(b), ''.join(c))
     return torch.einsum(einsum_str, x, y)
+
 
 def contract_inner(x, y):
     """tensordot(x, y, 1)."""

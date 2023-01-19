@@ -7,7 +7,7 @@ from torch.utils.data import Dataset
 from torchaudio.datasets.utils import extract_archive
 from torchaudio import load as torch_load
 from torch.utils.data import DataLoader
-import torch 
+import torch
 import torch.nn.functional as F
 
 FOLDER_IN_ARCHIVE = "SpeechCommands"
@@ -16,30 +16,32 @@ HASH_DIVIDER = "_nohash_"
 EXCEPT_FOLDER = "_background_noise_"
 SC09 = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"]
 
+
 def get_loader(dataset="speech", mode="training", args=None):
     assert mode in ["training", "validation", "testing"], "Wrong type given!"
 
     config = args.config
 
     if mode in ["testing", "validation"] or args.DDP:
-        shuffling=False
+        shuffling = False
     else:
-        shuffling=True
-    
-    if dataset=="speech":
+        shuffling = True
+
+    if dataset == "speech":
         if config.data.category == 'mel':
             data = SPEECHCOMMANDS_MEL(subset=mode, config=config)
         elif config.data.category == 'audio':
-            data = SPEECHCOMMANDS(root = '.', subset=mode, config=config)
+            data = SPEECHCOMMANDS(root='.', subset=mode, config=config)
         else:
             exit("Wrong data category for speech dataset!")
-    
+
     # make a dataloader
     if args.DDP:
-        train_sampler = torch.utils.data.distributed.DistributedSampler(data, num_replicas=args.world_size, rank=args.rank)
+        train_sampler = torch.utils.data.distributed.DistributedSampler(data, num_replicas=args.world_size,
+                                                                        rank=args.rank)
     else:
         train_sampler = None
-    
+
     loader = DataLoader(
         data,
         batch_size=config.training.batch_size,
@@ -51,7 +53,8 @@ def get_loader(dataset="speech", mode="training", args=None):
     )
 
     return loader
-    
+
+
 # added filtering for SC09 equivalence
 def _load_list(root, *filenames, number_filter=False):
     output = []
@@ -60,7 +63,8 @@ def _load_list(root, *filenames, number_filter=False):
         # do filtering of SC09 dataset
         with open(filepath) as fileobj:
             if number_filter:
-                output += [os.path.normpath(os.path.join(root, line.strip())) for line in fileobj if line.split('/')[0] in SC09]
+                output += [os.path.normpath(os.path.join(root, line.strip())) for line in fileobj if
+                           line.split('/')[0] in SC09]
             else:
                 output += [os.path.normpath(os.path.join(root, line.strip())) for line in fileobj]
     return output
@@ -89,16 +93,15 @@ def _get_speechcommands_metadata(filepath: str, path: str) -> Tuple[str, int, st
 class SPEECHCOMMANDS_MEL(Dataset):
 
     def __init__(
-        self,
-        folder_in_archive: str = FOLDER_IN_ARCHIVE,
-        subset: Optional[str] = None,
-        config = None,
-        filter_numbers=True,
+            self,
+            folder_in_archive: str = FOLDER_IN_ARCHIVE,
+            subset: Optional[str] = None,
+            config=None,
+            filter_numbers=True,
     ) -> None:
 
         if subset is not None and subset not in ["training", "validation", "testing"]:
             raise ValueError("When `subset` is not None, it must be one of ['training', 'validation', 'testing'].")
-
 
         # Get string representation of 'root' in case Path object is passed
         root = os.fspath('.')
@@ -106,7 +109,7 @@ class SPEECHCOMMANDS_MEL(Dataset):
         self._mel_root = config.data.mel_root
         self.noise_injection = config.data.add_noise
         self._path = 'SpeechCommands/speech_commands_v0.02'
-        
+
         if not os.path.exists(self._path):
             raise RuntimeError(
                 f"The path {self._path} doesn't exist. "
@@ -118,7 +121,7 @@ class SPEECHCOMMANDS_MEL(Dataset):
         elif subset == "testing":
             self._walker = _load_list(self._path, "testing_list.txt", number_filter=filter_numbers)
         elif subset == "training":
-            #DECIDED TO TRAIN ON ALL SINCE WE DON'T KNOW IF DIFFWAVE USED A SUBSET OR NOT
+            # DECIDED TO TRAIN ON ALL SINCE WE DON'T KNOW IF DIFFWAVE USED A SUBSET OR NOT
             walker = sorted(str(p) for p in Path(self._path).glob("*/*.wav"))
             if filter_numbers:
                 walker = [f for f in walker if f.split('/')[-2] in SC09]
@@ -130,39 +133,39 @@ class SPEECHCOMMANDS_MEL(Dataset):
         else:
             raise ValueError("Please specify the dataset subtype!")
         print(f"Initilaized MEL {subset} dataset.")
-        
 
     def get_metadata(self, n: int) -> Tuple[str, int, str, str, int]:
         fileid = self._walker[n]
         return _get_speechcommands_metadata(fileid, self._archive)
-
 
     def __getitem__(self, n: int):
         metadata = self.get_metadata(n)
         path = metadata[0]
         splits = path.split('/')
 
-        mel_path = os.path.join(self._mel_root, splits[1], splits[2].split('.')[0]+".npy")
+        mel_path = os.path.join(self._mel_root, splits[1], splits[2].split('.')[0] + ".npy")
         mel = np.load(mel_path)
         mel = torch.tensor(mel, dtype=torch.float)
 
         # add noise if noise injection is set
         if self.noise_injection:
-            noise = torch.abs(torch.randn_like(mel))*1e-2
+            noise = torch.abs(torch.randn_like(mel)) * 1e-2
             mel += noise
             mel = torch.clamp(mel, 0, 1.0)
-        
-        return mel.unsqueeze(0)
 
+        return mel.unsqueeze(0)
 
     def __len__(self) -> int:
         return len(self._walker)
 
 
-
 _CHECKSUMS = {
-    "http://download.tensorflow.org/data/speech_commands_v0.01.tar.gz": "743935421bb51cccdb6bdd152e04c5c70274e935c82119ad7faeec31780d811d",  # noqa: E501
-    "http://download.tensorflow.org/data/speech_commands_v0.02.tar.gz": "af14739ee7dc311471de98f5f9d2c9191b18aedfe957f4a6ff791c709868ff58",  # noqa: E501
+    "http://download.tensorflow.org/data/speech_commands_v0.01.tar.gz":
+        "743935421bb51cccdb6bdd152e04c5c70274e935c82119ad7faeec31780d811d",
+    # noqa: E501
+    "http://download.tensorflow.org/data/speech_commands_v0.02.tar.gz":
+        "af14739ee7dc311471de98f5f9d2c9191b18aedfe957f4a6ff791c709868ff58",
+    # noqa: E501
 }
 
 
@@ -189,13 +192,13 @@ class SPEECHCOMMANDS(Dataset):
     """
 
     def __init__(
-        self,
-        root: Union[str, Path],
-        url: str = URL,
-        folder_in_archive: str = FOLDER_IN_ARCHIVE,
-        download: bool = False,
-        subset: Optional[str] = None,
-        config = None
+            self,
+            root: Union[str, Path],
+            url: str = URL,
+            folder_in_archive: str = FOLDER_IN_ARCHIVE,
+            download: bool = False,
+            subset: Optional[str] = None,
+            config=None
     ) -> None:
 
         if subset is not None and subset not in ["training", "validation", "testing"]:
@@ -268,7 +271,6 @@ class SPEECHCOMMANDS(Dataset):
         fileid = self._walker[n]
         return _get_speechcommands_metadata(fileid, self._archive)
 
-
     def __getitem__(self, n: int):
         metadata = self.get_metadata(n)
         # load waveform which are at 16kHz
@@ -279,17 +281,16 @@ class SPEECHCOMMANDS(Dataset):
         # randomly flip the phase
         if torch.rand(1).item() < 0.5:
             waveform *= -1
-        
+
         # pad waveform
         if waveform.shape[-1] < self.file_len:
-            padding = self.file_len-waveform.shape[-1]
+            padding = self.file_len - waveform.shape[-1]
             waveform = F.pad(waveform, (1, padding), "constant", value=0)
 
         # cut if longer than 1 second
-        waveform = waveform[:,:self.file_len]
-        
-        return waveform
+        waveform = waveform[:, :self.file_len]
 
+        return waveform
 
     def __len__(self) -> int:
         return len(self._walker)

@@ -48,6 +48,7 @@ def convert(mel, sample_rate, nfft, hop_length, clipping=False):
 
     return audio
 
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--dir", required=True)
@@ -68,7 +69,7 @@ def main():
     files = os.listdir(os.path.join(args.dir, args.ckpt))
 
     for fnum, file in enumerate(files):
-        if file.split('.')[-1] not in ['np','npz', 'npy']:
+        if file.split('.')[-1] not in ['np', 'npz', 'npy']:
             continue
         file_path = os.path.join(args.dir, args.ckpt, file)
         try:
@@ -118,7 +119,7 @@ def main():
                 plt.plot(audio)
                 plt.show()
 
-            sf.write(f"{args.dir}/audio/{args.ckpt}/sample_{i+fnum*len(data)}.ogg", audio, 16_000)
+            sf.write(f"{args.dir}/audio/{args.ckpt}/sample_{i + fnum * len(data)}.ogg", audio, 16_000)
 
 
 if __name__ == "__main__":

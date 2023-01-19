@@ -16,9 +16,11 @@
 # Lint as: python3
 """Config file for reproducing the results of DDPM on bedrooms."""
 
-from configs.default_audio_configs import get_default_configs, get_mels_128, get_mels_64
+from configs.default_audio_configs import get_default_configs, get_mels_128
 import ml_collections
+from . import get_configs
 
+@get_configs.register_config(name='sd_128')
 def get_config():
     config = get_default_configs()
 

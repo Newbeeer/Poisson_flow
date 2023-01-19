@@ -15,7 +15,6 @@ def get_default_configs():
     training.snapshot_freq_for_preemption = 1000
     ## produce samples at each snapshot.
     training.snapshot_sampling = True
-    training.continuous = True
     training.reduce_mean = False
     training.M = 280
     training.amp = False
@@ -33,24 +32,17 @@ def get_default_configs():
 
     # evaluation
     config.eval = evaluate = ml_collections.ConfigDict()
-    evaluate.begin_ckpt = 30
-    evaluate.end_ckpt = 31
     evaluate.batch_size = 8
     evaluate.enable_sampling = True
-    evaluate.enable_interpolate = False
     evaluate.num_samples = 32
     evaluate.enable_loss = False
-    evaluate.enable_bpd = False
-    evaluate.bpd_dataset = 'test'
     evaluate.save_images = True  # debugging
-    evaluate.enable_rescale = False
     evaluate.show_sampling = False
     
     # data
     config.data = data = ml_collections.ConfigDict()
     data.dataset = 'speech_commands'
     # audio related things
-    data.uniform_dequantization = False
     data.centered = False
     data.num_channels = 1
     data.add_noise = False
@@ -89,6 +81,7 @@ def get_mels_64():
     spec.nfft = 1024
     spec.hop_length = 256
     spec.sample_rate = 16_000
+    spec.fmin = 20
     spec.audio_length = 1
     spec.image_size = spec.audio_length * spec.sample_rate // spec.hop_length + 2  # this is 64 which fits the num mels
     spec.spec_len_samples = spec.image_size
@@ -101,6 +94,7 @@ def get_mels_128():
     spec.nfft = 512
     spec.hop_length = 128
     spec.sample_rate = 16_000
+    spec.fmin = 20
     spec.audio_length = 1
     spec.image_size = spec.audio_length * spec.sample_rate // spec.hop_length + 3  # this is 128 which fits the num mels
     spec.spec_len_samples = spec.image_size

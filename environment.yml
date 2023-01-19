@@ -245,3 +245,4 @@ dependencies:
       - torchnet==0.0.4
       - visdom==0.2.3
       - websocket-client==1.4.2
+      - ml_collections

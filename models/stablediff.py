@@ -93,7 +93,8 @@ class UNetModel(nn.Module):
                 # Residual block maps from previous number of channels plus the
                 # skip connections from the input half of U-Net to the number of
                 # channels in the current level.
-                layers_block = [ResBlock(channels + input_block_channels.pop(), d_time_emb, out_channels=channels_list[i])]
+                layers_block = [
+                    ResBlock(channels + input_block_channels.pop(), d_time_emb, out_channels=channels_list[i])]
                 channels = channels_list[i]
                 # Add transformer
                 if i in attention_levels:

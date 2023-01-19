@@ -23,6 +23,7 @@ from models import utils as mutils
 from models import utils_poisson
 import matplotlib.pyplot as plt
 
+
 def get_optimizer(config, params):
     """Returns a flax optimizer object based on `config`."""
     sched = config.optim.scheduler
@@ -139,7 +140,7 @@ def get_loss_fn(sde, train, reduce_mean=True, continuous=True, eps=1e-5, method_
 
             net_x, net_z = net_fn(perturbed_samples_x, perturbed_samples_z)
             net_x = net_x.view(net_x.shape[0], -1)
-            
+
             # Predicted N+1-dimensional Poisson field
             net = torch.cat([net_x, net_z[:, None]], dim=1)
             # calculate the loss => squared L2 distance TODO add mel specific loss?
@@ -199,7 +200,7 @@ def get_step_fn(sde, train, optimize_fn=None, reduce_mean=False, method_name=Non
         if train:
             optimizer = state['optimizer']
             scheduler = state['scheduler']
-                              
+
             # handle gradient accumulations
             if sde.config.training.accum_iter > 0:
                 # if we accumulated enough, do the optimizer step

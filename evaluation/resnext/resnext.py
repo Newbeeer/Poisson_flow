@@ -18,7 +18,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import init
 
-__all__ = [ 'CifarResNeXt' ]
+__all__ = ['CifarResNeXt']
+
 
 class ResNeXtBottleneck(nn.Module):
     """

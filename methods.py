@@ -4,6 +4,7 @@ import torch
 import numpy as np
 import time
 
+
 class SDE(abc.ABC):
     """SDE abstract class. Functions are designed for a mini-batch of inputs."""
 
@@ -151,7 +152,8 @@ class Poisson():
         # Radius times the angle direction
         init_samples = unit_gaussian * samples_norm
 
-        return init_samples.float().view(len(init_samples), self.config.data.num_channels, self.config.data.image_height, self.config.data.image_width)
+        return init_samples.float().view(len(init_samples), self.config.data.num_channels,
+                                         self.config.data.image_height, self.config.data.image_width)
 
     def ode(self, net_fn, x, t):
         z = torch.exp(t.mean())
@@ -163,16 +165,18 @@ class Poisson():
         # Substitute the predicted z with the ground-truth
         # Please see Appendix B.2.3 in PFGM paper (https://arxiv.org/abs/2209.11178) for details
         z_exp = self.config.sampling.z_exp
-        
+
         if z < z_exp and self.config.training.gamma > 0:
             data_dim = self.config.data.image_height * self.config.data.image_width * self.config.data.channels
-            z_drift = gt_substituion(x_drift, z_drift, z, torch.tensor(data_dim), torch.tensor(self.config.training.gamma))
+            z_drift = gt_substituion(x_drift, z_drift, z, torch.tensor(data_dim),
+                                     torch.tensor(self.config.training.gamma))
 
         # Predicted normalized Poisson field
         v = torch.cat([x_drift, z_drift[:, None]], dim=1)
 
         dt_dz = 1 / (v[:, -1] + 1e-5)
-        dx_dt = v[:, :-1].view(len(x), self.config.data.num_channels, self.config.data.image_height, self.config.data.image_width)
+        dx_dt = v[:, :-1].view(len(x), self.config.data.num_channels, self.config.data.image_height,
+                               self.config.data.image_width)
         dx_dz = dx_dt * dt_dz.view(-1, *([1] * len(x.size()[1:])))
 
         # dx/dt_prime =  z * dx/dz

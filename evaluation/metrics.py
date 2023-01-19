@@ -12,7 +12,9 @@ import random
 
 from evaluation.resnext.resnext_utils import generate_embeddings, generate_label_distribution
 
-from evaluation.utils.constants import RESNEXT_CHECKPOINT_PATH, RESNEXT_TRAIN_EMBEDDINGS_PATH, RESNEXT_TRAIN_LOGITS_PATH, KMEANS_MODEL_PATH
+from evaluation.utils.constants import RESNEXT_CHECKPOINT_PATH, RESNEXT_TRAIN_EMBEDDINGS_PATH, \
+    RESNEXT_TRAIN_LOGITS_PATH, KMEANS_MODEL_PATH
+
 
 def kl(p, q):
     """Kullback-Leibler divergence D(P || Q) for discrete distributions
@@ -33,7 +35,7 @@ def fid(train_embeddings, sample_embeddings):
     mu1, sigma1 = train_embeddings.mean(axis=0), np.cov(train_embeddings, rowvar=False)
     mu2, sigma2 = sample_embeddings.mean(axis=0), np.cov(sample_embeddings, rowvar=False)
     # calculate sum squared difference between means
-    ssdiff = np.sum((mu1 - mu2)**2.0)
+    ssdiff = np.sum((mu1 - mu2) ** 2.0)
     # calculate sqrt of product between cov
     covmean = sqrtm(sigma1.dot(sigma2))
     # check and correct imaginary numbers from sqrt
@@ -76,7 +78,7 @@ def ndb(train_embeddings, sample_embeddings, n_classes=10, alpha=0.05):
     gt_bins = kmeans.predict(train_embeddings)
     gen_bins = kmeans.predict(sample_embeddings)
 
-    # Compute counts per bin
+    #  Compute counts per bin
     gt_bins, gt_counts = np.unique(gt_bins, return_counts=True)
     gen_bins, gen_counts = np.unique(gen_bins, return_counts=True)
 
@@ -97,19 +99,19 @@ def ndb(train_embeddings, sample_embeddings, n_classes=10, alpha=0.05):
     # Compute standard error per bin
     ses = np.sqrt(ps * (1 - ps) * (1 / gt_counts + 1 / gen_counts))
 
-    # Compute z-scores per bin
+    #  Compute z-scores per bin
     zs = (ps_q - ps_p) / ses
 
-    # Compute upper and lower threshold based on alpha
+    #  Compute upper and lower threshold based on alpha
     upper = st.norm.ppf(1 - alpha)
     lower = st.norm.ppf(alpha)
 
-    # Statistically different if z-score outside of thresholds or a bin is empty
+    #  Statistically different if z-score outside of thresholds or a bin is empty
     return np.sum((np.array(zs) > upper) | (np.array(zs) < lower) | (np.isinf(ses))) / n_classes
 
 
 def compute_metrics(audio_path, gt_metrics=False):
-    # Compute embeddings and label distribution
+    #  Compute embeddings and label distribution
     embeddings_train = np.load(RESNEXT_TRAIN_EMBEDDINGS_PATH)
     embeddings_samples = generate_embeddings(RESNEXT_CHECKPOINT_PATH, audio_path)
 

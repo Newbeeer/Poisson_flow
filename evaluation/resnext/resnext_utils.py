@@ -64,6 +64,7 @@ def generate_embeddings(checkpoint_path, dataset_dir, batch_size=128, n_workers=
 
     return torch.cat(embeddings_list, dim=0).numpy()
 
+
 def generate_label_distribution(checkpoint_path, dataset_dir, batch_size=128, n_workers=4, input="mel32"):
     print("loading model...")
     model = torch.load(checkpoint_path).module
@@ -109,7 +110,8 @@ def generate_label_distribution(checkpoint_path, dataset_dir, batch_size=128, n_
 
     return torch.cat(logits_list, dim=0).numpy()
 
-if __name__=='__main__':
+
+if __name__ == '__main__':
     print("Generating train embeddings...")
     embeddings = generate_embeddings()
     logits = generate_label_distribution()
