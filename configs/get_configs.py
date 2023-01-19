@@ -25,7 +25,7 @@ def get_config(args):
     config =  _CONFS[args.conf]()
 
     # set sizes for test mode
-    if 'test' in dict(args):
+    if hasattr(args, 'test'):
         if args.test:
             config.training.batch_size = 2
             config.eval.batch_size = 1
