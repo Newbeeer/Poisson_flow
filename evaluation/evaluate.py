@@ -1,9 +1,10 @@
+"Generate samples of a pretrained model and calculate metrics."
 import os
 import time
 import copy
 import logging
-import numpy as np
 import gc
+import numpy as np
 import torch
 import torchaudio
 from torchvision.utils import make_grid, save_image

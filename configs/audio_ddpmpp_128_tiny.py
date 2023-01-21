@@ -28,7 +28,7 @@ def get_config():
     training = config.training
     training.sde = 'poisson'
     training.continuous = True
-    training.batch_size = 4
+    training.batch_size = 16
     training.small_batch_size = 4
     training.gamma = 5
     training.M = 293
@@ -45,7 +45,7 @@ def get_config():
     data.spec = get_mels_128()
     data.image_height = data.spec.image_size
     data.image_width = data.spec.image_size
-    data.mel_root = 'mel_sc09_128'
+    data.mel_root = 'mel_datasets/sc09_128_v2'
     data.channels = 1
     data.category = 'mel'  # audio, mel
     data.centered = False
@@ -73,8 +73,8 @@ def get_config():
     model.normalization = 'GroupNorm'
     model.nonlinearity = 'swish'
     model.nf = 128
-    model.ch_mult = (1, 2, 2)  # initial (1, 1, 2, 2, 4, 4)
-    model.num_res_blocks = 2  # initial 2
+    model.ch_mult = (1, 2, 4)  # initial (1, 1, 2, 2, 4, 4)
+    model.num_res_blocks = 4  # initial 2
     model.attn_resolutions = ()  # initial (16,)
     model.resamp_with_conv = True
     model.skip_rescale = True

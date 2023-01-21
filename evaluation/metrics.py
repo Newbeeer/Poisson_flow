@@ -1,14 +1,14 @@
-import time
-import numpy as np
+"Functions to calculate a variety of metrics"
+import random
 import pickle
 
+import numpy as np
 from sklearn.cluster import KMeans
-
 from scipy.special import softmax
 from scipy.stats import entropy
 import scipy.stats as st
 from scipy.linalg import sqrtm
-import random
+
 
 from evaluation.resnext.resnext_utils import generate_embeddings, generate_label_distribution
 
