@@ -1,5 +1,4 @@
 """Return training and evaluation/test datasets from config files."""
-from datasets_torch import get_loader as get_torch_loader
 from torch.utils.data import Dataset, DataLoader
 import os
 import numpy as np

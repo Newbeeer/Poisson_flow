@@ -45,7 +45,7 @@ def get_config():
     data.spec = get_mels_128()
     data.image_height = data.spec.image_size
     data.image_width = data.spec.image_size
-    data.mel_root = 'mel_datasets/sc09_128_v2'
+    data.mel_root = 'mel_sc09_128'
     data.channels = 1
     data.category = 'mel'  # audio, mel
     data.centered = False

@@ -46,8 +46,16 @@ python3 generate_dataset.py
   --target_dir: mels are saved here
   --conf: name of the registered config file
 ```
+
+Finally you have to calculate the dataset related hyperparameters using the `hyperparameter_calculator.py` script with
+
+```sh
+python3 hyperparam_calculator.py --conf <name of registered config file>
+
+```
+You need to fill in the `M`, `zmax` and `upper norm` values in the config file.
 ### Training
-Train our models through `train.py`. Don't forget to set the right dataset path, if you generated your own one.
+Train a model through `train.py`. Don't forget to set the right dataset path, if you generated your own one and to calculate its hyperparameters.
 
 ```sh
 python3 train.py:
@@ -86,7 +94,7 @@ To evaluate and generate samples from the 128 deep network from checkpoint numbe
 
 ## Checkpoints
 
-Please place the pretrained checkpoints under the directory `workdir/checkpoints`, e.g., `cifar10_ddpmpp/checkpoints`.
+Please place the pretrained checkpoints under the directory `workdir/checkpoints`, e.g., `128_deep/checkpoints`.
 
 ## Mean Opinion Score
 
