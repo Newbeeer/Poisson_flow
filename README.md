@@ -16,6 +16,8 @@ by [Yilun Xu](http://yilun-xu.com)\*, [Ziming Liu](https://kindxiaoming.github.i
 - Smaller $D$ **more robust** than *Diffusion Models* ( $D\to \infty$ )
 - Enable the **adjustment for model robustness and rigidity**!
 
+**Hence, we recommend the [PFGM++](https://github.com/Newbeeer/pfgmpp) framework for new projects.**
+
 ---
 
 
