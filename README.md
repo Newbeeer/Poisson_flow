@@ -15,6 +15,9 @@ by [Yilun Xu](http://yilun-xu.com)\*, [Ziming Liu](https://kindxiaoming.github.i
 - Existence of **sweet spot** $D^*$ in the middle of $(1,\infty)$!
 - Smaller $D$ **more robust** than *Diffusion Models* ( $D\to \infty$ )
 - Enable the **adjustment for model robustness and rigidity**!
+- Enable **direct transfer of well-tuned hyperparameters** from any existing *Diffusion Models* ( $D\to \infty$ )
+
+
 
 **Hence, we recommend the [PFGM++](https://github.com/Newbeeer/pfgmpp) framework for new projects.**
 
