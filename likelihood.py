@@ -230,6 +230,9 @@ def get_likelihood_fn_pfgm(sde, hutchinson_type='Rademacher',
         prior_log_theta -= np.log(int(i))
       prior_log_theta = - prior_log_theta
 
+      print("delta:", delta_logp)
+      print("prior logp:", prior_logp )
+      print("prior theta:", prior_log_theta)
       bpd = -(prior_logp + delta_logp + prior_log_theta) / np.log(2)
       bpd = bpd / N
       # A hack to convert log-likelihoods to bits/dim

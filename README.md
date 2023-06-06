@@ -4,6 +4,8 @@ Pytorch implementation of the NeurIPS 2022 paper [Poisson Flow Generative Models
 
 by [Yilun Xu](http://yilun-xu.com)\*, [Ziming Liu](https://kindxiaoming.github.io/#pub)\*, [Max Tegmark](https://space.mit.edu/home/tegmark/), [Tommi S. Jaakkola](http://people.csail.mit.edu/tommi/)
 
+[[Slide](https://www.dropbox.com/scl/fi/la0jkj31ohynvepd3syyx/pfgm.pptx?dl=0&rlkey=3myamjcqb0aout9mp406j7iol)]
+
 
 
 **Note**: The method has been extended by the subsequent work [PFGM++: Unlocking the Potential of Physics-Inspired Generative Models](https://arxiv.org/abs/2302.04265) ([code](https://github.com/Newbeeer/pfgmpp)) with the following improvements:
